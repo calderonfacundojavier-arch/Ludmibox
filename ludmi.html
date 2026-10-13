@@ -22,7 +22,9 @@ h1{font-size:34px;line-height:1;margin:14px 0;font-weight:900;text-transform:upp
 .cta:focus-visible,button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .status{margin:12px 0;padding:10px 14px;border:1px solid #14b86a66;border-radius:12px;font-size:12px;color:#34f5a0;background:var(--card)}
 .contacts{display:grid;gap:8px;margin:12px 0}
-.contacts a{display:block;padding:12px;border:1px solid var(--pink);border-radius:30px;color:#fff;text-decoration:none;font-weight:800;font-size:14px;background:var(--card)}
+.cbtn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:12px;border:1px solid var(--pink);border-radius:30px;color:#fff;text-decoration:none;font:inherit;font-weight:800;font-size:14px;background:var(--card);cursor:pointer}
+.cbtn svg{width:22px;height:22px;flex:none}
+.cbtn img{width:24px;height:24px;object-fit:contain;border-radius:6px;flex:none}
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}
 .grid div{border:1px solid var(--pink);border-radius:12px;padding:12px 6px;background:var(--card);font-size:12px;font-weight:800}
 .grid span{display:block;font-weight:400;color:#c9c0d2;margin-top:4px;font-size:11px}
@@ -99,7 +101,7 @@ const DEF={
   bonus_top:"Hasta 50% de bono", bonus_big:"Hasta 50% de bono", bonus_bottom:"Consultá condiciones por el chat",
   cta:"Quiero mi bono ahora", status:"Caja asignada: Caja Ludmi · Atención por chat", bg_url:"",
   features:[{t:"Pagos rápidos",s:"Por transferencia"},{t:"Atención por chat",s:"Respondemos acá"},{t:"Retiros",s:"Consultá condiciones"}],
-  instagram:"", contacts:[], platforms_title:"Plataformas", platforms:[], games_title:"Juegos", games:[],
+  instagram:"", instagram_icon:"", contacts:[], platforms_title:"Plataformas", platforms:[], games_title:"Juegos", games:[],
   footer:"Solo mayores de 18 años. El juego puede generar adicción: jugá con responsabilidad.",
   license:"Autorización: [COMPLETAR]", chat_title:"Chat con Caja Ludmi", greeting:"¡Hola! ¿En qué te puedo ayudar?"
 };
@@ -118,6 +120,23 @@ function txt(id,v){const e=$(id);e.textContent=v;e.hidden=!v}
 function mkImg(src,alt){
   const u=safe(src);if(!u)return null;
   const i=document.createElement("img");i.src=u;i.alt=alt||"";i.loading="lazy";i.decoding="async";return i;
+}
+/* Íconos genéricos (no son los logos de las marcas). Cada botón puede usar un ícono propio subido desde el panel. */
+const ICONS={
+  whatsapp:[["path",{d:"M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"}]],
+  instagram:[["rect",{x:3,y:4,width:18,height:16,rx:3}],["circle",{cx:9,cy:9.5,r:1.6}],["path",{d:"M3 17l5-5 4 4 3-3 6 6"}]],
+  chat:[["path",{d:"M4 5h16v11H9l-5 4z"}]],
+  link:[["path",{d:"M7 17L17 7M9 7h8v8"}]]
+};
+function iconEl(k){
+  const custom=mkImg(k.icon,"");
+  if(custom)return custom;
+  const NS="http://www.w3.org/2000/svg",svg=document.createElementNS(NS,"svg");
+  svg.setAttribute("viewBox","0 0 24 24");svg.setAttribute("fill","none");svg.setAttribute("stroke","currentColor");
+  svg.setAttribute("stroke-width","2");svg.setAttribute("stroke-linecap","round");svg.setAttribute("stroke-linejoin","round");
+  svg.setAttribute("aria-hidden","true");
+  (ICONS[k.type]||ICONS.link).forEach(([tag,at])=>{const n=document.createElementNS(NS,tag);for(const a in at)n.setAttribute(a,at[a]);svg.append(n)});
+  return svg;
 }
 function fillRow(sec,row,items){
   const list=(items||[]).filter(it=>it&&safe(it.img));
@@ -140,11 +159,22 @@ function apply(c){
   $("feat").replaceChildren(...c.features.filter(f=>f&&f.t).map(f=>{
     const d=document.createElement("div");d.append(f.t);
     if(f.s){const s=document.createElement("span");s.textContent=f.s;d.append(s)}return d}));
-  const ig=safe(c.instagram);
-  const links=(ig?[{l:"Instagram",u:ig}]:[]).concat(c.contacts.map(k=>({l:k&&k.label,u:safe(k&&k.url,["https:","http:","mailto:","tel:"])}))).filter(k=>k.u&&k.l);
-  $("ct").replaceChildren(...links.map(k=>{
-    const a=document.createElement("a");a.href=k.u;a.textContent=k.l;a.target="_blank";a.rel="noopener noreferrer";return a}));
-  $("ct").hidden=!links.length;
+  const ig=safe(c.instagram),items=[];
+  if(ig)items.push({type:"instagram",l:"Instagram",u:ig,icon:c.instagram_icon});
+  c.contacts.forEach(k=>{
+    if(!k||typeof k!=="object")return;
+    const type=["whatsapp","instagram","chat","link"].includes(k.type)?k.type:"link";
+    if(type==="chat"){if(k.label)items.push({type,l:k.label,icon:k.icon});return}
+    const u=safe(k.url,["https:","http:","mailto:","tel:"]);
+    if(u&&k.label)items.push({type,l:k.label,u,icon:k.icon});
+  });
+  $("ct").replaceChildren(...items.map(k=>{
+    const chat=k.type==="chat",e=document.createElement(chat?"button":"a");e.className="cbtn";
+    if(chat){e.type="button";e.onclick=()=>$("open").click()}
+    else{e.href=k.u;e.target="_blank";e.rel="noopener noreferrer"}
+    e.append(iconEl(k));
+    const t=document.createElement("span");t.textContent=k.l;e.append(t);return e}));
+  $("ct").hidden=!items.length;
   txt("platT",c.platforms_title);fillRow($("plat"),$("platRow"),c.platforms);
   txt("gmsT",c.games_title);fillRow($("gms"),$("gmsRow"),c.games);
   $("plat").hidden=$("plat").hidden||!c.platforms.length;

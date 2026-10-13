@@ -213,7 +213,7 @@ const DEFL={
   bonus_top:"Hasta 50% de bono", bonus_big:"Hasta 50% de bono", bonus_bottom:"Consultá condiciones por el chat",
   cta:"Quiero mi bono ahora", status:"Caja asignada: Caja Ludmi · Atención por chat", bg_url:"",
   features:[{t:"Pagos rápidos",s:"Por transferencia"},{t:"Atención por chat",s:"Respondemos acá"},{t:"Retiros",s:"Consultá condiciones"}],
-  instagram:"", contacts:[], platforms_title:"Plataformas", platforms:[], games_title:"Juegos", games:[],
+  instagram:"", instagram_icon:"", contacts:[], platforms_title:"Plataformas", platforms:[], games_title:"Juegos", games:[],
   footer:"Solo mayores de 18 años. El juego puede generar adicción: jugá con responsabilidad.",
   license:"Autorización: [COMPLETAR]", chat_title:"Chat con Caja Ludmi", greeting:"¡Hola! ¿En qué te puedo ayudar?"
 };
@@ -334,10 +334,22 @@ function buildForm(){
     sec("Beneficios","Las tres cajitas debajo del botón.",
       ...cfg.features.map((f,i)=>el("div",{class:"li"},inp(f,"t","Título "+(i+1),40),inp(f,"s","Detalle",60)))),
     sec("Instagram","Escribí tu usuario (@tuusuario) o pegá el link de tu perfil. Aparece como botón arriba de los demás contactos.",
-      fText("Instagram","instagram",{ph:"@tuusuario"})),
-    sec("Contacto","Botones de contacto que se muestran debajo del botón verde. En «Enlace» podés poner un link (https://…), un número de WhatsApp con código de país (ej. 5491122334455) o un correo (mailto:tu@correo.com).",
-      fList("contacts",{max:6,add:"+ Agregar contacto",make:()=>({label:"",url:""}),
-        row:it=>el("div",{},inp(it,"label","Nombre del botón (ej. WhatsApp)",40),inp(it,"url","Enlace o número",300))})),
+      fText("Instagram","instagram",{ph:"@tuusuario"}),
+      el("div",{},el("label",{class:"fl"},"Ícono propio (opcional). Si no subís nada, se usa un ícono genérico"),imgCtl(()=>cfg.instagram_icon,v=>cfg.instagram_icon=v,96))),
+    sec("Botones de contacto","Aparecen debajo del botón verde. Elegí el tipo: WhatsApp (poné el número con código de país, ej. 5491122334455), Instagram, Chat de la página (abre el chat interno, no lleva enlace) u Otro enlace. Cada botón usa un ícono genérico; si querés el logo oficial, subilo en «Ícono propio».",
+      fList("contacts",{max:6,add:"+ Agregar botón",make:()=>({type:"link",label:"",url:"",icon:""}),
+        row:it=>{
+          const sel=el("select",{class:"fi"});
+          [["whatsapp","WhatsApp"],["instagram","Instagram"],["chat","Chat de la página (abre el chat)"],["link","Otro enlace"]]
+            .forEach(([v,t])=>sel.append(el("option",{value:v,textContent:t})));
+          sel.value=it.type||"link";
+          const u=inp(it,"url","",300);
+          const sync=()=>{u.hidden=sel.value==="chat";
+            u.placeholder=sel.value==="whatsapp"?"Número con código de país (ej. 5491122334455)":sel.value==="instagram"?"@usuario o link del perfil":"https://…"};
+          sel.onchange=()=>{it.type=sel.value;dirty=true;sync()};sync();
+          return el("div",{class:"acc"},sel,inp(it,"label","Texto del botón (ej. Escribinos)",40),u,
+            el("label",{class:"fl"},"Ícono propio (opcional)"),imgCtl(()=>it.icon,v=>it.icon=v,96));
+        }})),
     sec("Plataformas",null,fText("Título de la sección","platforms_title"),
       fList("platforms",{max:24,add:"+ Agregar plataforma",make:()=>({name:"",img:"",url:""}),
         row:it=>el("div",{class:"acc"},imgCtl(()=>it.img,v=>it.img=v,300),inp(it,"name","Nombre",30),inp(it,"url","Link al tocar la imagen (https://…)",300))})),
@@ -373,15 +385,18 @@ function collect(){
   for(const k of ["avatar_url","bg_url"])d[k]=(d[k]||"").trim();
   const ig=cleanIG(d.instagram);
   if(ig===null){say("El Instagram no es válido. Escribí tu usuario (ej. @tuusuario) o el link de tu perfil.");return null}
-  d.instagram=ig;
+  d.instagram=ig;d.instagram_icon=(d.instagram_icon||"").trim();
   d.features=d.features.map(f=>({t:f.t.trim(),s:f.s.trim()}));
   const out=[];
   for(const c of d.contacts){
-    const label=(c.label||"").trim(),raw=(c.url||"").trim();
+    const type=["whatsapp","instagram","chat","link"].includes(c.type)?c.type:"link";
+    const label=(c.label||"").trim(),raw=(c.url||"").trim(),icon=(c.icon||"").trim();
+    if(type==="chat"){out.push({type,label:label||"Chat en vivo",url:"",icon});continue}
     if(!label&&!raw)continue;
-    const u=cleanUrl(raw);
-    if(!label||!u){say("Revisá el contacto «"+(label||raw)+"»: necesita un nombre y un enlace o número válido.");return null}
-    out.push({label,url:u});
+    const u=type==="instagram"?cleanIG(raw):cleanUrl(raw);
+    const lab=label||(type==="whatsapp"?"WhatsApp":type==="instagram"?"Instagram":"");
+    if(!lab||!u){say("Revisá el botón «"+(lab||raw)+"»: necesita un texto y un enlace o número válido.");return null}
+    out.push({type,label:lab,url:u,icon});
   }
   d.contacts=out;
   for(const k of ["platforms","games"]){
