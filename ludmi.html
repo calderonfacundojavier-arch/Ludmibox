@@ -99,7 +99,7 @@ const DEF={
   bonus_top:"Hasta 50% de bono", bonus_big:"Hasta 50% de bono", bonus_bottom:"Consultá condiciones por el chat",
   cta:"Quiero mi bono ahora", status:"Caja asignada: Caja Ludmi · Atención por chat", bg_url:"",
   features:[{t:"Pagos rápidos",s:"Por transferencia"},{t:"Atención por chat",s:"Respondemos acá"},{t:"Retiros",s:"Consultá condiciones"}],
-  contacts:[], platforms_title:"Plataformas", platforms:[], games_title:"Juegos", games:[],
+  instagram:"", contacts:[], platforms_title:"Plataformas", platforms:[], games_title:"Juegos", games:[],
   footer:"Solo mayores de 18 años. El juego puede generar adicción: jugá con responsabilidad.",
   license:"Autorización: [COMPLETAR]", chat_title:"Chat con Caja Ludmi", greeting:"¡Hola! ¿En qué te puedo ayudar?"
 };
@@ -140,7 +140,8 @@ function apply(c){
   $("feat").replaceChildren(...c.features.filter(f=>f&&f.t).map(f=>{
     const d=document.createElement("div");d.append(f.t);
     if(f.s){const s=document.createElement("span");s.textContent=f.s;d.append(s)}return d}));
-  const links=c.contacts.map(k=>({l:k&&k.label,u:safe(k&&k.url,["https:","http:","mailto:","tel:"])})).filter(k=>k.u&&k.l);
+  const ig=safe(c.instagram);
+  const links=(ig?[{l:"Instagram",u:ig}]:[]).concat(c.contacts.map(k=>({l:k&&k.label,u:safe(k&&k.url,["https:","http:","mailto:","tel:"])}))).filter(k=>k.u&&k.l);
   $("ct").replaceChildren(...links.map(k=>{
     const a=document.createElement("a");a.href=k.u;a.textContent=k.l;a.target="_blank";a.rel="noopener noreferrer";return a}));
   $("ct").hidden=!links.length;
@@ -182,12 +183,10 @@ function kv(label,v){
   const s=document.createElement("span");s.append(label+": ");
   const c=document.createElement("code");c.textContent=v;s.append(c);r.append(s,copyBtn(v));return r;
 }
-function showPay(){
-  if(!PAY||!PAY.accounts.length)return;
-  const old=$("payCard");if(old)old.remove();
+function payBox(intro,accounts){
   const box=document.createElement("div");
-  if(PAY.intro){const p=document.createElement("div");p.textContent=PAY.intro;box.append(p)}
-  PAY.accounts.forEach(a=>{
+  if(intro){const p=document.createElement("div");p.textContent=String(intro);box.append(p)}
+  accounts.forEach(a=>{
     const d=document.createElement("div");d.className="acct";
     if(a.label){const b=document.createElement("b");b.textContent=String(a.label);d.append(b)}
     if(a.holder){const h=document.createElement("div");h.textContent="Titular: "+a.holder;d.append(h)}
@@ -196,7 +195,23 @@ function showPay(){
     if(a.note){const n=document.createElement("small");n.textContent=String(a.note);d.append(n)}
     box.append(d);
   });
-  const m=bubble({sender:"agent",kind:"text",created_at:new Date()},box);m.id="payCard";m.classList.add("card");
+  return box;
+}
+function showPay(){
+  if(!PAY||!PAY.accounts.length)return;
+  const old=$("payCard");if(old)old.remove();
+  const m=bubble({sender:"agent",kind:"text",created_at:new Date()},payBox(PAY.intro,PAY.accounts));
+  m.id="payCard";m.classList.add("card");
+}
+/* cuentas que te manda el agente por el chat: llegan como mensaje con esta marca */
+const MARK="[[CUENTAS]]";
+function agentPay(m){
+  try{
+    const d=JSON.parse(m.body.slice(MARK.length));
+    const accts=(Array.isArray(d.a)?d.a:[]).slice(0,6).map(r=>({label:r[0],holder:r[1],cbu:r[2],alias:r[3],note:r[4]}));
+    if(!accts.length)return false;
+    const b=bubble(m,payBox(d.i,accts));b.classList.add("card");return true;
+  }catch{return false}
 }
 $("pay").onclick=showPay;
 
@@ -222,7 +237,7 @@ function bubble(m,el){
 }
 async function render(m){
   if(seen.has(m.id))return; seen.add(m.id);
-  if(m.kind==="text") return bubble(m);
+  if(m.kind==="text"){if(m.sender==="agent"&&typeof m.body==="string"&&m.body.startsWith(MARK)&&agentPay(m))return;return bubble(m)}
   const {data}=await sb.storage.from("chat-media").createSignedUrl(m.media_path,3600);
   const el=document.createElement(m.kind==="image"?"img":"audio"); el.src=data?data.signedUrl:""; if(m.kind==="audio")el.controls=true;
   bubble(m,el);

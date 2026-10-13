@@ -83,7 +83,7 @@ textarea.fi{min-height:78px;resize:vertical;font-family:inherit}
     <div id="pane" hidden>
       <header><button id="back" aria-label="Volver">←</button><div class="av" id="hav" style="width:40px;height:40px;font-size:16px"></div><span id="title" title="Tocá para poner un nombre"></span></header>
       <div id="msgs"></div>
-      <div id="bar"><label class="ic" title="Enviar imagen" tabindex="0">📎<input id="file" type="file" accept="image/jpeg,image/png,image/webp" hidden></label><input id="txt" placeholder="Escribí un mensaje" autocomplete="off" maxlength="2000"><button class="ic" id="mic" aria-label="Grabar audio" title="Grabar audio">🎤</button><button id="send" aria-label="Enviar">➤</button></div>
+      <div id="bar"><label class="ic" title="Enviar imagen" tabindex="0">📎<input id="file" type="file" accept="image/jpeg,image/png,image/webp" hidden></label><button class="ic" id="sendPay" aria-label="Enviar datos para transferir" title="Enviar datos para transferir">💳</button><input id="txt" placeholder="Escribí un mensaje" autocomplete="off" maxlength="2000"><button class="ic" id="mic" aria-label="Grabar audio" title="Grabar audio">🎤</button><button id="send" aria-label="Enviar">➤</button></div>
     </div>
   </section>
 </div>
@@ -103,6 +103,10 @@ let cur=null, rt="conectando…", who="";
 const dbg=()=>{$("dbg").textContent=`Agente: ${who} · ${seen.size} mensajes · chats: ${Object.keys(all).length} · tiempo real: ${rt}`};
 const LS={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
 let names={}, lastSeen=LS.get("lastSeen",{});
+const MARK="[[CUENTAS]]";
+const isPay=m=>m.sender==="agent"&&m.kind==="text"&&typeof m.body==="string"&&m.body.startsWith(MARK);
+const payN=m=>{try{return JSON.parse(m.body.slice(MARK.length)).a.length}catch{return 0}};
+const payLabel=m=>"💳 Datos para transferir ("+payN(m)+(payN(m)===1?" cuenta)":" cuentas)");
 const nm=id=>names[id]||"Visitante "+id.slice(0,6);
 const hue=id=>parseInt(id.slice(0,6),16)%360;
 const fmt=(d,full)=>{d=new Date(d);const t=d.toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"});return full||d.toDateString()===new Date().toDateString()?t:d.toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit"})};
@@ -148,7 +152,7 @@ function list(){
     d.innerHTML='<div class="av"></div><div class="ci"><div class="top"><span class="nm"></span><span class="tm"></span></div><div class="pv"><span></span><b class="badge" hidden></b></div></div>';
     avatar(d.querySelector(".av"),id);
     d.querySelector(".nm").textContent=nm(id);d.querySelector(".tm").textContent=fmt(l.created_at);
-    const pre=l.kind==="text"?l.body:(l.kind==="image"?"📷 Foto":"🎤 Audio");
+    const pre=isPay(l)?payLabel(l):l.kind==="text"?l.body:(l.kind==="image"?"📷 Foto":"🎤 Audio");
     d.querySelector(".pv span").textContent=(l.sender==="agent"?"Vos: ":"")+pre;
     if(n){const b=d.querySelector(".badge");b.hidden=false;b.textContent=n}
     d.onclick=()=>open(id);return d}));
@@ -161,7 +165,7 @@ function open(id){
 }
 function draw(m){
   const d=document.createElement("div");d.className="m "+(m.sender==="agent"?"out":"in");
-  if(m.kind==="text")d.append(m.body);
+  if(m.kind==="text")d.append(isPay(m)?payLabel(m):m.body);
   else{const el=document.createElement(m.kind==="image"?"img":"audio");if(m.kind==="audio")el.controls=true;d.appendChild(el);
     sb.storage.from("chat-media").createSignedUrl(m.media_path,3600).then(({data})=>{if(data){el.src=data.signedUrl;if(m.kind==="image")el.onclick=()=>window.open(data.signedUrl,"_blank")}})}
   const t=document.createElement("time");t.textContent=fmt(m.created_at,true);d.appendChild(t);
@@ -209,7 +213,7 @@ const DEFL={
   bonus_top:"Hasta 50% de bono", bonus_big:"Hasta 50% de bono", bonus_bottom:"Consultá condiciones por el chat",
   cta:"Quiero mi bono ahora", status:"Caja asignada: Caja Ludmi · Atención por chat", bg_url:"",
   features:[{t:"Pagos rápidos",s:"Por transferencia"},{t:"Atención por chat",s:"Respondemos acá"},{t:"Retiros",s:"Consultá condiciones"}],
-  contacts:[], platforms_title:"Plataformas", platforms:[], games_title:"Juegos", games:[],
+  instagram:"", contacts:[], platforms_title:"Plataformas", platforms:[], games_title:"Juegos", games:[],
   footer:"Solo mayores de 18 años. El juego puede generar adicción: jugá con responsabilidad.",
   license:"Autorización: [COMPLETAR]", chat_title:"Chat con Caja Ludmi", greeting:"¡Hola! ¿En qué te puedo ayudar?"
 };
@@ -329,6 +333,8 @@ function buildForm(){
       fImg("Imagen de fondo","bg_url",1600)),
     sec("Beneficios","Las tres cajitas debajo del botón.",
       ...cfg.features.map((f,i)=>el("div",{class:"li"},inp(f,"t","Título "+(i+1),40),inp(f,"s","Detalle",60)))),
+    sec("Instagram","Escribí tu usuario (@tuusuario) o pegá el link de tu perfil. Aparece como botón arriba de los demás contactos.",
+      fText("Instagram","instagram",{ph:"@tuusuario"})),
     sec("Contacto","Botones de contacto que se muestran debajo del botón verde. En «Enlace» podés poner un link (https://…), un número de WhatsApp con código de país (ej. 5491122334455) o un correo (mailto:tu@correo.com).",
       fList("contacts",{max:6,add:"+ Agregar contacto",make:()=>({label:"",url:""}),
         row:it=>el("div",{},inp(it,"label","Nombre del botón (ej. WhatsApp)",40),inp(it,"url","Enlace o número",300))})),
@@ -350,6 +356,12 @@ function buildForm(){
   );
 }
 /* convierte lo que escribió el agente en un enlace válido, o null */
+function cleanIG(raw){
+  let u=String(raw||"").trim();if(!u)return "";
+  const m=u.match(/^(?:https?:\/\/)?(?:www\.)?instagram\.com\/([A-Za-z0-9._]{1,30})\/?(?:\?.*)?$/i);
+  if(m)u=m[1];else u=u.replace(/^@/,"");
+  return /^[A-Za-z0-9._]{1,30}$/.test(u)?"https://www.instagram.com/"+u+"/":null;
+}
 function cleanUrl(raw,webOnly){
   let u=String(raw||"").trim();if(!u)return "";
   if(!webOnly&&/^\+?[\d\s-]{8,18}$/.test(u))return "https://wa.me/"+u.replace(/\D/g,"");
@@ -359,6 +371,9 @@ function cleanUrl(raw,webOnly){
 function collect(){
   const d=JSON.parse(JSON.stringify(cfg));
   for(const k of ["avatar_url","bg_url"])d[k]=(d[k]||"").trim();
+  const ig=cleanIG(d.instagram);
+  if(ig===null){say("El Instagram no es válido. Escribí tu usuario (ej. @tuusuario) o el link de tu perfil.");return null}
+  d.instagram=ig;
   d.features=d.features.map(f=>({t:f.t.trim(),s:f.s.trim()}));
   const out=[];
   for(const c of d.contacts){
@@ -412,6 +427,21 @@ async function openEditor(){
   const row=k=>((data||[]).find(r=>r.key===k)||{}).data;
   cfg=mergeL(row("landing"));pay=mergePay(row("payments"));dirty=false;buildForm();
 }
+async function sendPayInfo(){
+  if(!cur)return;
+  const {data,error}=await sb.from("site_settings").select("data").eq("key","payments").maybeSingle();
+  if(error){say("No se pudieron leer las cuentas: "+error.message);return}
+  const d=(data&&data.data)||{};
+  const act=(Array.isArray(d.accounts)?d.accounts:[]).filter(a=>a&&a.on&&(a.cbu||a.alias));
+  if(!act.length){say("No hay cuentas activas. Cargalas en ⚙ Landing > Datos para transferir.");return}
+  const mk=drop=>MARK+JSON.stringify({i:d.intro||"",a:act.map(a=>[a.label||"",a.holder||"",a.cbu||"",a.alias||"",drop?"":(a.note||"")])});
+  let body=mk(false);if(body.length>1900)body=mk(true);
+  if(body.length>1900){say("Son demasiadas cuentas activas para un solo mensaje. Desactivá alguna.");return}
+  if(!confirm("¿Enviar los datos de "+act.length+(act.length===1?" cuenta":" cuentas")+" a este contacto?"))return;
+  const r=await sb.from("messages").insert({visitor_id:cur,sender:"agent",kind:"text",body});
+  say(r.error?"No se pudo enviar: "+r.error.message:"Enviado.");
+}
+$("sendPay").onclick=sendPayInfo;
 $("edLand").onclick=openEditor;
 $("edSave").onclick=saveLanding;
 $("edBack").onclick=()=>{if(dirty&&!confirm("Tenés cambios sin guardar. ¿Salir igual?"))return;$("ed").hidden=true};
