@@ -65,6 +65,8 @@ textarea.fi{min-height:78px;resize:vertical;font-family:inherit}
 .sm{padding:9px 12px;border:0;border-radius:8px;background:var(--hover);cursor:pointer;font-size:13px}
 .sm.del{color:#f87171}.sm:disabled{opacity:.5;cursor:wait}
 #ed header .primary{background:var(--accent);color:#111b21;border-radius:8px;padding:9px 16px;font-weight:700;font-size:14px}
+.ck{display:flex;gap:8px;align-items:center;font-size:14px;margin:8px 0;cursor:pointer}
+.acc{flex:1 1 100%;border:1px solid var(--line);border-radius:10px;padding:10px;display:grid;gap:6px}
 #edMsg{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);padding:11px 16px;border-radius:8px;font-size:14px;max-width:90%;z-index:30;box-shadow:0 4px 20px #0008}
 @media(max-width:760px){#side{width:100%}#chat{display:none;position:fixed;inset:0;z-index:5}#app.open #chat{display:flex}#back{display:block}}
 </style></head>
@@ -211,7 +213,14 @@ const DEFL={
   footer:"Solo mayores de 18 años. El juego puede generar adicción: jugá con responsabilidad.",
   license:"Autorización: [COMPLETAR]", chat_title:"Chat con Caja Ludmi", greeting:"¡Hola! ¿En qué te puedo ayudar?"
 };
-let cfg=null, dirty=false, msgT;
+let cfg=null, pay=null, dirty=false, msgT;
+const PAYDEF={intro:"Para cargar saldo, transferí a cualquiera de estas cuentas y mandá el comprobante por este chat.",auto_show:true,accounts:[]};
+function mergePay(d){
+  const o=JSON.parse(JSON.stringify(PAYDEF));
+  if(d){if(typeof d.intro==="string")o.intro=d.intro;if(typeof d.auto_show==="boolean")o.auto_show=d.auto_show;
+    if(Array.isArray(d.accounts))o.accounts=JSON.parse(JSON.stringify(d.accounts))}
+  return o;
+}
 function say(t){const m=$("edMsg");m.textContent=t;m.hidden=!t;clearTimeout(msgT);if(t)msgT=setTimeout(()=>m.hidden=true,5000)}
 function el(tag,props,...kids){
   const e=document.createElement(tag);
@@ -265,30 +274,37 @@ function imgCtl(get,set,max){
   show();
   return el("div",{class:"ctl"},th,up,rm,file);
 }
-function fText(label,key,o){
+function fTextO(label,obj,key,o){
   o=o||{};
-  const i=el(o.area?"textarea":"input",{class:"fi",value:cfg[key]||"",maxLength:o.area?600:140,placeholder:o.ph||""});
-  i.oninput=()=>{cfg[key]=i.value;dirty=true};
+  const i=el(o.area?"textarea":"input",{class:"fi",value:obj[key]||"",maxLength:o.area?600:140,placeholder:o.ph||""});
+  i.oninput=()=>{obj[key]=i.value;dirty=true};
   return el("div",{},el("label",{class:"fl"},label),i);
+}
+function fText(label,key,o){return fTextO(label,cfg,key,o)}
+function fCheck(label,obj,key){
+  const c=el("input",{type:"checkbox",checked:!!obj[key]});
+  c.onchange=()=>{obj[key]=c.checked;dirty=true};
+  return el("label",{class:"ck"},c,label);
 }
 function fImg(label,key,max,hint){
   return el("div",{},el("label",{class:"fl"},label+(hint?" · "+hint:"")),imgCtl(()=>cfg[key],v=>cfg[key]=v,max));
 }
-function fList(key,o){
+function fList(key,o,obj){
+  obj=obj||cfg;
   const box=el("div");
   const draw=()=>{
     box.replaceChildren();
-    cfg[key].forEach((it,i)=>{
+    obj[key].forEach((it,i)=>{
       const r=o.row(it);r.classList.add("li");
       if(i>0){const u=el("button",{class:"sm",type:"button",textContent:"↑",title:"Subir"});
-        u.onclick=()=>{[cfg[key][i-1],cfg[key][i]]=[cfg[key][i],cfg[key][i-1]];dirty=true;draw()};r.append(u)}
+        u.onclick=()=>{[obj[key][i-1],obj[key][i]]=[obj[key][i],obj[key][i-1]];dirty=true;draw()};r.append(u)}
       const d=el("button",{class:"sm del",type:"button",textContent:"Eliminar"});
-      d.onclick=()=>{cfg[key].splice(i,1);dirty=true;draw()};r.append(d);
+      d.onclick=()=>{obj[key].splice(i,1);dirty=true;draw()};r.append(d);
       box.append(r);
     });
-    if(cfg[key].length<o.max){
+    if(obj[key].length<o.max){
       const a=el("button",{class:"sm",type:"button",textContent:o.add});
-      a.onclick=()=>{cfg[key].push(o.make());dirty=true;draw()};box.append(a);
+      a.onclick=()=>{obj[key].push(o.make());dirty=true;draw()};box.append(a);
     }
   };
   draw();return box;
@@ -317,21 +333,28 @@ function buildForm(){
       fList("contacts",{max:6,add:"+ Agregar contacto",make:()=>({label:"",url:""}),
         row:it=>el("div",{},inp(it,"label","Nombre del botón (ej. WhatsApp)",40),inp(it,"url","Enlace o número",300))})),
     sec("Plataformas",null,fText("Título de la sección","platforms_title"),
-      fList("platforms",{max:24,add:"+ Agregar plataforma",make:()=>({name:"",img:""}),
-        row:it=>el("div",{},imgCtl(()=>it.img,v=>it.img=v,300),inp(it,"name","Nombre",30))})),
+      fList("platforms",{max:24,add:"+ Agregar plataforma",make:()=>({name:"",img:"",url:""}),
+        row:it=>el("div",{class:"acc"},imgCtl(()=>it.img,v=>it.img=v,300),inp(it,"name","Nombre",30),inp(it,"url","Link al tocar la imagen (https://…)",300))})),
     sec("Juegos",null,fText("Título de la sección","games_title"),
-      fList("games",{max:24,add:"+ Agregar juego",make:()=>({name:"",img:""}),
-        row:it=>el("div",{},imgCtl(()=>it.img,v=>it.img=v,300),inp(it,"name","Nombre",30))})),
+      fList("games",{max:24,add:"+ Agregar juego",make:()=>({name:"",img:"",url:""}),
+        row:it=>el("div",{class:"acc"},imgCtl(()=>it.img,v=>it.img=v,300),inp(it,"name","Nombre",30),inp(it,"url","Link al tocar la imagen (https://…)",300))})),
+    sec("Datos para transferir","Se muestran dentro del chat, con botón para copiar. No aparecen en la página: solo los ve quien abre el chat. Revisá bien los números: un error manda la plata a otra cuenta.",
+      fCheck("Mostrar solos la primera vez que alguien abre el chat",pay,"auto_show"),
+      fTextO("Mensaje antes de las cuentas",pay,"intro",{area:true}),
+      fList("accounts",{max:6,add:"+ Agregar cuenta",make:()=>({label:"",holder:"",cbu:"",alias:"",note:"",on:true}),
+        row:it=>el("div",{class:"acc"},inp(it,"label","Banco o billetera (ej. Mercado Pago)",40),inp(it,"holder","Titular de la cuenta",60),
+          inp(it,"cbu","CBU o CVU (22 números)",30),inp(it,"alias","Alias",30),inp(it,"note","Nota opcional (ej. solo hasta las 22 hs)",100),
+          fCheck("Cuenta activa (si la desmarcás, deja de mostrarse)",it,"on"))},pay)),
     sec("Pie de página",null,fText("Texto legal","footer",{area:true}),fText("Datos de autorización / licencia","license")),
     sec("Chat",null,fText("Título de la ventana de chat","chat_title"),fText("Mensaje de bienvenida (se muestra al abrir el chat)","greeting",{area:true}))
   );
 }
 /* convierte lo que escribió el agente en un enlace válido, o null */
-function cleanUrl(raw){
+function cleanUrl(raw,webOnly){
   let u=String(raw||"").trim();if(!u)return "";
-  if(/^\+?[\d\s-]{8,18}$/.test(u))return "https://wa.me/"+u.replace(/\D/g,"");
+  if(!webOnly&&/^\+?[\d\s-]{8,18}$/.test(u))return "https://wa.me/"+u.replace(/\D/g,"");
   if(!/^[a-z][a-z0-9+.-]*:/i.test(u)&&/^[^\s]+\.[^\s]+$/.test(u))u="https://"+u;
-  try{const x=new URL(u);return ["https:","http:","mailto:","tel:"].includes(x.protocol)?x.href:null}catch{return null}
+  try{const x=new URL(u);return (webOnly?["https:","http:"]:["https:","http:","mailto:","tel:"]).includes(x.protocol)?x.href:null}catch{return null}
 }
 function collect(){
   const d=JSON.parse(JSON.stringify(cfg));
@@ -346,23 +369,48 @@ function collect(){
     out.push({label,url:u});
   }
   d.contacts=out;
-  d.platforms=d.platforms.filter(p=>p.img).map(p=>({name:(p.name||"").trim(),img:p.img}));
-  d.games=d.games.filter(p=>p.img).map(p=>({name:(p.name||"").trim(),img:p.img}));
+  for(const k of ["platforms","games"]){
+    const list=[];
+    for(const it of d[k]){
+      if(!it.img)continue;
+      const raw=(it.url||"").trim(),u=cleanUrl(raw,true);
+      if(raw&&!u){say("El link de «"+((it.name||"").trim()||"una imagen")+"» no es válido. Tiene que empezar con https://");return null}
+      list.push({name:(it.name||"").trim(),img:it.img,url:u||""});
+    }
+    d[k]=list;
+  }
+  return d;
+}
+function collectPay(){
+  const d={intro:(pay.intro||"").trim(),auto_show:!!pay.auto_show,accounts:[]};
+  for(const a of pay.accounts){
+    const x={label:(a.label||"").trim(),holder:(a.holder||"").trim(),cbu:(a.cbu||"").replace(/[\s-]/g,""),
+      alias:(a.alias||"").trim(),note:(a.note||"").trim(),on:!!a.on};
+    if(!x.label&&!x.holder&&!x.cbu&&!x.alias)continue;
+    const nm=x.label||x.holder||"una cuenta";
+    if(x.cbu&&!/^\d{22}$/.test(x.cbu)){say("El CBU/CVU de «"+nm+"» debe tener exactamente 22 números.");return null}
+    if(x.alias&&!/^[A-Za-z0-9._-]{6,20}$/.test(x.alias)){say("El alias de «"+nm+"» no es válido (6 a 20 caracteres, sin espacios).");return null}
+    if(!x.cbu&&!x.alias){say("«"+nm+"» necesita CBU/CVU o alias.");return null}
+    d.accounts.push(x);
+  }
   return d;
 }
 async function saveLanding(){
   const data=collect();if(!data)return;
+  const pdata=collectPay();if(!pdata)return;
   const b=$("edSave");b.disabled=true;b.textContent="Guardando…";
-  const {error}=await sb.from("site_settings").upsert({key:"landing",data,updated_at:new Date().toISOString()});
+  const now=new Date().toISOString();
+  const {error}=await sb.from("site_settings").upsert([{key:"landing",data,updated_at:now},{key:"payments",data:pdata,updated_at:now}]);
   b.disabled=false;b.textContent="Guardar cambios";
   if(error)return say("No se pudo guardar: "+error.message);
-  cfg=mergeL(data);dirty=false;say("Guardado. Ya se ve en la landing.");buildForm();
+  cfg=mergeL(data);pay=mergePay(pdata);dirty=false;say("Guardado. Ya se ve en la landing.");buildForm();
 }
 async function openEditor(){
   $("ed").hidden=false;$("edBody").textContent="Cargando…";
-  const {data,error}=await sb.from("site_settings").select("data").eq("key","landing").maybeSingle();
+  const {data,error}=await sb.from("site_settings").select("key,data").in("key",["landing","payments"]);
   if(error){$("edBody").textContent="No se pudo cargar: "+error.message+". ¿Ejecutaste supabase-landing.sql?";return}
-  cfg=mergeL(data&&data.data);dirty=false;buildForm();
+  const row=k=>((data||[]).find(r=>r.key===k)||{}).data;
+  cfg=mergeL(row("landing"));pay=mergePay(row("payments"));dirty=false;buildForm();
 }
 $("edLand").onclick=openEditor;
 $("edSave").onclick=saveLanding;
