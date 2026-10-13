@@ -49,6 +49,23 @@ header button{background:none;border:0;cursor:pointer;color:var(--muted);font-si
 .ic{width:44px;height:44px;border:0;border-radius:50%;background:none;color:var(--muted);font-size:20px;cursor:pointer;display:grid;place-items:center;flex:none}
 .ic.rec{background:#dc2626;color:#fff;animation:p 1s infinite}@keyframes p{50%{opacity:.55}}
 @media(prefers-reduced-motion:reduce){.ic.rec{animation:none}}
+/* editor de landing */
+#ed{position:fixed;inset:0;z-index:20;background:var(--bg);display:flex;flex-direction:column}
+#edBody{flex:1;overflow-y:auto;padding:16px;width:100%;max-width:760px;margin:0 auto}
+#ed header a{color:var(--accent);font-size:13px;text-decoration:none;white-space:nowrap}
+.fs{margin-bottom:26px}.fs h3{font-size:14px;color:var(--accent);margin:0 0 6px}
+.nt{font-size:12px;color:var(--muted);margin:0 0 8px;line-height:1.45}
+.fl{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px}
+.fi{width:100%;border:0;border-radius:8px;padding:11px 12px;background:var(--hover);font-size:15px;outline:0}
+textarea.fi{min-height:78px;resize:vertical;font-family:inherit}
+.li{display:flex;gap:8px;align-items:center;margin:8px 0;flex-wrap:wrap}
+.li>.fi{flex:1 1 140px;min-width:0;width:auto}
+.ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.th{width:52px;height:52px;border-radius:8px;object-fit:cover;background:var(--hover);flex:none}
+.sm{padding:9px 12px;border:0;border-radius:8px;background:var(--hover);cursor:pointer;font-size:13px}
+.sm.del{color:#f87171}.sm:disabled{opacity:.5;cursor:wait}
+#ed header .primary{background:var(--accent);color:#111b21;border-radius:8px;padding:9px 16px;font-weight:700;font-size:14px}
+#edMsg{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);padding:11px 16px;border-radius:8px;font-size:14px;max-width:90%;z-index:30;box-shadow:0 4px 20px #0008}
 @media(max-width:760px){#side{width:100%}#chat{display:none;position:fixed;inset:0;z-index:5}#app.open #chat{display:flex}#back{display:block}}
 </style></head>
 <body>
@@ -58,7 +75,7 @@ header button{background:none;border:0;cursor:pointer;color:var(--muted);font-si
   <button>Entrar</button><small id="err"></small></form>
 
 <div id="app" hidden>
-  <aside id="side"><header><span>Chats</span><small id="live" hidden style="color:#f59e0b;font-weight:400">⚠ Sin tiempo real, recargá</small><span class="sp"></span><button id="out">Salir</button></header><div id="dbg"></div><div id="list"></div></aside>
+  <aside id="side"><header><span>Chats</span><small id="live" hidden style="color:#f59e0b;font-weight:400">⚠ Sin tiempo real, recargá</small><span class="sp"></span><button id="edLand">⚙ Landing</button><button id="out">Salir</button></header><div id="dbg"></div><div id="list"></div></aside>
   <section id="chat">
     <div id="blank">Seleccioná una conversación<br>para empezar a responder.</div>
     <div id="pane" hidden>
@@ -68,6 +85,12 @@ header button{background:none;border:0;cursor:pointer;color:var(--muted);font-si
     </div>
   </section>
 </div>
+
+<div id="ed" hidden>
+  <header><button id="edBack" aria-label="Volver">←</button><span>Editar landing</span><span class="sp"></span><a href="/ludmi" target="_blank" rel="noopener">Ver landing</a><button id="edSave" class="primary">Guardar cambios</button></header>
+  <div id="edBody"></div>
+</div>
+<div id="edMsg" hidden role="status"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
@@ -178,5 +201,172 @@ $("mic").onclick=async()=>{
     rec.start();$("mic").classList.add("rec");timer=setTimeout(()=>rec.stop(),120000);
   }catch{alert("Permití el acceso al micrófono para enviar audios.")}
 };
+/* ---------- editor de la landing ---------- */
+const DEFL={
+  avatar_url:"", name:"LUDMI", title:"Tu bono de bienvenida",
+  bonus_top:"Hasta 50% de bono", bonus_big:"Hasta 50% de bono", bonus_bottom:"Consultá condiciones por el chat",
+  cta:"Quiero mi bono ahora", status:"Caja asignada: Caja Ludmi · Atención por chat", bg_url:"",
+  features:[{t:"Pagos rápidos",s:"Por transferencia"},{t:"Atención por chat",s:"Respondemos acá"},{t:"Retiros",s:"Consultá condiciones"}],
+  contacts:[], platforms_title:"Plataformas", platforms:[], games_title:"Juegos", games:[],
+  footer:"Solo mayores de 18 años. El juego puede generar adicción: jugá con responsabilidad.",
+  license:"Autorización: [COMPLETAR]", chat_title:"Chat con Caja Ludmi", greeting:"¡Hola! ¿En qué te puedo ayudar?"
+};
+let cfg=null, dirty=false, msgT;
+function say(t){const m=$("edMsg");m.textContent=t;m.hidden=!t;clearTimeout(msgT);if(t)msgT=setTimeout(()=>m.hidden=true,5000)}
+function el(tag,props,...kids){
+  const e=document.createElement(tag);
+  for(const k in (props||{})){if(k==="class")e.className=props[k];else if(k in e)e[k]=props[k];else e.setAttribute(k,props[k])}
+  e.append(...kids);return e;
+}
+function mergeL(c){
+  const o={};
+  for(const k in DEFL){const v=c&&c[k];
+    o[k]=(typeof v===typeof DEFL[k]&&v!==null&&(!Array.isArray(DEFL[k])||Array.isArray(v)))?JSON.parse(JSON.stringify(v)):JSON.parse(JSON.stringify(DEFL[k]))}
+  while(o.features.length<3)o.features.push({t:"",s:""});
+  o.features=o.features.slice(0,3);
+  return o;
+}
+async function shrink(file,max){
+  try{
+    const bmp=await createImageBitmap(file),r=Math.min(1,max/Math.max(bmp.width,bmp.height));
+    if(r===1&&file.size<400*1024)return file;
+    const c=document.createElement("canvas");c.width=Math.round(bmp.width*r);c.height=Math.round(bmp.height*r);
+    c.getContext("2d").drawImage(bmp,0,0,c.width,c.height);
+    const b=await new Promise(res=>c.toBlob(res,"image/webp",.85));
+    return b&&b.size<file.size?b:file;
+  }catch{return file}
+}
+async function uploadSite(file,max){
+  if(!/^image\/(jpeg|png|webp)$/.test(file.type)){say("Usá una imagen JPG, PNG o WebP.");return null}
+  const blob=await shrink(file,max);
+  if(blob.size>5*1024*1024){say("La imagen sigue pesando más de 5 MB. Probá con una más chica.");return null}
+  const ext=blob.type==="image/webp"?"webp":blob.type==="image/png"?"png":"jpg";
+  const path=`site/${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
+  const {error}=await sb.storage.from("site-assets").upload(path,blob,{contentType:blob.type,cacheControl:"31536000"});
+  if(error){say("No se pudo subir la imagen: "+error.message);return null}
+  return sb.storage.from("site-assets").getPublicUrl(path).data.publicUrl;
+}
+/* botón de subir imagen + miniatura */
+function imgCtl(get,set,max){
+  const th=el("img",{class:"th",alt:""});
+  const show=()=>{const u=get();if(u)th.src=u;else th.removeAttribute("src");th.style.visibility=u?"visible":"hidden"};
+  const file=el("input",{type:"file",accept:"image/jpeg,image/png,image/webp",hidden:true});
+  const up=el("button",{class:"sm",type:"button",textContent:"Subir imagen"});
+  up.onclick=()=>file.click();
+  file.onchange=async()=>{
+    const f=file.files[0];file.value="";if(!f)return;
+    up.disabled=true;up.textContent="Subiendo…";
+    const u=await uploadSite(f,max);
+    up.disabled=false;up.textContent="Subir imagen";
+    if(u){set(u);dirty=true;show()}
+  };
+  const rm=el("button",{class:"sm del",type:"button",textContent:"Quitar"});
+  rm.onclick=()=>{set("");dirty=true;show()};
+  show();
+  return el("div",{class:"ctl"},th,up,rm,file);
+}
+function fText(label,key,o){
+  o=o||{};
+  const i=el(o.area?"textarea":"input",{class:"fi",value:cfg[key]||"",maxLength:o.area?600:140,placeholder:o.ph||""});
+  i.oninput=()=>{cfg[key]=i.value;dirty=true};
+  return el("div",{},el("label",{class:"fl"},label),i);
+}
+function fImg(label,key,max,hint){
+  return el("div",{},el("label",{class:"fl"},label+(hint?" · "+hint:"")),imgCtl(()=>cfg[key],v=>cfg[key]=v,max));
+}
+function fList(key,o){
+  const box=el("div");
+  const draw=()=>{
+    box.replaceChildren();
+    cfg[key].forEach((it,i)=>{
+      const r=o.row(it);r.classList.add("li");
+      if(i>0){const u=el("button",{class:"sm",type:"button",textContent:"↑",title:"Subir"});
+        u.onclick=()=>{[cfg[key][i-1],cfg[key][i]]=[cfg[key][i],cfg[key][i-1]];dirty=true;draw()};r.append(u)}
+      const d=el("button",{class:"sm del",type:"button",textContent:"Eliminar"});
+      d.onclick=()=>{cfg[key].splice(i,1);dirty=true;draw()};r.append(d);
+      box.append(r);
+    });
+    if(cfg[key].length<o.max){
+      const a=el("button",{class:"sm",type:"button",textContent:o.add});
+      a.onclick=()=>{cfg[key].push(o.make());dirty=true;draw()};box.append(a);
+    }
+  };
+  draw();return box;
+}
+function inp(it,k,ph,max){
+  const i=el("input",{class:"fi",value:it[k]||"",placeholder:ph,maxLength:max||140});
+  i.oninput=()=>{it[k]=i.value;dirty=true};return i;
+}
+function sec(title,note,...kids){
+  const s=el("section",{class:"fs"},el("h3",{},title));
+  if(note)s.append(el("p",{class:"nt"},note));
+  s.append(...kids);return s;
+}
+function buildForm(){
+  const b=$("edBody");b.replaceChildren();
+  b.append(
+    sec("Perfil",null,fImg("Foto de perfil","avatar_url",400,"se recorta en círculo"),fText("Nombre","name")),
+    sec("Textos principales",null,
+      fText("Título","title"),fText("Bono: línea superior","bonus_top"),fText("Bono: texto grande","bonus_big"),
+      fText("Bono: línea inferior","bonus_bottom"),fText("Texto del botón verde","cta"),fText("Texto de estado (debajo del botón)","status")),
+    sec("Fondo","Si no subís nada, queda el degradado violeta. Se oscurece solo para que se lea el texto.",
+      fImg("Imagen de fondo","bg_url",1600)),
+    sec("Beneficios","Las tres cajitas debajo del botón.",
+      ...cfg.features.map((f,i)=>el("div",{class:"li"},inp(f,"t","Título "+(i+1),40),inp(f,"s","Detalle",60)))),
+    sec("Contacto","Botones de contacto que se muestran debajo del botón verde. En «Enlace» podés poner un link (https://…), un número de WhatsApp con código de país (ej. 5491122334455) o un correo (mailto:tu@correo.com).",
+      fList("contacts",{max:6,add:"+ Agregar contacto",make:()=>({label:"",url:""}),
+        row:it=>el("div",{},inp(it,"label","Nombre del botón (ej. WhatsApp)",40),inp(it,"url","Enlace o número",300))})),
+    sec("Plataformas",null,fText("Título de la sección","platforms_title"),
+      fList("platforms",{max:24,add:"+ Agregar plataforma",make:()=>({name:"",img:""}),
+        row:it=>el("div",{},imgCtl(()=>it.img,v=>it.img=v,300),inp(it,"name","Nombre",30))})),
+    sec("Juegos",null,fText("Título de la sección","games_title"),
+      fList("games",{max:24,add:"+ Agregar juego",make:()=>({name:"",img:""}),
+        row:it=>el("div",{},imgCtl(()=>it.img,v=>it.img=v,300),inp(it,"name","Nombre",30))})),
+    sec("Pie de página",null,fText("Texto legal","footer",{area:true}),fText("Datos de autorización / licencia","license")),
+    sec("Chat",null,fText("Título de la ventana de chat","chat_title"),fText("Mensaje de bienvenida (se muestra al abrir el chat)","greeting",{area:true}))
+  );
+}
+/* convierte lo que escribió el agente en un enlace válido, o null */
+function cleanUrl(raw){
+  let u=String(raw||"").trim();if(!u)return "";
+  if(/^\+?[\d\s-]{8,18}$/.test(u))return "https://wa.me/"+u.replace(/\D/g,"");
+  if(!/^[a-z][a-z0-9+.-]*:/i.test(u)&&/^[^\s]+\.[^\s]+$/.test(u))u="https://"+u;
+  try{const x=new URL(u);return ["https:","http:","mailto:","tel:"].includes(x.protocol)?x.href:null}catch{return null}
+}
+function collect(){
+  const d=JSON.parse(JSON.stringify(cfg));
+  for(const k of ["avatar_url","bg_url"])d[k]=(d[k]||"").trim();
+  d.features=d.features.map(f=>({t:f.t.trim(),s:f.s.trim()}));
+  const out=[];
+  for(const c of d.contacts){
+    const label=(c.label||"").trim(),raw=(c.url||"").trim();
+    if(!label&&!raw)continue;
+    const u=cleanUrl(raw);
+    if(!label||!u){say("Revisá el contacto «"+(label||raw)+"»: necesita un nombre y un enlace o número válido.");return null}
+    out.push({label,url:u});
+  }
+  d.contacts=out;
+  d.platforms=d.platforms.filter(p=>p.img).map(p=>({name:(p.name||"").trim(),img:p.img}));
+  d.games=d.games.filter(p=>p.img).map(p=>({name:(p.name||"").trim(),img:p.img}));
+  return d;
+}
+async function saveLanding(){
+  const data=collect();if(!data)return;
+  const b=$("edSave");b.disabled=true;b.textContent="Guardando…";
+  const {error}=await sb.from("site_settings").upsert({key:"landing",data,updated_at:new Date().toISOString()});
+  b.disabled=false;b.textContent="Guardar cambios";
+  if(error)return say("No se pudo guardar: "+error.message);
+  cfg=mergeL(data);dirty=false;say("Guardado. Ya se ve en la landing.");buildForm();
+}
+async function openEditor(){
+  $("ed").hidden=false;$("edBody").textContent="Cargando…";
+  const {data,error}=await sb.from("site_settings").select("data").eq("key","landing").maybeSingle();
+  if(error){$("edBody").textContent="No se pudo cargar: "+error.message+". ¿Ejecutaste supabase-landing.sql?";return}
+  cfg=mergeL(data&&data.data);dirty=false;buildForm();
+}
+$("edLand").onclick=openEditor;
+$("edSave").onclick=saveLanding;
+$("edBack").onclick=()=>{if(dirty&&!confirm("Tenés cambios sin guardar. ¿Salir igual?"))return;$("ed").hidden=true};
+
 boot();
 </script></body></html>
