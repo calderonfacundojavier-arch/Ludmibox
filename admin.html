@@ -128,6 +128,8 @@ async function boot(){
   if(!a||!a.length){$("err").textContent="Este usuario no es agente.";await sb.auth.signOut();return}
   const {data:cs,error:ce}=await sb.from("contacts").select("*");(cs||[]).forEach(c=>names[c.visitor_id]=c.name);
   $("login").hidden=true;$("app").hidden=false;
+  const pch=sb.channel("agent-presence",{config:{presence:{key:"agent-"+session.user.id}}});
+  pch.subscribe(async st=>{if(st==="SUBSCRIBED")await pch.track({at:Date.now()})});
   const {data,error}=await sb.from("messages").select("*").order("created_at",{ascending:false}).limit(2000);
   if(error){$("list").textContent="No se pudieron cargar los chats: "+error.message;return}
   data.reverse().forEach(m=>add(m));list();dbg();
@@ -215,7 +217,10 @@ const DEFL={
   features:[{t:"Pagos rápidos",s:"Por transferencia"},{t:"Atención por chat",s:"Respondemos acá"},{t:"Retiros",s:"Consultá condiciones"}],
   fab_on:true, fab_always:true, fab_text:"Chat", icon_fab:"", icon_attach:"", icon_mic:"", icon_send:"", icon_pay:"", instagram:"", instagram_icon:"", contacts:[], platforms_title:"Plataformas", platforms:[], games_title:"Juegos", games:[],
   footer:"Solo mayores de 18 años. El juego puede generar adicción: jugá con responsabilidad.",
-  license:"Autorización: [COMPLETAR]", chat_title:"Chat con Caja Ludmi", greeting:"¡Hola! ¿En qué te puedo ayudar?"
+  license:"Autorización: [COMPLETAR]", chat_title:"Chat con Caja Ludmi", greeting:"¡Hola! ¿En qué te puedo ayudar?",
+  chat_notice:"Conectado. Escribinos y te respondemos.", chat_theme:"light",
+  status_online:"en línea", status_offline:"Te respondemos apenas podamos",
+  quick:[{label:"Cargar",text:"Quiero cargar saldo",action:"pay"},{label:"Retirar",text:"Quiero retirar",action:"message"},{label:"Soporte",text:"Necesito soporte",action:"message"}]
 };
 let cfg=null, pay=null, dirty=false, msgT;
 const PAYDEF={intro:"Para cargar saldo, transferí a cualquiera de estas cuentas y mandá el comprobante por este chat.",auto_show:true,accounts:[]};
@@ -280,7 +285,7 @@ function imgCtl(get,set,max){
 }
 function fTextO(label,obj,key,o){
   o=o||{};
-  const i=el(o.area?"textarea":"input",{class:"fi",value:obj[key]||"",maxLength:o.area?600:140,placeholder:o.ph||""});
+  const i=el(o.area?"textarea":"input",{class:"fi",value:obj[key]||"",maxLength:o.max||(o.area?600:140),placeholder:o.ph||""});
   i.oninput=()=>{obj[key]=i.value;dirty=true};
   return el("div",{},el("label",{class:"fl"},label),i);
 }
@@ -289,6 +294,12 @@ function fCheck(label,obj,key){
   const c=el("input",{type:"checkbox",checked:!!obj[key]});
   c.onchange=()=>{obj[key]=c.checked;dirty=true};
   return el("label",{class:"ck"},c,label);
+}
+function fSelect(label,obj,key,opts){
+  const sel=el("select",{class:"fi"});
+  opts.forEach(([v,t])=>sel.append(el("option",{value:v,textContent:t})));
+  sel.value=obj[key]||opts[0][0];sel.onchange=()=>{obj[key]=sel.value;dirty=true};
+  return el("div",{},el("label",{class:"fl"},label),sel);
 }
 function fImg(label,key,max,hint){
   return el("div",{},el("label",{class:"fl"},label+(hint?" · "+hint:"")),imgCtl(()=>cfg[key],v=>cfg[key]=v,max));
@@ -364,7 +375,22 @@ function buildForm(){
           inp(it,"cbu","CBU o CVU (22 números)",30),inp(it,"alias","Alias",30),inp(it,"note","Nota opcional (ej. solo hasta las 22 hs)",100),
           fCheck("Cuenta activa (si la desmarcás, deja de mostrarse)",it,"on"))},pay)),
     sec("Pie de página",null,fText("Texto legal","footer",{area:true}),fText("Datos de autorización / licencia","license")),
-    sec("Chat",null,fText("Título de la ventana de chat","chat_title"),fText("Mensaje de bienvenida (se muestra al abrir el chat)","greeting",{area:true})),
+    sec("Chat","Cómo se ve la ventana de chat para el usuario. El estado «en línea» se muestra solo mientras tengas abierto este panel; si no, se muestra el otro texto.",
+      fSelect("Estilo",cfg,"chat_theme",[["light","Claro (tipo WhatsApp)"],["dark","Oscuro (violeta)"]]),
+      fText("Nombre que se muestra arriba (la foto es la de perfil)","chat_title"),
+      fText("Texto de estado cuando estás conectado","status_online"),
+      fText("Texto de estado cuando no estás conectado","status_offline"),
+      fText("Aviso centrado al abrir el chat","chat_notice"),
+      fText("Mensajes de bienvenida. Separá cada mensaje con una línea en blanco","greeting",{area:true,max:1500})),
+    sec("Botones rápidos del chat","Aparecen arriba de la barra de escritura (por ejemplo Cargar, Retirar, Soporte). Al tocarlos se envía un mensaje a tu panel. El primero se ve resaltado.",
+      fList("quick",{max:5,add:"+ Agregar botón rápido",make:()=>({label:"",text:"",action:"message"}),
+        row:it=>{
+          const sel=el("select",{class:"fi"});
+          [["message","Solo envía el mensaje"],["pay","Envía el mensaje y muestra los datos para transferir"]]
+            .forEach(([v,t])=>sel.append(el("option",{value:v,textContent:t})));
+          sel.value=it.action||"message";sel.onchange=()=>{it.action=sel.value;dirty=true};
+          return el("div",{class:"acc"},inp(it,"label","Texto del botón (ej. Cargar)",24),inp(it,"text","Mensaje que se envía (ej. Quiero cargar saldo)",120),sel);
+        }})),
     sec("Botón flotante de chat","Botón verde que acompaña al usuario mientras baja por la página y abre el chat con un toque. Se esconde cuando el chat está abierto.",
       fCheck("Mostrar el botón flotante",cfg,"fab_on"),
       fCheck("Mostrarlo siempre. Si lo desmarcás, aparece recién cuando el usuario baja y deja de ver el botón verde de arriba",cfg,"fab_always"),
@@ -396,6 +422,9 @@ function collect(){
   d.instagram=ig;d.instagram_icon=(d.instagram_icon||"").trim();
   for(const k of ["icon_attach","icon_mic","icon_send","icon_pay","icon_fab"])d[k]=(d[k]||"").trim();
   d.fab_text=(d.fab_text||"").trim();
+  d.chat_theme=d.chat_theme==="dark"?"dark":"light";
+  for(const k of ["chat_title","chat_notice","status_online","status_offline","greeting"])d[k]=(d[k]||"").trim();
+  d.quick=d.quick.filter(q=>q&&(q.label||"").trim()).map(q=>({label:q.label.trim(),text:(q.text||"").trim(),action:q.action==="pay"?"pay":"message"}));
   d.features=d.features.map(f=>({t:f.t.trim(),s:f.s.trim()}));
   const out=[];
   for(const c of d.contacts){
