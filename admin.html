@@ -38,6 +38,11 @@ header button{background:none;border:0;cursor:pointer;color:var(--muted);font-si
 #title{cursor:pointer;flex:1}
 #msgs{flex:1;overflow-y:auto;padding:14px 5%;display:flex;flex-direction:column;gap:4px}
 .m{max-width:min(75%,520px);padding:6px 8px 4px 10px;border-radius:8px;font-size:14.5px;line-height:1.35;word-wrap:break-word;white-space:pre-wrap;box-shadow:0 1px .5px #0004}
+.pcap{display:block;color:#ffffffaa;font-size:11px;margin-bottom:6px}
+.pcc{margin-top:8px;padding:8px 10px;border-radius:8px;background:#0005;font-size:13px;line-height:1.5}
+.pcc b{display:block}.pcc small{display:block;opacity:.8;margin-top:4px}
+.lo{flex:1 1 200px;font-size:14px}
+.sysn{align-self:center;background:var(--panel);color:var(--muted);font-size:12px;padding:5px 12px;border-radius:8px;margin:4px 0;text-align:center}
 .m.in{align-self:flex-start;background:var(--panel);border-top-left-radius:0}
 .m.out{align-self:flex-end;background:var(--out);border-top-right-radius:0}
 .m time{float:right;margin:6px 0 0 10px;font-size:11px;color:#ffffff99}
@@ -104,13 +109,15 @@ const dbg=()=>{$("dbg").textContent=`Agente: ${who} · ${seen.size} mensajes · 
 const LS={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
 let names={}, lastSeen=LS.get("lastSeen",{});
 const MARK="[[CUENTAS]]";
+const SEEN="[[CUENTAS_VISTAS]]";
+const isSeen=m=>m.sender==="visitor"&&m.kind==="text"&&typeof m.body==="string"&&m.body.startsWith(SEEN);
 const isPay=m=>m.sender==="agent"&&m.kind==="text"&&typeof m.body==="string"&&m.body.startsWith(MARK);
 const payN=m=>{try{return JSON.parse(m.body.slice(MARK.length)).a.length}catch{return 0}};
 const payLabel=m=>"💳 Datos para transferir ("+payN(m)+(payN(m)===1?" cuenta)":" cuentas)");
 const nm=id=>names[id]||"Visitante "+id.slice(0,6);
 const hue=id=>parseInt(id.slice(0,6),16)%360;
 const fmt=(d,full)=>{d=new Date(d);const t=d.toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"});return full||d.toDateString()===new Date().toDateString()?t:d.toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit"})};
-const unreadN=id=>all[id].filter(m=>m.sender==="visitor"&&new Date(m.created_at)>new Date(lastSeen[id]||0)).length;
+const unreadN=id=>all[id].filter(m=>m.sender==="visitor"&&!isSeen(m)&&new Date(m.created_at)>new Date(lastSeen[id]||0)).length;
 const markSeen=id=>{lastSeen[id]=all[id].at(-1).created_at;LS.set("lastSeen",lastSeen)};
 function beep(){try{const c=new(window.AudioContext||window.webkitAudioContext)(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=880;g.gain.value=.08;o.start();o.stop(c.currentTime+.15)}catch{}}
 function avatar(el,id){el.style.background=`hsl(${hue(id)} 45% 38%)`;el.textContent=names[id]?names[id][0].toUpperCase():"👤"}
@@ -143,7 +150,7 @@ function add(m,live){
   if(seen.has(m.id))return;seen.add(m.id);
   (all[m.visitor_id]=all[m.visitor_id]||[]).push(m);
   if(m.visitor_id===cur){draw(m);if(live)markSeen(cur)}
-  else if(live&&m.sender==="visitor")beep();
+  else if(live&&m.sender==="visitor"&&!isSeen(m))beep();
 }
 function list(){
   const ids=Object.keys(all).sort((a,b)=>new Date(all[b].at(-1).created_at)-new Date(all[a].at(-1).created_at));
@@ -154,7 +161,7 @@ function list(){
     d.innerHTML='<div class="av"></div><div class="ci"><div class="top"><span class="nm"></span><span class="tm"></span></div><div class="pv"><span></span><b class="badge" hidden></b></div></div>';
     avatar(d.querySelector(".av"),id);
     d.querySelector(".nm").textContent=nm(id);d.querySelector(".tm").textContent=fmt(l.created_at);
-    const pre=isPay(l)?payLabel(l):l.kind==="text"?l.body:(l.kind==="image"?"📷 Foto":"🎤 Audio");
+    const pre=isSeen(l)?"💳 Se le mostraron los datos":isPay(l)?payLabel(l):l.kind==="text"?l.body:(l.kind==="image"?"📷 Foto":"🎤 Audio");
     d.querySelector(".pv span").textContent=(l.sender==="agent"?"Vos: ":"")+pre;
     if(n){const b=d.querySelector(".badge");b.hidden=false;b.textContent=n}
     d.onclick=()=>open(id);return d}));
@@ -165,9 +172,30 @@ function open(id){
   $("title").textContent=nm(id);avatar($("hav"),id);
   $("msgs").replaceChildren();all[id].forEach(draw);list();
 }
+/* mismo mensaje que ve el usuario: texto de presentación + cuentas */
+const parsePay=(m,mark)=>{try{const d=JSON.parse(m.body.slice(mark.length));return Array.isArray(d.a)&&d.a.length?d:null}catch{return null}};
+function payBox(d,caption){
+  const box=document.createElement("div");
+  const c=document.createElement("small");c.className="pcap";c.textContent=caption;box.append(c);
+  if(d.i){const p=document.createElement("div");p.textContent=String(d.i);box.append(p)}
+  d.a.slice(0,6).forEach(r=>{
+    const [label,holder,cbu,alias,note]=Array.isArray(r)?r:[];
+    const a=document.createElement("div");a.className="pcc";
+    if(label){const b=document.createElement("b");b.textContent=String(label);a.append(b)}
+    [["CBU/CVU",cbu],["Alias",alias],["Titular",holder]].forEach(([k,v])=>{if(v){const row=document.createElement("div");row.textContent=k+": "+v;a.append(row)}});
+    if(note){const n=document.createElement("small");n.textContent=String(note);a.append(n)}
+    box.append(a)});
+  return box;
+}
 function draw(m){
-  const d=document.createElement("div");d.className="m "+(m.sender==="agent"?"out":"in");
-  if(m.kind==="text")d.append(isPay(m)?payLabel(m):m.body);
+  if(isSeen(m)&&!parsePay(m,SEEN)){
+    const n=document.createElement("div");n.className="sysn";n.textContent="💳 Se le mostraron los datos para transferir · "+fmt(m.created_at,true);
+    $("msgs").appendChild(n);$("msgs").scrollTop=1e9;return;
+  }
+  const d=document.createElement("div");d.className="m "+(m.sender==="agent"||isSeen(m)?"out":"in");
+  if(isSeen(m))d.append(payBox(parsePay(m,SEEN),"💳 Esto se le mostró al usuario"));
+  else if(isPay(m)&&parsePay(m,MARK))d.append(payBox(parsePay(m,MARK),"💳 Datos que le enviaste"));
+  else if(m.kind==="text")d.append(isPay(m)?payLabel(m):m.body);
   else{const el=document.createElement(m.kind==="image"?"img":"audio");if(m.kind==="audio")el.controls=true;d.appendChild(el);
     sb.storage.from("chat-media").createSignedUrl(m.media_path,3600).then(({data})=>{if(data){el.src=data.signedUrl;if(m.kind==="image")el.onclick=()=>window.open(data.signedUrl,"_blank")}})}
   const t=document.createElement("time");t.textContent=fmt(m.created_at,true);d.appendChild(t);
@@ -210,6 +238,13 @@ $("mic").onclick=async()=>{
   }catch{alert("Permití el acceso al micrófono para enviar audios.")}
 };
 /* ---------- editor de la landing ---------- */
+const BLOCKS=[["bonus","Cuadro del bono"],["cta","Botón verde y su texto de estado"],["platforms","Plataformas"],["games","Juegos"],["features","Las 3 cajitas (Pagos, Atención, Retiros)"],["faq","Desplegables (por ejemplo Retiros)"],["contacts","Botones de contacto (Instagram, WhatsApp, chat)"]];
+function normLayout(a){
+  const ids=BLOCKS.map(b=>b[0]),out=[],seenIds=new Set();
+  (Array.isArray(a)?a:[]).forEach(x=>{if(x&&typeof x==="object"&&ids.includes(x.id)&&!seenIds.has(x.id)){seenIds.add(x.id);out.push({id:x.id,on:x.on!==false})}});
+  ids.forEach(id=>{if(!seenIds.has(id))out.push({id,on:true})});
+  return out;
+}
 const DEFL={
   avatar_url:"", name:"LUDMI", title:"Tu bono de bienvenida",
   bonus_top:"Hasta 50% de bono", bonus_big:"Hasta 50% de bono", bonus_bottom:"Consultá condiciones por el chat",
@@ -220,7 +255,8 @@ const DEFL={
   license:"Autorización: [COMPLETAR]", chat_title:"Chat con Caja Ludmi", greeting:"¡Hola! ¿En qué te puedo ayudar?",
   chat_notice:"Conectado. Escribinos y te respondemos.", chat_theme:"light",
   status_online:"en línea", status_offline:"Te respondemos apenas podamos",
-  quick:[{label:"Cargar",text:"Quiero cargar saldo",action:"pay"},{label:"Retirar",text:"Quiero retirar",action:"message"},{label:"Soporte",text:"Necesito soporte",action:"message"}]
+  quick:[{label:"Cargar",text:"Quiero cargar saldo",action:"pay"},{label:"Retirar",text:"Quiero retirar",action:"message"},{label:"Soporte",text:"Necesito soporte",action:"message"}],
+  layout:BLOCKS.map(b=>({id:b[0],on:true})), faq_title:"Retiros", faq:[]
 };
 let cfg=null, pay=null, dirty=false, msgT;
 const PAYDEF={intro:"Para cargar saldo, transferí a cualquiera de estas cuentas y mandá el comprobante por este chat.",auto_show:true,accounts:[]};
@@ -242,6 +278,7 @@ function mergeL(c){
     o[k]=(typeof v===typeof DEFL[k]&&v!==null&&(!Array.isArray(DEFL[k])||Array.isArray(v)))?JSON.parse(JSON.stringify(v)):JSON.parse(JSON.stringify(DEFL[k]))}
   while(o.features.length<3)o.features.push({t:"",s:""});
   o.features=o.features.slice(0,3);
+  o.layout=normLayout(o.layout);
   return o;
 }
 async function shrink(file,max){
@@ -301,6 +338,22 @@ function fSelect(label,obj,key,opts){
   sel.value=obj[key]||opts[0][0];sel.onchange=()=>{obj[key]=sel.value;dirty=true};
   return el("div",{},el("label",{class:"fl"},label),sel);
 }
+function fLayout(){
+  const box=el("div");
+  const draw=()=>{
+    box.replaceChildren();
+    cfg.layout.forEach((it,i)=>{
+      const lab=(BLOCKS.find(b=>b[0]===it.id)||[0,it.id])[1];
+      const up=el("button",{class:"sm",type:"button",textContent:"↑",title:"Subir",disabled:i===0});
+      const dn=el("button",{class:"sm",type:"button",textContent:"↓",title:"Bajar",disabled:i===cfg.layout.length-1});
+      up.onclick=()=>{[cfg.layout[i-1],cfg.layout[i]]=[cfg.layout[i],cfg.layout[i-1]];dirty=true;draw()};
+      dn.onclick=()=>{[cfg.layout[i+1],cfg.layout[i]]=[cfg.layout[i],cfg.layout[i+1]];dirty=true;draw()};
+      const ck=el("input",{type:"checkbox",checked:it.on});ck.onchange=()=>{it.on=ck.checked;dirty=true};
+      box.append(el("div",{class:"li"},el("span",{class:"lo",textContent:(i+1)+". "+lab}),up,dn,el("label",{class:"ck"},ck,"Mostrar")));
+    });
+  };
+  draw();return box;
+}
 function fImg(label,key,max,hint){
   return el("div",{},el("label",{class:"fl"},label+(hint?" · "+hint:"")),imgCtl(()=>cfg[key],v=>cfg[key]=v,max));
 }
@@ -337,6 +390,7 @@ function buildForm(){
   const b=$("edBody");b.replaceChildren();
   b.append(
     sec("Perfil",null,fImg("Foto de perfil","avatar_url",400,"se recorta en círculo"),fText("Nombre","name")),
+    sec("Orden de la página","Usá las flechas para subir o bajar cada sección, y desmarcá «Mostrar» para esconderla. Arriba siempre quedan la foto, el nombre y el título, y abajo el texto legal. Una sección sin contenido (por ejemplo, sin plataformas cargadas) no se muestra aunque esté marcada.",fLayout()),
     sec("Textos principales",null,
       fText("Título","title"),fText("Bono: línea superior","bonus_top"),fText("Bono: texto grande","bonus_big"),
       fText("Bono: línea inferior","bonus_bottom"),fText("Texto del botón verde","cta"),fText("Texto de estado (debajo del botón)","status")),
@@ -344,6 +398,12 @@ function buildForm(){
       fImg("Imagen de fondo","bg_url",1600)),
     sec("Beneficios","Las tres cajitas debajo del botón.",
       ...cfg.features.map((f,i)=>el("div",{class:"li"},inp(f,"t","Título "+(i+1),40),inp(f,"s","Detalle",60)))),
+    sec("Desplegables","Secciones que se abren al tocarlas. Sirven para explicar con detalle, por ejemplo cómo funcionan los retiros: pasos, mínimos, tiempos. Cada uno lleva un título y su explicación. Si no cargás ninguno, la sección no se muestra.",
+      fText("Título de la sección (ej. Retiros)","faq_title"),
+      fList("faq",{max:12,add:"+ Agregar desplegable",make:()=>({q:"",a:""}),
+        row:it=>{const t=el("textarea",{class:"fi",rows:4,value:it.a||"",maxLength:1200,placeholder:"Explicación (podés escribir varias líneas)"});
+          t.oninput=()=>{it.a=t.value;dirty=true};
+          return el("div",{class:"acc"},inp(it,"q","Título (ej. ¿Cómo retiro?)",140),t)}})),
     sec("Instagram","Escribí tu usuario (@tuusuario) o pegá el link de tu perfil. Aparece como botón arriba de los demás contactos.",
       fText("Instagram","instagram",{ph:"@tuusuario"}),
       el("div",{},el("label",{class:"fl"},"Ícono propio (opcional). Si no subís nada, se usa un ícono genérico"),imgCtl(()=>cfg.instagram_icon,v=>cfg.instagram_icon=v,96))),
@@ -426,6 +486,16 @@ function collect(){
   for(const k of ["chat_title","chat_notice","status_online","status_offline","greeting"])d[k]=(d[k]||"").trim();
   d.quick=d.quick.filter(q=>q&&(q.label||"").trim()).map(q=>({label:q.label.trim(),text:(q.text||"").trim(),action:q.action==="pay"?"pay":"message"}));
   d.features=d.features.map(f=>({t:f.t.trim(),s:f.s.trim()}));
+  d.layout=normLayout(d.layout);
+  d.faq_title=(d.faq_title||"").trim();
+  const fq=[];
+  for(const x of d.faq){
+    const q=(x.q||"").trim(),a=(x.a||"").trim();
+    if(!q&&!a)continue;
+    if(!q||!a){say("Cada desplegable necesita un título y una explicación. Revisá «"+(q||a.slice(0,30))+"».");return null}
+    fq.push({q,a});
+  }
+  d.faq=fq;
   const out=[];
   for(const c of d.contacts){
     const type=["whatsapp","instagram","chat","link"].includes(c.type)?c.type:"link";

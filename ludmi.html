@@ -10,7 +10,7 @@ body{margin:0;min-height:100vh;color:#fff;font-family:system-ui,-apple-system,"S
 background:radial-gradient(900px 500px at 50% -10%,#6a0f8f,transparent 60%),radial-gradient(700px 500px at 100% 100%,#8a1050,transparent 55%),var(--bg)}
 #bg{position:fixed;inset:0;z-index:-1;background-size:cover;background-position:center}
 #bg::after{content:"";position:absolute;inset:0;background:linear-gradient(rgba(11,4,20,.5),rgba(11,4,20,.88))}
-.wrap{max-width:420px;margin:0 auto;padding:28px 16px 60px;text-align:center}
+.wrap{max-width:420px;margin:0 auto;padding:28px 16px 96px;text-align:center}
 .avatar{width:84px;height:84px;border-radius:50%;border:3px solid var(--pink);margin:0 auto 6px;display:grid;place-items:center;font-size:34px;background:linear-gradient(135deg,#ffb800,#a0198a);box-shadow:0 0 24px #d41cd8aa;overflow:hidden}
 .avatar img{width:100%;height:100%;object-fit:cover;display:block}
 .name{color:var(--pink);font-size:12px;letter-spacing:.3em;font-weight:800}
@@ -30,6 +30,14 @@ h1{font-size:34px;line-height:1;margin:14px 0;font-weight:900;text-transform:upp
 .grid span{display:block;font-weight:400;color:#c9c0d2;margin-top:4px;font-size:11px}
 .sec{margin:18px 0}
 .sec h2{font-size:12px;letter-spacing:.18em;margin:0 0 8px;text-transform:uppercase}
+.faq{text-align:left}.faq h2{text-align:center}
+.faq details{border:1px solid var(--pink);border-radius:12px;background:var(--card);margin:8px 0;overflow:hidden}
+.faq summary{cursor:pointer;padding:13px 14px;font-weight:800;font-size:14px;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";color:var(--gold);font-size:20px;line-height:1;flex:none}
+.faq details[open] summary::after{content:"\2013"}
+.faq summary:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
+.faq .ans{padding:0 14px 14px;font-size:13px;line-height:1.55;color:#e3dcec;white-space:pre-line;overflow-wrap:anywhere}
 .row{display:flex;gap:12px;overflow-x:auto;padding:12px;border:1px solid var(--pink);border-radius:14px;background:var(--card);scrollbar-width:thin;scrollbar-color:var(--pink) transparent}
 .row::-webkit-scrollbar{height:6px}
 .row::-webkit-scrollbar-track{background:transparent}
@@ -91,13 +99,15 @@ footer{font-size:11px;color:#b8aec4;margin-top:26px;line-height:1.6}
   <div class="avatar" id="av" aria-hidden="true">👑</div>
   <div class="name" id="nm"></div>
   <h1 id="ttl"></h1>
-  <div class="bonus"><small id="b1"></small><b id="b2"></b><small id="b3"></small></div>
-  <button class="cta" id="open"></button>
-  <div class="status" id="st"></div>
-  <div class="contacts" id="ct" hidden></div>
-  <div class="grid" id="feat"></div>
-  <section class="sec" id="plat" hidden><h2 id="platT"></h2><div class="row round" id="platRow"></div></section>
-  <section class="sec" id="gms" hidden><h2 id="gmsT"></h2><div class="row" id="gmsRow"></div></section>
+  <div id="blocks">
+    <div id="b-bonus"><div class="bonus"><small id="b1"></small><b id="b2"></b><small id="b3"></small></div></div>
+    <div id="b-cta"><button class="cta" id="open"></button><div class="status" id="st"></div></div>
+    <div id="b-platforms"><section class="sec" id="plat" hidden><h2 id="platT"></h2><div class="row round" id="platRow"></div></section></div>
+    <div id="b-games"><section class="sec" id="gms" hidden><h2 id="gmsT"></h2><div class="row" id="gmsRow"></div></section></div>
+    <div id="b-features"><div class="grid" id="feat"></div></div>
+    <div id="b-faq"><section class="sec faq" id="faq" hidden><h2 id="faqT"></h2><div id="faqList"></div></section></div>
+    <div id="b-contacts"><div class="contacts" id="ct" hidden></div></div>
+  </div>
   <footer><span id="f1"></span><br><span id="f2"></span></footer>
 </main>
 
@@ -120,9 +130,17 @@ footer{font-size:11px;color:#b8aec4;margin-top:26px;line-height:1.6}
 const SUPABASE_URL="https://otlrgjezfuwlxqigqpfz.supabase.co", SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90bHJnamV6ZnV3bHhxaWdxcGZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5NjY5MDEsImV4cCI6MjEwNjU0MjkwMX0.j_eQn8LafoxQ8WeT4OlBrfFTDvZIV8tO4pGylbGKu7k";
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 const $=id=>document.getElementById(id), seen=new Set();
-let uid=null, ready=null, ONLINE=false;
+let uid=null, ready=null, ONLINE=false, payShown=false, payLogged=false;
 
 /* ---------- contenido editable (se cambia desde el panel /admin) ---------- */
+const BLOCK_IDS=["bonus","cta","platforms","games","features","faq","contacts"];
+function normLayout(a){
+  const out=[],ids=new Set();
+  (Array.isArray(a)?a:[]).forEach(x=>{
+    if(x&&typeof x==="object"&&BLOCK_IDS.includes(x.id)&&!ids.has(x.id)){ids.add(x.id);out.push({id:x.id,on:x.on!==false})}});
+  BLOCK_IDS.forEach(id=>{if(!ids.has(id))out.push({id,on:true})});
+  return out;
+}
 const DEF={
   avatar_url:"", name:"LUDMI", title:"Tu bono de bienvenida",
   bonus_top:"Hasta 50% de bono", bonus_big:"Hasta 50% de bono", bonus_bottom:"Consultá condiciones por el chat",
@@ -133,13 +151,15 @@ const DEF={
   license:"Autorización: [COMPLETAR]", chat_title:"Chat con Caja Ludmi", greeting:"¡Hola! ¿En qué te puedo ayudar?",
   chat_notice:"Conectado. Escribinos y te respondemos.", chat_theme:"light",
   status_online:"en línea", status_offline:"Te respondemos apenas podamos",
-  quick:[{label:"Cargar",text:"Quiero cargar saldo",action:"pay"},{label:"Retirar",text:"Quiero retirar",action:"message"},{label:"Soporte",text:"Necesito soporte",action:"message"}]
+  quick:[{label:"Cargar",text:"Quiero cargar saldo",action:"pay"},{label:"Retirar",text:"Quiero retirar",action:"message"},{label:"Soporte",text:"Necesito soporte",action:"message"}],
+  layout:BLOCK_IDS.map(id=>({id,on:true})), faq_title:"Retiros", faq:[]
 };
 let CFG=DEF;
 function merge(c){
   const o={};
   for(const k in DEF){const v=c&&c[k];
     o[k]=(typeof v===typeof DEF[k]&&v!==null&&(!Array.isArray(DEF[k])||Array.isArray(v)))?v:DEF[k]}
+  o.layout=normLayout(o.layout);
   return o;
 }
 /* Solo se aceptan enlaces http(s) (y mailto/tel en contactos): nunca javascript: */
@@ -217,6 +237,15 @@ function apply(c){
   txt("gmsT",c.games_title);fillRow($("gms"),$("gmsRow"),c.games);
   $("plat").hidden=$("plat").hidden||!c.platforms.length;
   $("gms").hidden=$("gms").hidden||!c.games.length;
+  /* desplegables (por ejemplo "Retiros"): se abren y cierran al tocarlos */
+  txt("faqT",c.faq_title);
+  const qs=c.faq.filter(x=>x&&typeof x==="object"&&String(x.q||"").trim()&&String(x.a||"").trim()).slice(0,12);
+  $("faqList").replaceChildren(...qs.map(x=>{
+    const d=document.createElement("details"),s=document.createElement("summary"),a=document.createElement("div");
+    s.textContent=String(x.q).slice(0,140);a.className="ans";a.textContent=String(x.a).slice(0,1200);d.append(s,a);return d}));
+  $("faq").hidden=!qs.length;
+  /* orden y visibilidad de las secciones, según lo que se eligió en el panel */
+  c.layout.forEach(it=>{const b=$("b-"+it.id);b.hidden=!it.on;$("blocks").append(b)});
 }
 /* botón flotante: aparece cuando el botón verde sale de la pantalla (o siempre, si se elige así) y se oculta con el chat abierto */
 let ctaVis=("IntersectionObserver" in window);
@@ -278,10 +307,11 @@ function showPay(){
   if(!PAY||!PAY.accounts.length)return;
   const old=$("payCard");if(old)old.remove();
   const m=bubble({sender:"agent",kind:"text",created_at:new Date()},payBox(PAY.intro,PAY.accounts));
-  m.id="payCard";m.classList.add("card");
+  m.id="payCard";m.classList.add("card");payShown=true;
 }
 /* cuentas que te manda el agente por el chat: llegan como mensaje con esta marca */
 const MARK="[[CUENTAS]]";
+const SEEN="[[CUENTAS_VISTAS]]"; /* nota interna: avisa al panel que el usuario vio los datos */
 function agentPay(m){
   try{
     const d=JSON.parse(m.body.slice(MARK.length));
@@ -308,7 +338,7 @@ function renderQuick(){
 async function quick(x){
   if(!uid)return;
   if(x.text)await sendBody(String(x.text).slice(0,200));
-  if(x.action==="pay"&&PAY&&PAY.accounts.length)showPay();
+  if(x.action==="pay"&&PAY&&PAY.accounts.length){showPay();await logPay()}
 }
 
 /* ---------- chat ---------- */
@@ -337,6 +367,7 @@ function bubble(m,el){
 }
 async function render(m){
   if(seen.has(m.id))return; seen.add(m.id);
+  if(m.sender==="visitor"&&m.kind==="text"&&typeof m.body==="string"&&m.body.startsWith(SEEN))return;
   if(m.kind==="text"){if(m.sender==="agent"&&typeof m.body==="string"&&m.body.startsWith(MARK)&&agentPay(m))return;return bubble(m)}
   const {data}=await sb.storage.from("chat-media").createSignedUrl(m.media_path,3600);
   const el=document.createElement(m.kind==="image"?"img":"audio"); el.src=data?data.signedUrl:""; if(m.kind==="audio")el.controls=true;
@@ -346,7 +377,22 @@ async function sendBody(body){
   if(!body||!uid)return false;
   const {error}=await sb.from("messages").insert({visitor_id:uid,sender:"visitor",kind:"text",body});
   if(error){alert("No se pudo enviar. Probá de nuevo.");return false}
+  await logPay();
   return true;
+}
+/* copia exacta de lo que se le mostró al usuario (mismo formato que las cuentas que manda el agente) */
+function snapPay(){
+  const acc=(PAY&&PAY.accounts)||[];
+  const mk=drop=>SEEN+JSON.stringify({i:(PAY&&PAY.intro)||"",a:acc.slice(0,6).map(a=>[a.label||"",a.holder||"",a.cbu||"",a.alias||"",drop?"":(a.note||"")])});
+  let b=mk(false);if(b.length>1900)b=mk(true);if(b.length>1900)b=SEEN;
+  return b;
+}
+/* deja una nota (una sola vez) para que el agente sepa que el usuario ya vio los datos de transferencia */
+async function logPay(){
+  if(!payShown||payLogged||!uid)return;
+  payLogged=true;
+  const {error}=await sb.from("messages").insert({visitor_id:uid,sender:"visitor",kind:"text",body:snapPay()});
+  if(error)payLogged=false;
 }
 async function sendText(){
   const body=$("txt").value.trim(); if(!body||!uid)return; $("txt").value="";
@@ -357,6 +403,7 @@ async function upload(blob,kind,mime){
   const {error}=await sb.storage.from("chat-media").upload(path,blob,{contentType:mime});
   if(error)return alert("No se pudo enviar el archivo.");
   await sb.from("messages").insert({visitor_id:uid,sender:"visitor",kind,media_path:path});
+  await logPay();
 }
 $("open").onclick=async()=>{$("chat").hidden=false;syncFab();await init();$("txt").focus()};
 $("close").onclick=()=>{$("chat").hidden=true;syncFab()};
