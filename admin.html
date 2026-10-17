@@ -74,7 +74,25 @@ header button{background:none;border:0;cursor:pointer;color:var(--muted);font-si
 .sysn.gone{font-style:italic}
 /* editor de landing */
 #ed{position:fixed;inset:0;z-index:20;background:var(--bg);display:flex;flex-direction:column}
-#edBody{flex:1;overflow-y:auto;padding:16px;width:100%;max-width:760px;margin:0 auto}
+#edMain{flex:1;display:flex;min-height:0}
+#edNav{width:220px;flex:none;overflow-y:auto;padding:14px 10px;border-right:1px solid var(--line);background:var(--panel)}
+#edNav h4{margin:14px 10px 6px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700}
+#edNav h4:first-child{margin-top:2px}
+#edNav button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:9px 10px;border:0;border-radius:8px;background:none;color:#d1d7db;font-size:14px;cursor:pointer}
+#edNav button:hover{background:var(--hover)}
+#edNav button.on{background:#0a332c;color:#25d366;font-weight:600}
+#edNav .ni{width:22px;text-align:center;flex:none}
+#edBody{flex:1;overflow-y:auto;padding:22px 24px 80px;min-width:0}
+#edBody .fs{max-width:620px;margin:0 auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 18px 14px}
+#edBody .fs h3{font-size:18px;color:#e9edef;margin:0 0 4px}
+#edPrev{width:380px;flex:none;border-left:1px solid var(--line);background:var(--wall);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px;gap:8px}
+#edPrev .phone{width:320px;height:min(640px,calc(100% - 28px));border:8px solid #263640;border-radius:34px;overflow:hidden;background:#000;box-shadow:0 12px 40px #000a}
+#edPrev iframe{width:100%;height:100%;border:0;display:block;background:#09030f}
+#edPrev small{color:var(--muted);font-size:12px}
+#edDirty{font-size:12px;color:#f59e0b;white-space:nowrap}
+#edPv{display:none}
+@media(max-width:1100px){#edPrev{display:none}#edPrev.show{display:flex;position:fixed;inset:56px 0 0 0;width:auto;z-index:25;border:0}#edPv{display:inline-block}}
+@media(max-width:760px){#edMain{flex-direction:column}#edNav{width:auto;display:flex;gap:4px;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line);padding:8px}#edNav h4{display:none}#edNav button{width:auto;white-space:nowrap;padding:8px 12px;background:var(--hover)}#edBody{padding:14px 12px 80px}}
 #ed header a{color:var(--accent);font-size:13px;text-decoration:none;white-space:nowrap}
 .fs{margin-bottom:26px}.fs h3{font-size:14px;color:var(--accent);margin:0 0 6px}
 .nt{font-size:12px;color:var(--muted);margin:0 0 8px;line-height:1.45}
@@ -112,8 +130,8 @@ textarea.fi{min-height:78px;resize:vertical;font-family:inherit}
 </div>
 
 <div id="ed" hidden>
-  <header><button id="edBack" aria-label="Volver">←</button><span>Editar landing</span><span class="sp"></span><a href="/ludmi" target="_blank" rel="noopener">Ver landing</a><button id="edSave" class="primary">Guardar cambios</button></header>
-  <div id="edBody"></div>
+  <header><button id="edBack" aria-label="Volver">←</button><span>Editar landing</span><span class="sp"></span><span id="edDirty" hidden>● Sin guardar</span><button id="edPv" class="sm">👁 Vista previa</button><a href="/ludmi" target="_blank" rel="noopener">Abrir landing</a><button id="edSave" class="primary">Guardar cambios</button></header>
+  <div id="edMain"><nav id="edNav" aria-label="Secciones"></nav><div id="edBody"></div><aside id="edPrev"><div class="phone"><iframe id="edFrame" title="Vista previa de la landing" loading="lazy"></iframe></div><small>Vista previa en vivo · se actualiza mientras escribís</small></aside></div>
 </div>
 <div id="edMsg" hidden role="status"></div>
 
@@ -560,7 +578,54 @@ function buildForm(){
       fImg("Micrófono (grabar audio)","icon_mic",96),fImg("Adjuntar imagen","icon_attach",96),
       fImg("Enviar mensaje","icon_send",96),fImg("Datos para transferir (botón del encabezado)","icon_pay",96))
   );
+  decorate();
 }
+/* ----- navegación por secciones + vista previa en vivo ----- */
+const NAVG=[
+ ["Página",[["Perfil","👤","Perfil"],["Orden de la página","↕️","Orden"],["Textos principales","✏️","Textos"],["Fondo","🖼️","Fondo"],["Beneficios","⭐","Beneficios"],["Pie de página","📄","Pie de página"]]],
+ ["Contenido",[["Plataformas","🎮","Plataformas"],["Juegos","🎲","Juegos"],["Desplegables","📂","Desplegables"]]],
+ ["Contacto",[["Instagram","📷","Instagram"],["Botones de contacto","📞","Botones de contacto"]]],
+ ["Chat",[["Chat","💬","Ventana de chat"],["Botones rápidos del chat","⚡","Botones rápidos"],["Botón flotante de chat","🟢","Botón flotante"],["Íconos del chat","🎤","Íconos"],["Datos para transferir","💳","Datos para transferir"]]]
+];
+let edSec=LS.get("edSec","Perfil");
+function showSec(t){
+  const secs=[...$("edBody").children];
+  if(!secs.some(x=>x.dataset.sec===t))t=secs[0]&&secs[0].dataset.sec;
+  edSec=t;LS.set("edSec",t);
+  secs.forEach(x=>x.hidden=x.dataset.sec!==t);
+  $("edNav").querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.sec===t));
+  $("edBody").scrollTop=0;
+  const chat=NAVG[3][1].some(r=>r[0]===t);
+  pvSend({type:"preview-chat",open:chat});
+}
+function decorate(){
+  const body=$("edBody"),nav=$("edNav");nav.replaceChildren();
+  [...body.children].forEach(x=>{const h=x.querySelector("h3");x.dataset.sec=h?h.textContent:""});
+  NAVG.forEach(([g,items])=>{
+    nav.append(el("h4",{},g));
+    items.forEach(([t,ic,lb])=>{
+      if(![...body.children].some(x=>x.dataset.sec===t))return;
+      const b=el("button",{type:"button"},el("span",{class:"ni",textContent:ic}),lb);b.dataset.sec=t;b.onclick=()=>showSec(t);nav.append(b)});
+  });
+  showSec(edSec);
+}
+let pvLast="",pvTimer=null;
+function pvSend(m){const f=$("edFrame");if(f&&f.contentWindow)try{f.contentWindow.postMessage(m,location.origin)}catch{}}
+function pvPush(force){
+  if(!cfg)return;
+  const j=JSON.stringify(cfg);
+  if(!force&&j===pvLast)return;
+  pvLast=j;pvSend({type:"preview-cfg",cfg:JSON.parse(j)});
+  $("edDirty").hidden=!dirty;
+}
+function pvStart(){
+  const f=$("edFrame");
+  if(!f.src||!f.src.includes("preview")){f.onload=()=>{pvLast="";pvPush(true);pvSend({type:"preview-chat",open:NAVG[3][1].some(r=>r[0]===edSec)})};f.src="/ludmi?preview=1"}
+  else{pvLast="";pvPush(true)}
+  clearInterval(pvTimer);pvTimer=setInterval(()=>pvPush(false),500);
+}
+function pvStop(){clearInterval(pvTimer)}
+$("edPv").onclick=()=>$("edPrev").classList.toggle("show");
 /* convierte lo que escribió el agente en un enlace válido, o null */
 function cleanIG(raw){
   let u=String(raw||"").trim();if(!u)return "";
@@ -649,14 +714,14 @@ async function saveLanding(){
   const {error}=await sb.from("site_settings").upsert([{key:"landing",data,updated_at:now},{key:"payments",data:pdata,updated_at:now}]);
   b.disabled=false;b.textContent="Guardar cambios";
   if(error)return say("No se pudo guardar: "+error.message);
-  cfg=mergeL(data);pay=mergePay(pdata);dirty=false;say("Guardado. Ya se ve en la landing.");buildForm();
+  cfg=mergeL(data);pay=mergePay(pdata);dirty=false;say("Guardado. Ya se ve en la landing.");buildForm();pvPush(true);
 }
 async function openEditor(){
   $("ed").hidden=false;$("edBody").textContent="Cargando…";
   const {data,error}=await sb.from("site_settings").select("key,data").in("key",["landing","payments"]);
   if(error){$("edBody").textContent="No se pudo cargar: "+error.message+". ¿Ejecutaste supabase-landing.sql?";return}
   const row=k=>((data||[]).find(r=>r.key===k)||{}).data;
-  cfg=mergeL(row("landing"));pay=mergePay(row("payments"));dirty=false;buildForm();
+  cfg=mergeL(row("landing"));pay=mergePay(row("payments"));dirty=false;buildForm();pvStart();
 }
 async function sendPayInfo(){
   if(!cur)return;
@@ -706,7 +771,7 @@ $("q").oninput=()=>list();
 $("sendPay").onclick=sendPayInfo;
 $("edLand").onclick=openEditor;
 $("edSave").onclick=saveLanding;
-$("edBack").onclick=()=>{if(dirty&&!confirm("Tenés cambios sin guardar. ¿Salir igual?"))return;$("ed").hidden=true};
+$("edBack").onclick=()=>{if(dirty&&!confirm("Tenés cambios sin guardar. ¿Salir igual?"))return;$("ed").hidden=true;pvStop()};
 
 boot();
 </script></body></html>

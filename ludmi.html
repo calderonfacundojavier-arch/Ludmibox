@@ -303,9 +303,24 @@ let ctaVis=("IntersectionObserver" in window);
 function syncFab(){$("fab").hidden=!(CFG.fab_on&&$("chat").hidden&&(CFG.fab_always||!ctaVis))}
 if("IntersectionObserver" in window)new IntersectionObserver(es=>{ctaVis=es[0].isIntersecting;syncFab()}).observe($("open"));
 $("fab").onclick=()=>$("open").click();
-let cached=null;try{cached=JSON.parse(localStorage.getItem("landing"))}catch{}
+/* vista previa dentro del editor del panel (mismo sitio): recibe la configuración en vivo y no usa el chat real */
+const PREVIEW=new URLSearchParams(location.search).has("preview")&&window.parent!==window;
+if(PREVIEW){
+  addEventListener("message",e=>{
+    if(e.origin!==location.origin||e.source!==window.parent||!e.data)return;
+    if(e.data.type==="preview-cfg"&&e.data.cfg&&typeof e.data.cfg==="object"){apply(merge(e.data.cfg));if(!$("chat").hidden)previewChat()}
+    if(e.data.type==="preview-chat"){if(e.data.open){$("chat").hidden=false;previewChat()}else $("chat").hidden=true;syncFab()}
+  });
+}
+function previewChat(){
+  const m=$("msgs");m.replaceChildren();
+  if(CFG.chat_notice){const n=document.createElement("div");n.className="sys";n.textContent=CFG.chat_notice;m.append(n)}
+  String(CFG.greeting||"").split(/\n\s*\n/).map(g=>g.trim()).filter(Boolean).forEach(g=>bubble({sender:"agent",kind:"text",body:g,created_at:new Date()}));
+  syncFab();
+}
+let cached=null;if(!PREVIEW)try{cached=JSON.parse(localStorage.getItem("landing"))}catch{}
 apply(merge(cached));
-sb.from("site_settings").select("data").eq("key","landing").maybeSingle().then(({data,error})=>{
+if(!PREVIEW)sb.from("site_settings").select("data").eq("key","landing").maybeSingle().then(({data,error})=>{
   if(error||!data||!data.data)return;
   try{localStorage.setItem("landing",JSON.stringify(data.data))}catch{}
   apply(merge(data.data));
@@ -493,7 +508,7 @@ async function upload(blob,kind,mime){
   await sb.from("messages").insert({visitor_id:uid,sender:"visitor",kind,media_path:path});
   await logPay();
 }
-$("open").onclick=async()=>{$("chat").hidden=false;syncFab();await init();$("txt").focus()};
+$("open").onclick=async()=>{$("chat").hidden=false;syncFab();if(PREVIEW){previewChat();return}await init();$("txt").focus()};
 $("close").onclick=()=>{$("chat").hidden=true;syncFab()};
 $("send").onclick=sendText;
 $("txt").onkeydown=e=>{if(e.key==="Enter")sendText()};
