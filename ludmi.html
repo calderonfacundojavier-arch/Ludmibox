@@ -73,6 +73,8 @@ footer{font-size:11px;color:#b8aec4;margin-top:26px;line-height:1.6}
 .m img{max-width:100%;border-radius:8px;display:block}.m audio{max-width:100%}
 .m time{display:block;text-align:right;font-size:10px;color:var(--mut);margin-top:3px}
 .m.card{max-width:96%;align-self:stretch}
+.m a{color:inherit;text-decoration:underline;word-break:break-all}
+.m time em{font-style:normal}
 .pc{margin-top:8px;padding:10px;border-radius:10px;background:var(--card);border:1px solid var(--line)}
 .pc .bk{font-weight:800;margin-bottom:6px}
 .pc .r{display:flex;gap:8px;font-size:13px;margin:3px 0}
@@ -151,7 +153,7 @@ const DEF={
   license:"Autorización: [COMPLETAR]", chat_title:"Chat con Caja Ludmi", greeting:"¡Hola! ¿En qué te puedo ayudar?",
   chat_notice:"Conectado. Escribinos y te respondemos.", chat_theme:"light",
   status_online:"en línea", status_offline:"Te respondemos apenas podamos",
-  quick:[{label:"Cargar",text:"Quiero cargar saldo",action:"pay"},{label:"Retirar",text:"Quiero retirar",action:"message"},{label:"Soporte",text:"Necesito soporte",action:"message"}],
+  quick:[{label:"Cargar",text:"Quiero cargar saldo",action:"pay",reply:""},{label:"Retirar",text:"Quiero retirar",action:"message",reply:""},{label:"Soporte",text:"Necesito soporte",action:"message",reply:""}],
   layout:BLOCK_IDS.map(id=>({id,on:true})), faq_title:"Retiros", faq:[]
 };
 let CFG=DEF;
@@ -311,6 +313,7 @@ function showPay(){
 }
 /* cuentas que te manda el agente por el chat: llegan como mensaje con esta marca */
 const MARK="[[CUENTAS]]";
+const AUTO="[[RESPUESTA_AUTO]]"; /* nota interna: qué respuesta automática vio el usuario */
 const SEEN="[[CUENTAS_VISTAS]]"; /* nota interna: avisa al panel que el usuario vio los datos */
 function agentPay(m){
   try{
@@ -339,6 +342,31 @@ async function quick(x){
   if(!uid)return;
   if(x.text)await sendBody(String(x.text).slice(0,200));
   if(x.action==="pay"&&PAY&&PAY.accounts.length){showPay();await logPay()}
+  if(x.action==="reply"&&x.reply){
+    const t=String(x.reply).slice(0,600);
+    bubble({sender:"agent",kind:"text",body:t,created_at:new Date()},linkEl(t));
+    await sb.from("messages").insert({visitor_id:uid,sender:"visitor",kind:"text",body:AUTO+JSON.stringify({l:String(x.label||"").slice(0,24),t})});
+  }
+}
+/* texto con enlaces http(s) clickeables (sin innerHTML) */
+function linkEl(t){
+  const f=document.createDocumentFragment();let last=0;
+  for(const m of t.matchAll(/https?:\/\/[^\s<>"]+/g)){
+    f.append(t.slice(last,m.index));const u=safe(m[0]);
+    if(u){const a=document.createElement("a");a.href=u;a.target="_blank";a.rel="noopener noreferrer";a.textContent=m[0];f.append(a)}else f.append(m[0]);
+    last=m.index+m[0].length;
+  }
+  f.append(t.slice(last));const sp=document.createElement("span");sp.append(f);return sp;
+}
+/* sonido al recibir un mensaje del agente (solo si el navegador ya lo permite) */
+let actx=null;
+function unlockAudio(){try{actx=actx||new(window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume()}catch{}}
+["pointerdown","keydown","touchstart"].forEach(e=>addEventListener(e,unlockAudio,{passive:true}));
+function ding(){
+  if(!actx||actx.state!=="running")return;
+  try{const t=actx.currentTime,o=actx.createOscillator(),g=actx.createGain();o.type="sine";o.frequency.value=988;
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.18,t+.02);g.gain.exponentialRampToValueAtTime(.001,t+.35);
+    o.connect(g);g.connect(actx.destination);o.start(t);o.stop(t+.36)}catch{}
 }
 
 /* ---------- chat ---------- */
@@ -356,18 +384,29 @@ function init(){
     if(PAY&&PAY.auto&&!(data&&data.length))showPay();
     const pc=sb.channel("agent-presence");
     pc.on("presence",{event:"sync"},()=>{ONLINE=Object.keys(pc.presenceState()).length>0;renderStatus()}).subscribe();
-    sb.channel("m-"+uid).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"visitor_id=eq."+uid},p=>render(p.new)).subscribe();
+    sb.channel("m-"+uid).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"visitor_id=eq."+uid},p=>{render(p.new,true)})
+      .on("postgres_changes",{event:"UPDATE",schema:"public",table:"messages",filter:"visitor_id=eq."+uid},p=>change(p.new)).subscribe();
   })());
 }
 function bubble(m,el){
   const d=document.createElement("div"); d.className="m "+m.sender;
-  if(el) d.appendChild(el); else d.textContent=m.body;
-  const t=document.createElement("time"); t.textContent=new Date(m.created_at).toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"});
+  if(m.id!=null)d.dataset.id=m.id;
+  if(el) d.appendChild(el); else{const s=document.createElement("span");s.className="bt";s.textContent=m.body;d.appendChild(s)}
+  const t=document.createElement("time"); t.textContent=(m.edited_at?"editado · ":"")+new Date(m.created_at).toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"});
   d.appendChild(t); $("msgs").appendChild(d); $("msgs").scrollTop=1e9; return d;
 }
-async function render(m){
+/* un mensaje que el agente editó o eliminó */
+function change(m){
+  const d=document.querySelector('#msgs .m[data-id="'+m.id+'"]');if(!d)return;
+  if(m.deleted_at){d.remove();return}
+  const b=d.querySelector(".bt");
+  if(b&&m.kind==="text"){b.textContent=m.body;const t=d.querySelector("time");if(t&&!t.textContent.startsWith("editado"))t.textContent="editado · "+t.textContent}
+}
+async function render(m,live){
   if(seen.has(m.id))return; seen.add(m.id);
-  if(m.sender==="visitor"&&m.kind==="text"&&typeof m.body==="string"&&m.body.startsWith(SEEN))return;
+  if(m.deleted_at)return;
+  if(m.sender==="visitor"&&m.kind==="text"&&typeof m.body==="string"&&(m.body.startsWith(SEEN)||m.body.startsWith(AUTO)))return;
+  if(live&&m.sender==="agent")ding();
   if(m.kind==="text"){if(m.sender==="agent"&&typeof m.body==="string"&&m.body.startsWith(MARK)&&agentPay(m))return;return bubble(m)}
   const {data}=await sb.storage.from("chat-media").createSignedUrl(m.media_path,3600);
   const el=document.createElement(m.kind==="image"?"img":"audio"); el.src=data?data.signedUrl:""; if(m.kind==="audio")el.controls=true;
