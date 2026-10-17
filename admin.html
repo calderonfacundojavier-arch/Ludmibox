@@ -54,9 +54,13 @@ header button{background:none;border:0;cursor:pointer;color:var(--muted);font-si
 .ic{width:44px;height:44px;border:0;border-radius:50%;background:none;color:var(--muted);font-size:20px;cursor:pointer;display:grid;place-items:center;flex:none}
 .ic.rec{background:#dc2626;color:#fff;animation:p 1s infinite}@keyframes p{50%{opacity:.55}}
 @media(prefers-reduced-motion:reduce){.ic.rec{animation:none}}
-#tabs{display:flex;border-bottom:1px solid var(--line);flex:none}
-#tabs button{flex:1;padding:10px 6px;background:none;border:0;border-bottom:2px solid transparent;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer}
-#tabs button.on{color:var(--accent);border-bottom-color:var(--accent)}
+#srch{padding:8px 12px 4px;flex:none}
+#q{width:100%;border:0;border-radius:8px;padding:9px 14px;background:var(--hover);color:var(--text,#e9edef);font-size:14px;outline:none}
+#q::placeholder{color:var(--muted)}
+#tabs{display:flex;gap:6px;padding:6px 12px 10px;border-bottom:1px solid var(--line);flex:none;overflow-x:auto}
+#tabs button{padding:6px 14px;border-radius:18px;background:var(--hover);border:0;color:var(--muted);font-size:13px;cursor:pointer;white-space:nowrap}
+#tabs button.on{background:#0a332c;color:#25d366}
+#tabs button.dot::after{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:#25d366;margin-left:6px}
 #snd{padding:6px 16px;font-size:12px;color:#f59e0b;border-bottom:1px solid var(--line);flex:none}
 .empty{padding:24px 16px;color:var(--muted);text-align:center;font-size:14px}
 #pane header .hb{background:var(--hover);border-radius:8px;padding:8px 12px;color:#e9edef;font-size:13px;font-weight:600;white-space:nowrap}
@@ -96,7 +100,7 @@ textarea.fi{min-height:78px;resize:vertical;font-family:inherit}
   <button>Entrar</button><small id="err"></small></form>
 
 <div id="app" hidden>
-  <aside id="side"><header><span>Chats</span><small id="live" hidden style="color:#f59e0b;font-weight:400">⚠ Sin tiempo real, recargá</small><span class="sp"></span><button id="soundBtn" aria-label="Sonido de mensajes nuevos">🔔</button><button id="edLand">⚙ Landing</button><button id="out">Salir</button></header><div id="dbg"></div><div id="snd" hidden>🔕 Tocá cualquier parte de la pantalla para activar el sonido</div><div id="tabs"><button id="tabOpen" class="on">Abiertos</button><button id="tabClosed">Cerrados</button></div><div id="list"></div></aside>
+  <aside id="side"><header><span>Chats</span><small id="live" hidden style="color:#f59e0b;font-weight:400">⚠ Sin tiempo real, recargá</small><span class="sp"></span><button id="soundBtn" aria-label="Sonido de mensajes nuevos">🔔</button><button id="edLand">⚙ Landing</button><button id="out">Salir</button></header><div id="dbg"></div><div id="snd" hidden>🔕 Tocá cualquier parte de la pantalla para activar el sonido</div><div id="srch"><input id="q" type="search" placeholder="Buscar un chat o iniciar uno nuevo" autocomplete="off" aria-label="Buscar chats"></div><div id="tabs"><button id="tabOpen" class="on">Todos</button><button id="tabUnread">No leídos</button><button id="tabClosed">Cerrados</button></div><div id="list"></div></aside>
   <section id="chat">
     <div id="blank">Seleccioná una conversación<br>para empezar a responder.</div>
     <div id="pane" hidden>
@@ -119,7 +123,7 @@ const SUPABASE_URL="https://otlrgjezfuwlxqigqpfz.supabase.co", SUPABASE_ANON_KEY
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{storageKey:"agent-auth"}});
 const $=id=>document.getElementById(id), all={}, seen=new Set();
 let cur=null, rt="conectando…", who="", csOK=true, closed={}, view="open";
-const dbg=()=>{$("dbg").textContent=`Agente: ${who} · ${seen.size} mensajes · chats: ${Object.keys(all).length} · tiempo real: ${rt}`+(csOK?"":" · ⚠ falta ejecutar supabase-chat.sql")};
+const dbg=()=>{$("dbg").hidden=(rt==="activo"&&csOK);$("dbg").textContent=`Agente: ${who} · ${seen.size} mensajes · chats: ${Object.keys(all).length} · tiempo real: ${rt}`+(csOK?"":" · ⚠ falta ejecutar supabase-chat.sql")};
 const LS={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
 let names={}, lastSeen=LS.get("lastSeen",{});
 const MARK="[[CUENTAS]]";
@@ -219,9 +223,14 @@ function list(){
   const ids=Object.keys(all);
   const openIds=ids.filter(id=>!isClosed(id)),closedIds=ids.filter(id=>isClosed(id));
   const recent=(a,b)=>new Date(all[b].at(-1).created_at)-new Date(all[a].at(-1).created_at);
-  const shown=(view==="closed"?closedIds:openIds).sort(recent);
-  $("tabOpen").textContent="Abiertos ("+openIds.length+")";$("tabClosed").textContent="Cerrados ("+closedIds.length+")";
-  $("tabOpen").classList.toggle("on",view!=="closed");$("tabClosed").classList.toggle("on",view==="closed");
+  const term=($("q").value||"").trim().toLowerCase();
+  const hit=id=>!term||nm(id).toLowerCase().includes(term)||all[id].some(m=>m.kind==="text"&&!m.deleted_at&&!isNote(m)&&String(m.body).toLowerCase().includes(term));
+  let base=view==="closed"?closedIds:openIds;
+  if(view==="unread")base=openIds.filter(id=>id!==cur&&unreadN(id)>0);
+  if(term)base=ids.filter(hit);   /* al buscar se revisan todos los chats, abiertos o cerrados */
+  const shown=base.sort(recent);
+  $("tabOpen").classList.toggle("on",view==="open");$("tabUnread").classList.toggle("on",view==="unread");$("tabClosed").classList.toggle("on",view==="closed");
+  $("tabUnread").classList.toggle("dot",openIds.some(id=>id!==cur&&unreadN(id)>0));
   let total=0;ids.forEach(id=>{if(id!==cur)total+=unreadN(id)});
   const rows=shown.map(id=>{
     const l=all[id].at(-1),n=id===cur?0:unreadN(id);
@@ -233,13 +242,13 @@ function list(){
     d.querySelector(".pv span").textContent=(l.sender==="agent"?"Vos: ":"")+pre;
     if(n){const b=d.querySelector(".badge");b.hidden=false;b.textContent=n}
     d.onclick=()=>open(id);return d});
-  if(!rows.length){const e=document.createElement("div");e.className="empty";e.textContent=view==="closed"?"No hay chats cerrados.":"No hay chats abiertos.";rows.push(e)}
+  if(!rows.length){const e=document.createElement("div");e.className="empty";e.textContent=term?"No se encontraron chats.":view==="closed"?"No hay chats cerrados.":view==="unread"?"No tenés mensajes sin leer.":"Todavía no hay chats.";rows.push(e)}
   $("list").replaceChildren(...rows);
   document.title=(total?`(${total}) `:"")+"Chats";
 }
 function renderClose(){if(cur)$("closeChat").textContent=isClosed(cur)?"↩ Reabrir":"✓ Cerrar chat"}
 function open(id){
-  cur=id;view=isClosed(id)?"closed":"open";markSeen(id);$("app").classList.add("open");$("blank").hidden=true;$("pane").hidden=false;
+  cur=id;if(isClosed(id))view="closed";else if(view==="closed")view="open";markSeen(id);$("app").classList.add("open");$("blank").hidden=true;$("pane").hidden=false;
   $("title").textContent=nm(id);avatar($("hav"),id);renderClose();
   $("msgs").replaceChildren();all[id].forEach(draw);list();
 }
@@ -692,6 +701,8 @@ async function setClosed(id,on){
 $("closeChat").onclick=()=>{if(cur)setClosed(cur,!isClosed(cur))};
 $("tabOpen").onclick=()=>{view="open";list()};
 $("tabClosed").onclick=()=>{view="closed";list()};
+$("tabUnread").onclick=()=>{view="unread";list()};
+$("q").oninput=()=>list();
 $("sendPay").onclick=sendPayInfo;
 $("edLand").onclick=openEditor;
 $("edSave").onclick=saveLanding;

@@ -50,6 +50,55 @@ a.item:hover img{filter:brightness(1.15)}
 .item img{width:72px;height:72px;object-fit:cover;display:block;margin:0 auto 6px;border:2px solid var(--pink);border-radius:14px;background:#150626}
 .row.round .item img{border-radius:50%}
 footer{font-size:11px;color:#b8aec4;margin-top:26px;line-height:1.6}
+/* ===== tema moderno (landing) ===== */
+:root{--bg:#09030f;--pink:#d41cd8;--gold:#ffd21f;--card:rgba(255,255,255,.06);--glass:rgba(255,255,255,.07);--edge:rgba(255,255,255,.14);--mut:#b9aec9}
+body{background:radial-gradient(900px 520px at 50% -12%,#6a0f8f 0,transparent 62%),radial-gradient(600px 460px at 105% 55%,#7a0f55 0,transparent 60%),radial-gradient(500px 400px at -10% 90%,#2a1470 0,transparent 60%),var(--bg);background-attachment:fixed;-webkit-font-smoothing:antialiased}
+.wrap{max-width:460px;padding:36px 18px 110px}
+.avatar{width:96px;height:96px;border:0;margin:0 auto 10px;position:relative;isolation:isolate;overflow:visible;box-shadow:0 10px 34px #d41cd877;background:linear-gradient(135deg,#ffb800,#a0198a)}
+.avatar::before{content:"";position:absolute;inset:-4px;border-radius:50%;background:conic-gradient(from 0deg,#d41cd8,#ffd21f,#22c55e,#d41cd8);z-index:-1;animation:spin 8s linear infinite}
+.avatar img{border-radius:50%}
+.avatar::after{content:"";position:absolute;inset:0;border-radius:50%;box-shadow:inset 0 0 0 3px #09030f;pointer-events:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.name{color:#f0a6f2;font-size:11px;letter-spacing:.34em;font-weight:700;opacity:.95}
+h1{font-size:clamp(28px,8.5vw,38px);letter-spacing:-.01em;margin:10px 0 18px;line-height:1.02;background:linear-gradient(180deg,#fff 30%,#e9c8ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.bonus{position:relative;border:0;border-radius:22px;padding:20px 12px 18px;margin-bottom:16px;background:linear-gradient(160deg,rgba(212,28,216,.28),rgba(255,210,31,.10)),var(--glass);box-shadow:0 12px 40px #0008,inset 0 0 0 1px var(--edge);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);overflow:hidden}
+.bonus::before{content:"";position:absolute;width:220px;height:220px;right:-70px;top:-90px;background:radial-gradient(#ffd21f55,transparent 65%);pointer-events:none}
+.bonus small{font-size:12px;font-weight:600;letter-spacing:.06em;color:#f3e3fa}
+.bonus b{font-size:clamp(34px,11vw,48px);margin:8px 0;text-shadow:0 4px 24px #ffd21f55}
+.cta{padding:18px;font-size:16px;letter-spacing:.04em;box-shadow:0 10px 28px #22c55e55,inset 0 1px 0 #ffffff55;background:linear-gradient(180deg,#34d570,#16a34a);position:relative;overflow:hidden;transition:transform .15s,box-shadow .15s}
+.cta::after{content:"";position:absolute;top:0;bottom:0;width:60px;left:-80px;background:linear-gradient(90deg,transparent,#ffffff55,transparent);transform:skewX(-20deg);animation:shine 3.4s ease-in-out infinite}
+@keyframes shine{0%,60%{left:-80px}100%{left:120%}}
+.cta:hover{transform:translateY(-2px);box-shadow:0 14px 32px #22c55e77,inset 0 1px 0 #ffffff55}
+.cta:active{transform:scale(.98)}
+.status{margin:12px 0 4px;padding:9px 14px;border:0;border-radius:14px;font-size:12.5px;color:#7dffc4;background:rgba(20,184,106,.12);box-shadow:inset 0 0 0 1px #14b86a44}
+.sec{margin:26px 0}
+.sec h2{display:flex;align-items:center;gap:12px;font-size:12px;letter-spacing:.2em;color:#e9c8ff;margin:0 0 12px}
+.sec h2::before,.sec h2::after{content:"";height:1px;flex:1;background:linear-gradient(90deg,transparent,#ffffff33)}
+.sec h2::after{transform:scaleX(-1)}
+.row{border:0;border-radius:20px;padding:14px;gap:14px;background:var(--glass);box-shadow:inset 0 0 0 1px var(--edge);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);scroll-snap-type:x proximity}
+.item{width:88px;scroll-snap-align:start;font-weight:700;font-size:11.5px;transition:transform .18s}
+a.item:hover{transform:translateY(-3px)}
+.item img{width:76px;height:76px;border:0;border-radius:20px;box-shadow:0 6px 18px #0009,inset 0 0 0 1px #ffffff22;margin-bottom:8px}
+.row.round .item img{border-radius:50%}
+.grid{gap:10px;margin:18px 0}
+.grid div{border:0;border-radius:16px;padding:14px 6px;background:var(--glass);box-shadow:inset 0 0 0 1px var(--edge);font-size:12.5px}
+.grid span{color:var(--mut)}
+.faq details{border:0;border-radius:16px;background:var(--glass);box-shadow:inset 0 0 0 1px var(--edge);margin:10px 0;transition:background .2s}
+.faq details[open]{background:rgba(255,255,255,.10)}
+.faq summary{padding:15px 16px;font-size:14.5px}
+.faq summary::after{content:"+";display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#ffd21f22;font-size:18px}
+.faq .ans{padding:0 16px 16px;color:#ece4f4;font-size:13.5px}
+.contacts{gap:10px;margin:22px 0 6px}
+.cbtn{justify-content:flex-start;padding:13px 16px;border:0;border-radius:16px;background:var(--glass);box-shadow:inset 0 0 0 1px var(--edge);transition:transform .15s,background .15s}
+.cbtn:hover{transform:translateY(-2px);background:rgba(255,255,255,.12)}
+.cbtn::after{content:"\203A";margin-left:auto;font-size:22px;line-height:1;opacity:.5}
+.cbtn svg{width:24px;height:24px}
+footer{color:var(--mut);margin-top:34px;opacity:.8}
+.fab{padding:15px 20px;background:linear-gradient(180deg,#34d570,#16a34a);box-shadow:0 10px 30px #000a,0 0 0 4px #22c55e33;transition:transform .15s}
+.fab:hover{transform:translateY(-2px)}
+@media(prefers-reduced-motion:no-preference){.wrap>*,#blocks>*{animation:rise .6s both}#blocks>*:nth-child(2){animation-delay:.07s}#blocks>*:nth-child(3){animation-delay:.14s}#blocks>*:nth-child(4){animation-delay:.21s}#blocks>*:nth-child(n+5){animation-delay:.28s}}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.avatar::before,.cta::after{animation:none}}
 /* chat (tema claro por defecto, oscuro opcional) */
 #chat{--bg:#e9edef;--hd:#1f2a30;--hdt:#fff;--hds:#8fe3b0;--ag:#fff;--agt:#111b21;--me:#d9fdd3;--met:#111b21;--mut:#667781;--bar:#f0f2f5;--inp:#fff;--inpt:#111b21;--ic:#54656f;--line:#d1d7db;--acc:#25d366;--sys:#cfe9f7;--syst:#34546a;--card:#f7f8f8;--chip:#fff}
 #chat.dark{--bg:#150626;--hd:#2a0a45;--hdt:#fff;--hds:#34f5a0;--ag:#3a1260;--agt:#fff;--me:#16803d;--met:#fff;--mut:#ffffff99;--bar:#2a0a45;--inp:#150626;--inpt:#fff;--ic:#fff;--line:#4a1d6e;--acc:#22c55e;--sys:#2a0a45;--syst:#d9c6ee;--card:#0006;--chip:#3a1260}
