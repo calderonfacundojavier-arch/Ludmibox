@@ -28,6 +28,15 @@ h1{font-size:34px;line-height:1;margin:14px 0;font-weight:900;text-transform:upp
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}
 .grid div{border:1px solid var(--pink);border-radius:12px;padding:12px 6px;background:var(--card);font-size:12px;font-weight:800}
 .grid span{display:block;font-weight:400;color:#c9c0d2;margin-top:4px;font-size:11px}
+.wheel{margin:20px 0;padding:20px 14px 16px;border-radius:22px;background:linear-gradient(170deg,rgba(212,28,216,.22),rgba(255,210,31,.08)),var(--glass,rgba(255,255,255,.07));box-shadow:0 12px 40px #0008,inset 0 0 0 1px var(--edge,#fff3)}
+.wheel h2{margin:0 0 4px;font-size:18px;letter-spacing:0;text-transform:none}
+.wheel p{margin:0 0 14px;font-size:13px;color:#e9d9f4}
+.wbox{position:relative;width:min(300px,82vw);aspect-ratio:1;margin:6px auto 16px}
+.wbox canvas{width:100%;height:100%;display:block;border-radius:50%;box-shadow:0 0 0 6px #ffd21f,0 0 0 9px #0006,0 10px 34px #000a,0 0 40px #d41cd88a}
+.wptr{position:absolute;left:50%;top:-14px;width:0;height:0;margin-left:-14px;border-left:14px solid transparent;border-right:14px solid transparent;border-top:30px solid #fff;filter:drop-shadow(0 3px 3px #000a);z-index:2}
+.wheel .cta:disabled{opacity:.6;cursor:default}
+#wres{margin:14px 0 4px;padding:12px;border-radius:14px;background:#ffd21f22;box-shadow:inset 0 0 0 1px #ffd21f66;font-weight:800;font-size:18px;color:#ffe066}
+#wodds{display:block;margin-top:10px;font-size:11px;color:var(--mut,#b9aec9);line-height:1.5}
 .sec{margin:18px 0}
 .sec h2{font-size:12px;letter-spacing:.18em;margin:0 0 8px;text-transform:uppercase}
 .faq{text-align:left}.faq h2{text-align:center}
@@ -160,6 +169,13 @@ footer{color:var(--mut);margin-top:34px;opacity:.8}
   <div id="blocks">
     <div id="b-bonus"><div class="bonus"><small id="b1"></small><b id="b2"></b><small id="b3"></small></div></div>
     <div id="b-cta"><button class="cta" id="open"></button><div class="status" id="st"></div></div>
+    <div id="b-wheel"><section class="wheel" id="wheel" hidden aria-label="Ruleta de bonos">
+      <h2 id="wheelT"></h2><p id="wheelS"></p>
+      <div class="wbox"><div class="wptr" aria-hidden="true"></div><canvas id="wcv" width="600" height="600" aria-hidden="true"></canvas></div>
+      <button class="cta" id="wbtn" type="button"></button>
+      <div id="wres" role="status" aria-live="polite" hidden></div>
+      <small id="wodds"></small>
+    </section></div>
     <div id="b-platforms"><section class="sec" id="plat" hidden><h2 id="platT"></h2><div class="row round" id="platRow"></div></section></div>
     <div id="b-games"><section class="sec" id="gms" hidden><h2 id="gmsT"></h2><div class="row" id="gmsRow"></div></section></div>
     <div id="b-features"><div class="grid" id="feat"></div></div>
@@ -191,15 +207,18 @@ const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 const $=id=>document.getElementById(id), seen=new Set();
 let readAt=0, seenSent=0, lastAgentTs=0;
 let myName=null,nameLoaded=false;
+const WCOL=["#d41cd8","#7c3aed","#f59e0b","#16a34a","#0ea5e9","#ef4444","#ec4899","#14b8a6","#a855f7","#f97316"];
+const W={a:0,state:"idle",v:0,raf:0,last:0,t0:0,idx:0,max:9};
+const LSG={get(k){try{return localStorage.getItem(k)}catch{return null}},set(k,v){try{localStorage.setItem(k,v)}catch{}}};
 let uid=null, ready=null, ONLINE=false, payShown=false, payLogged=false;
 
 /* ---------- contenido editable (se cambia desde el panel /admin) ---------- */
-const BLOCK_IDS=["bonus","cta","platforms","games","features","faq","contacts"];
+const BLOCK_IDS=["bonus","cta","wheel","platforms","games","features","faq","contacts"];
 function normLayout(a){
   const out=[],ids=new Set();
   (Array.isArray(a)?a:[]).forEach(x=>{
     if(x&&typeof x==="object"&&BLOCK_IDS.includes(x.id)&&!ids.has(x.id)){ids.add(x.id);out.push({id:x.id,on:x.on!==false})}});
-  BLOCK_IDS.forEach(id=>{if(!ids.has(id))out.push({id,on:true})});
+  BLOCK_IDS.forEach(id=>{if(ids.has(id))return;if(id==="wheel"&&out.some(x=>x.id==="cta"))out.splice(out.findIndex(x=>x.id==="cta")+1,0,{id,on:true});else out.push({id,on:true})});
   return out;
 }
 const DEF={
@@ -212,6 +231,9 @@ const DEF={
   license:"Autorización: [COMPLETAR]", chat_title:"Chat con Caja Ludmi", greeting:"¡Hola! ¿En qué te puedo ayudar?",
   chat_notice:"Conectado. Escribinos y te respondemos.", chat_theme:"light",
   ask_name:true, ask_name_text:"¿Cuál es tu usuario?",
+  wheel_on:true, wheel_title:"🎡 Girá la ruleta y ganá tu bono", wheel_sub:"Tocá GIRAR y frená la ruleta cuando quieras", wheel_spin:"GIRAR", wheel_stop:"FRENAR",
+  wheel_msg:"Quiero mi {premio}", wheel_reply:"¡Felicitaciones! En un momento un asesor te confirma tu bono.", wheel_once:true, wheel_odds:true,
+  wheel_prizes:[{label:"Bono 10%",w:15},{label:"Bono 20%",w:20},{label:"Bono 30%",w:35},{label:"Bono 40%",w:20},{label:"Bono 50%",w:10}],
   status_online:"en línea", status_offline:"Te respondemos apenas podamos",
   quick:[{label:"Cargar",text:"Quiero cargar saldo",action:"pay",reply:""},{label:"Retirar",text:"Quiero retirar",action:"message",reply:""},{label:"Soporte",text:"Necesito soporte",action:"message",reply:""}],
   layout:BLOCK_IDS.map(id=>({id,on:true})), faq_title:"Retiros", faq:[]
@@ -265,6 +287,7 @@ function apply(c){
   txt("nm",c.name);txt("ttl",c.title);txt("b1",c.bonus_top);txt("b2",c.bonus_big);txt("b3",c.bonus_bottom);
   $("open").textContent=c.cta;txt("st",c.status);txt("f1",c.footer);txt("f2",c.license);
   $("ctitle").textContent=c.chat_title;
+  wheelApply();
   $("nameLbl").textContent=c.ask_name_text||"¿Cuál es tu usuario?";nameShow();
   $("chat").className=c.chat_theme==="dark"?"dark":"light";
   {const cv=$("cav"),ci=mkImg(c.avatar_url,"");cv.replaceChildren();if(ci)cv.append(ci);else cv.textContent="👑"}
@@ -483,6 +506,107 @@ function change(m){
   const b=d.querySelector(".bt");
   if(b&&m.kind==="text"){b.textContent=m.body;const t=d.querySelector("time");if(t&&!t.textContent.startsWith("editado"))t.textContent="editado · "+t.textContent}
 }
+/* ---------- ruleta de bonos ---------- */
+function wPrizes(){
+  const l=Array.isArray(CFG.wheel_prizes)?CFG.wheel_prizes:[];
+  const p=l.filter(x=>x&&typeof x==="object"&&typeof x.label==="string"&&x.label.trim()).slice(0,10)
+    .map(x=>({label:x.label.trim().slice(0,24),w:Math.min(1000,Math.max(0,Number(x.w)||0))}));
+  return p.length>=2?p:null;
+}
+function wDraw(){
+  const P=wPrizes(),cv=$("wcv");if(!P||!cv)return;
+  const c=cv.getContext("2d"),S=cv.width,R=S/2,n=P.length,seg=Math.PI*2/n;
+  c.clearRect(0,0,S,S);c.save();c.translate(R,R);
+  for(let i=0;i<n;i++){
+    const a0=W.a+i*seg;
+    c.beginPath();c.moveTo(0,0);c.arc(0,0,R-4,a0,a0+seg);c.closePath();
+    c.fillStyle=WCOL[i%WCOL.length];c.fill();c.lineWidth=3;c.strokeStyle="#ffffffaa";c.stroke();
+    c.save();c.rotate(a0+seg/2);c.textAlign="right";c.fillStyle="#fff";c.shadowColor="#0008";c.shadowBlur=4;
+    c.font="800 "+(n>7?26:32)+"px system-ui,sans-serif";c.fillText(P[i].label,R-30,11);c.restore();
+  }
+  c.beginPath();c.arc(0,0,44,0,7);c.fillStyle="#ffd21f";c.fill();c.lineWidth=6;c.strokeStyle="#fff";c.stroke();
+  c.fillStyle="#7a1a8a";c.font="900 30px system-ui,sans-serif";c.textAlign="center";c.fillText("★",0,11);
+  c.restore();
+}
+/* sorteo con probabilidades distintas: la que tiene más "peso" sale más seguido */
+function wPick(P){
+  const tot=P.reduce((s,x)=>s+x.w,0);
+  if(!tot)return Math.floor(Math.random()*P.length);
+  let r=Math.random()*tot;
+  for(let i=0;i<P.length;i++){r-=P[i].w;if(r<0)return i}
+  return P.length-1;
+}
+function wBtn(){
+  const b=$("wbtn"),st=W.state;
+  b.disabled=st==="stopping";
+  b.textContent=st==="spinning"?(CFG.wheel_stop||"FRENAR"):st==="done"&&CFG.wheel_once&&!PREVIEW?"Hablar con un asesor":(CFG.wheel_spin||"GIRAR");
+}
+function wheelApply(){
+  const P=wPrizes();
+  $("wheel").hidden=!(CFG.wheel_on&&P);
+  if(!P)return;
+  txt("wheelT",CFG.wheel_title);txt("wheelS",CFG.wheel_sub);
+  const tot=P.reduce((s,x)=>s+x.w,0)||P.length;
+  $("wodds").textContent=CFG.wheel_odds?"Cada premio tiene una probabilidad distinta de salir: "+P.map(x=>x.label+" "+Math.round((tot===P.length&&!P.some(y=>y.w)?1:x.w)/tot*100)+"%").join(" · "):"";
+  if(W.state==="idle"||W.state==="done"){
+    if(W.state==="idle"&&CFG.wheel_once&&!PREVIEW&&LSG.get("wheel_done")){
+      W.state="done";$("wres").hidden=false;$("wres").textContent="🎁 Tu premio: "+LSG.get("wheel_done");
+    }
+    wDraw();
+  }
+  wBtn();
+}
+function wTick(ts){
+  const dt=Math.min(.05,(ts-W.last)/1000||0);W.last=ts;
+  if(W.state==="spinning"){
+    W.v=Math.min(W.max,W.v+W.max*dt/.5);W.a+=W.v*dt;
+    if(ts-W.t0>15000)wStop();
+  }else if(W.state==="stopping"){
+    const k=Math.min(1,(ts-W.s0)/W.T),e=1-(1-k)*(1-k);
+    W.a=W.a0+W.D*e;
+    if(k>=1){W.state="done";wDraw();wFinish();return}
+  }
+  wDraw();
+  if(W.state==="spinning"||W.state==="stopping")W.raf=requestAnimationFrame(wTick);
+}
+function wSpin(){
+  if(!wPrizes())return;
+  W.state="spinning";W.v=0;W.t0=performance.now();W.last=W.t0;$("wres").hidden=true;wBtn();
+  $("wbtn").disabled=true;setTimeout(()=>{if(W.state==="spinning")$("wbtn").disabled=false},500);
+  cancelAnimationFrame(W.raf);W.raf=requestAnimationFrame(wTick);
+}
+function wStop(){
+  const P=wPrizes();if(!P||W.state!=="spinning")return;
+  const n=P.length,seg=Math.PI*2/n,idx=wPick(P),off=(Math.random()-.5)*.7;
+  const target=Math.PI*1.5-(idx+.5+off)*seg;
+  const D=((((target-W.a)%(Math.PI*2))+Math.PI*2)%(Math.PI*2))+Math.PI*4;
+  W.idx=idx;W.a0=W.a;W.D=D;W.s0=performance.now();
+  W.T=Math.min(5200,Math.max(2600,2*D/Math.max(W.v,4)*1000));
+  W.state="stopping";wBtn();
+}
+function wFinish(){
+  const P=wPrizes(),label=P?P[W.idx].label:"";
+  $("wres").hidden=false;$("wres").textContent="🎉 ¡Ganaste "+label+"!";
+  if(PREVIEW){setTimeout(()=>{W.state="idle";$("wres").hidden=true;wBtn()},2500);wBtn();return}
+  if(CFG.wheel_once)LSG.set("wheel_done",label);
+  wBtn();
+  setTimeout(()=>wClaim(label),1400);
+}
+/* al terminar: se abre el chat y sale solo el mensaje "Quiero mi bono X" */
+async function wClaim(label){
+  $("chat").hidden=false;syncFab();
+  await init();if(!uid)return;
+  const prize=label.charAt(0).toLowerCase()+label.slice(1);
+  const msg=String(CFG.wheel_msg||"Quiero mi {premio}").replace(/\{premio\}/g,prize).slice(0,200);
+  await quick({label:"Ruleta",text:msg,action:CFG.wheel_reply?"reply":"message",reply:CFG.wheel_reply||""});
+  $("txt").focus();
+  if(!CFG.wheel_once){W.state="idle";wBtn()}
+}
+$("wbtn").onclick=()=>{
+  if(W.state==="spinning")wStop();
+  else if(W.state==="done"&&CFG.wheel_once&&!PREVIEW){$("chat").hidden=false;syncFab();init().then(()=>$("txt").focus())}
+  else if(W.state==="idle"||W.state==="done"){W.state="idle";wSpin()}
+};
 /* usuario: el visitante dice cómo se llama y queda guardado como contacto en el panel */
 function nameShow(){$("nameBar").hidden=!(CFG.ask_name&&(PREVIEW||(nameLoaded&&!myName)))}
 async function loadName(){

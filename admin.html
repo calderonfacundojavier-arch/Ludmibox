@@ -480,11 +480,11 @@ $("mic").onclick=async()=>{
   }catch{alert("Permití el acceso al micrófono para enviar audios.")}
 };
 /* ---------- editor de la landing ---------- */
-const BLOCKS=[["bonus","Cuadro del bono"],["cta","Botón verde y su texto de estado"],["platforms","Plataformas"],["games","Juegos"],["features","Las 3 cajitas (Pagos, Atención, Retiros)"],["faq","Desplegables (por ejemplo Retiros)"],["contacts","Botones de contacto (Instagram, WhatsApp, chat)"]];
+const BLOCKS=[["bonus","Cuadro del bono"],["cta","Botón verde y su texto de estado"],["wheel","Ruleta de bonos"],["platforms","Plataformas"],["games","Juegos"],["features","Las 3 cajitas (Pagos, Atención, Retiros)"],["faq","Desplegables (por ejemplo Retiros)"],["contacts","Botones de contacto (Instagram, WhatsApp, chat)"]];
 function normLayout(a){
   const ids=BLOCKS.map(b=>b[0]),out=[],seenIds=new Set();
   (Array.isArray(a)?a:[]).forEach(x=>{if(x&&typeof x==="object"&&ids.includes(x.id)&&!seenIds.has(x.id)){seenIds.add(x.id);out.push({id:x.id,on:x.on!==false})}});
-  ids.forEach(id=>{if(!seenIds.has(id))out.push({id,on:true})});
+  ids.forEach(id=>{if(seenIds.has(id))return;if(id==="wheel"&&out.some(x=>x.id==="cta"))out.splice(out.findIndex(x=>x.id==="cta")+1,0,{id,on:true});else out.push({id,on:true})});
   return out;
 }
 const DEFL={
@@ -497,6 +497,9 @@ const DEFL={
   license:"Autorización: [COMPLETAR]", chat_title:"Chat con Caja Ludmi", greeting:"¡Hola! ¿En qué te puedo ayudar?",
   chat_notice:"Conectado. Escribinos y te respondemos.", chat_theme:"light",
   ask_name:true, ask_name_text:"¿Cuál es tu usuario?",
+  wheel_on:true, wheel_title:"🎡 Girá la ruleta y ganá tu bono", wheel_sub:"Tocá GIRAR y frená la ruleta cuando quieras", wheel_spin:"GIRAR", wheel_stop:"FRENAR",
+  wheel_msg:"Quiero mi {premio}", wheel_reply:"¡Felicitaciones! En un momento un asesor te confirma tu bono.", wheel_once:true, wheel_odds:true,
+  wheel_prizes:[{label:"Bono 10%",w:15},{label:"Bono 20%",w:20},{label:"Bono 30%",w:35},{label:"Bono 40%",w:20},{label:"Bono 50%",w:10}],
   status_online:"en línea", status_offline:"Te respondemos apenas podamos",
   quick:[{label:"Cargar",text:"Quiero cargar saldo",action:"pay",reply:""},{label:"Retirar",text:"Quiero retirar",action:"message",reply:""},{label:"Soporte",text:"Necesito soporte",action:"message",reply:""}],
   layout:BLOCKS.map(b=>({id:b[0],on:true})), faq_title:"Retiros", faq:[]
@@ -641,6 +644,24 @@ function buildForm(){
       fImg("Imagen de fondo","bg_url",1600)),
     sec("Beneficios","Las tres cajitas debajo del botón.",
       ...cfg.features.map((f,i)=>el("div",{class:"li"},inp(f,"t","Título "+(i+1),40),inp(f,"s","Detalle",60)))),
+    sec("Ruleta de bonos","El usuario toca GIRAR, la ruleta empieza a dar vueltas y la frena con el botón. Al terminar se abre el chat y se envía solo «Quiero mi bono X». El «peso» define qué tan seguido sale cada premio: a mayor número, más probable (el porcentaje se calcula solo). La ruleta se puede mover de lugar en «Orden de la página».",
+      fCheck("Mostrar la ruleta",cfg,"wheel_on"),
+      fText("Título","wheel_title"),fText("Texto debajo del título","wheel_sub"),
+      fText("Texto del botón para girar","wheel_spin"),fText("Texto del botón para frenar","wheel_stop"),
+      fText("Mensaje que se envía al chat ({premio} se reemplaza por el premio que salió)","wheel_msg"),
+      fText("Respuesta automática que ve el usuario (dejá vacío para no mostrar ninguna)","wheel_reply",{area:true,max:400}),
+      fCheck("Una sola vez por persona (en ese navegador)",cfg,"wheel_once"),
+      fCheck("Mostrar las probabilidades debajo de la ruleta (recomendado: es transparente con el usuario)",cfg,"wheel_odds"),
+      el("label",{class:"fl"},"Premios (mínimo 2, máximo 10)"),
+      fList("wheel_prizes",{max:10,add:"+ Agregar premio",make:()=>({label:"",w:10}),
+        row:it=>{
+          const l=inp(it,"label","Premio (ej. Bono 30%)",24);
+          const w=el("input",{class:"fi",type:"number",min:0,max:1000,value:it.w,placeholder:"Peso",title:"Peso: a mayor número, sale más seguido"});
+          w.style.maxWidth="110px";w.oninput=()=>{it.w=Math.max(0,Math.min(1000,Number(w.value)||0));dirty=true;wOddsUpdate()};
+          l.addEventListener("input",wOddsUpdate);
+          return el("div",{style:"display:flex;gap:8px;flex:1 1 100%"},l,w);
+        }}),
+      el("p",{class:"nt",id:"wOdds"})),
     sec("Desplegables","Secciones que se abren al tocarlas. Sirven para explicar con detalle, por ejemplo cómo funcionan los retiros: pasos, mínimos, tiempos. Cada uno lleva un título y su explicación. Si no cargás ninguno, la sección no se muestra.",
       fText("Título de la sección (ej. Retiros)","faq_title"),
       fList("faq",{max:12,add:"+ Agregar desplegable",make:()=>({q:"",a:""}),
@@ -709,12 +730,18 @@ function buildForm(){
       fImg("Micrófono (grabar audio)","icon_mic",96),fImg("Adjuntar imagen","icon_attach",96),
       fImg("Enviar mensaje","icon_send",96),fImg("Datos para transferir (botón del encabezado)","icon_pay",96))
   );
-  decorate();
+  decorate();wOddsUpdate();
+}
+function wOddsUpdate(){
+  const e=document.getElementById("wOdds");if(!e)return;
+  const P=(cfg.wheel_prizes||[]).filter(x=>x&&(x.label||"").trim());
+  const tot=P.reduce((a,x)=>a+(Number(x.w)||0),0);
+  e.textContent=!P.length?"":tot?"Probabilidad de cada premio: "+P.map(x=>x.label.trim()+" "+Math.round((Number(x.w)||0)/tot*100)+"%").join(" · "):"Con todos los pesos en 0, todos los premios salen con la misma probabilidad.";
 }
 /* ----- navegación por secciones + vista previa en vivo ----- */
 const NAVG=[
  ["Página",[["Perfil","👤","Perfil"],["Orden de la página","↕️","Orden"],["Textos principales","✏️","Textos"],["Fondo","🖼️","Fondo"],["Beneficios","⭐","Beneficios"],["Pie de página","📄","Pie de página"]]],
- ["Contenido",[["Plataformas","🎮","Plataformas"],["Juegos","🎲","Juegos"],["Desplegables","📂","Desplegables"]]],
+ ["Contenido",[["Ruleta de bonos","🎡","Ruleta de bonos"],["Plataformas","🎮","Plataformas"],["Juegos","🎲","Juegos"],["Desplegables","📂","Desplegables"]]],
  ["Contacto",[["Instagram","📷","Instagram"],["Botones de contacto","📞","Botones de contacto"]]],
  ["Chat",[["Chat","💬","Ventana de chat"],["Botones rápidos del chat","⚡","Botones rápidos"],["Botón flotante de chat","🟢","Botón flotante"],["Íconos del chat","🎤","Íconos"],["Datos para transferir","💳","Datos para transferir"]]]
 ];
@@ -781,6 +808,10 @@ function collect(){
   d.chat_theme=d.chat_theme==="dark"?"dark":"light";
   for(const k of ["chat_title","chat_notice","status_online","status_offline","greeting","ask_name_text"])d[k]=(d[k]||"").trim();
   d.ask_name=!!d.ask_name;
+  for(const k of ["wheel_title","wheel_sub","wheel_spin","wheel_stop","wheel_msg","wheel_reply"])d[k]=String(d[k]||"").trim();
+  d.wheel_on=!!d.wheel_on;d.wheel_once=!!d.wheel_once;d.wheel_odds=!!d.wheel_odds;
+  d.wheel_prizes=(d.wheel_prizes||[]).filter(x=>x&&String(x.label||"").trim()).slice(0,10).map(x=>({label:String(x.label).trim().slice(0,24),w:Math.max(0,Math.min(1000,Number(x.w)||0))}));
+  if(d.wheel_on&&d.wheel_prizes.length<2){say("La ruleta necesita al menos 2 premios. Agregalos o desactivá la ruleta.");return null}
   const qk=[];
   for(const q of d.quick){
     if(!q||!(q.label||"").trim())continue;
