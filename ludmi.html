@@ -124,6 +124,7 @@ footer{color:var(--mut);margin-top:34px;opacity:.8}
 .m.card{max-width:96%;align-self:stretch}
 .m a{color:inherit;text-decoration:underline;word-break:break-all}
 .m time em{font-style:normal}
+.tk{margin-left:4px;font-size:11px;letter-spacing:-2px;color:var(--mut)}.tk.rd{color:#53bdeb}
 .pc{margin-top:8px;padding:10px;border-radius:10px;background:var(--card);border:1px solid var(--line)}
 .pc .bk{font-weight:800;margin-bottom:6px}
 .pc .r{display:flex;gap:8px;font-size:13px;margin:3px 0}
@@ -181,6 +182,7 @@ footer{color:var(--mut);margin-top:34px;opacity:.8}
 const SUPABASE_URL="https://otlrgjezfuwlxqigqpfz.supabase.co", SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90bHJnamV6ZnV3bHhxaWdxcGZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5NjY5MDEsImV4cCI6MjEwNjU0MjkwMX0.j_eQn8LafoxQ8WeT4OlBrfFTDvZIV8tO4pGylbGKu7k";
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 const $=id=>document.getElementById(id), seen=new Set();
+let readAt=0, seenSent=0, lastAgentTs=0;
 let uid=null, ready=null, ONLINE=false, payShown=false, payLogged=false;
 
 /* ---------- contenido editable (se cambia desde el panel /admin) ---------- */
@@ -444,12 +446,15 @@ function init(){
     if(!data||!data.length)String(CFG.greeting||"").split(/\n\s*\n/).map(g=>g.trim()).filter(Boolean)
       .forEach(g=>bubble({sender:"agent",kind:"text",body:g,created_at:new Date()}));
     (data||[]).forEach(render);
+    try{const {data:ar}=await sb.from("agent_read").select("read_at").eq("visitor_id",uid).maybeSingle();if(ar&&ar.read_at)readAt=new Date(ar.read_at).getTime();ticks()}catch{}
+    reportSeen();
     await loadPay();
     if(PAY&&PAY.auto&&!(data&&data.length))showPay();
     const pc=sb.channel("agent-presence");
     pc.on("presence",{event:"sync"},()=>{ONLINE=Object.keys(pc.presenceState()).length>0;renderStatus()}).subscribe();
     sb.channel("m-"+uid).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"visitor_id=eq."+uid},p=>{render(p.new,true)})
-      .on("postgres_changes",{event:"UPDATE",schema:"public",table:"messages",filter:"visitor_id=eq."+uid},p=>change(p.new)).subscribe();
+      .on("postgres_changes",{event:"UPDATE",schema:"public",table:"messages",filter:"visitor_id=eq."+uid},p=>change(p.new))
+      .on("postgres_changes",{event:"*",schema:"public",table:"agent_read",filter:"visitor_id=eq."+uid},p=>{if(p.new&&p.new.read_at){readAt=new Date(p.new.read_at).getTime();ticks()}}).subscribe();
   })());
 }
 function bubble(m,el){
@@ -457,7 +462,8 @@ function bubble(m,el){
   if(m.id!=null)d.dataset.id=m.id;
   if(el) d.appendChild(el); else{const s=document.createElement("span");s.className="bt";s.textContent=m.body;d.appendChild(s)}
   const t=document.createElement("time"); t.textContent=(m.edited_at?"editado · ":"")+new Date(m.created_at).toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"});
-  d.appendChild(t); $("msgs").appendChild(d); $("msgs").scrollTop=1e9; return d;
+  if(m.sender==="visitor"&&m.id!=null){d.dataset.ts=new Date(m.created_at).getTime();const k=document.createElement("span");k.className="tk";t.append(k)}
+  d.appendChild(t); $("msgs").appendChild(d); $("msgs").scrollTop=1e9; ticks(); return d;
 }
 /* un mensaje que el agente editó o eliminó */
 function change(m){
@@ -466,11 +472,22 @@ function change(m){
   const b=d.querySelector(".bt");
   if(b&&m.kind==="text"){b.textContent=m.body;const t=d.querySelector("time");if(t&&!t.textContent.startsWith("editado"))t.textContent="editado · "+t.textContent}
 }
+/* tildes: ✓ enviado · ✓✓ azul = lo leyó el agente */
+function ticks(){
+  document.querySelectorAll("#msgs .m[data-ts]").forEach(d=>{const k=d.querySelector(".tk");if(!k)return;const ok=+d.dataset.ts<=readAt;k.textContent=ok?"✓✓":"✓";k.classList.toggle("rd",ok);k.title=ok?"Leído":"Enviado"});
+}
+/* avisa al agente que el usuario vio sus mensajes (solo con el chat abierto y la pestaña visible) */
+function reportSeen(){
+  if(PREVIEW||!uid||!lastAgentTs||lastAgentTs<=seenSent||$("chat").hidden||document.hidden)return;
+  seenSent=lastAgentTs;
+  sb.from("visitor_seen").upsert({visitor_id:uid,seen_at:new Date(lastAgentTs).toISOString()}).then(r=>{if(r&&r.error)seenSent=0},()=>{seenSent=0});
+}
+addEventListener("focus",reportSeen);document.addEventListener("visibilitychange",reportSeen);
 async function render(m,live){
   if(seen.has(m.id))return; seen.add(m.id);
   if(m.deleted_at)return;
   if(m.sender==="visitor"&&m.kind==="text"&&typeof m.body==="string"&&(m.body.startsWith(SEEN)||m.body.startsWith(AUTO)))return;
-  if(live&&m.sender==="agent")ding();
+  if(m.sender==="agent"){lastAgentTs=Math.max(lastAgentTs,new Date(m.created_at).getTime());if(live){ding();reportSeen()}}
   if(m.kind==="text"){if(m.sender==="agent"&&typeof m.body==="string"&&m.body.startsWith(MARK)&&agentPay(m))return;return bubble(m)}
   const {data}=await sb.storage.from("chat-media").createSignedUrl(m.media_path,3600);
   const el=document.createElement(m.kind==="image"?"img":"audio"); el.src=data?data.signedUrl:""; if(m.kind==="audio")el.controls=true;
@@ -508,7 +525,7 @@ async function upload(blob,kind,mime){
   await sb.from("messages").insert({visitor_id:uid,sender:"visitor",kind,media_path:path});
   await logPay();
 }
-$("open").onclick=async()=>{$("chat").hidden=false;syncFab();if(PREVIEW){previewChat();return}await init();$("txt").focus()};
+$("open").onclick=async()=>{$("chat").hidden=false;syncFab();if(PREVIEW){previewChat();return}await init();reportSeen();$("txt").focus()};
 $("close").onclick=()=>{$("chat").hidden=true;syncFab()};
 $("send").onclick=sendText;
 $("txt").onkeydown=e=>{if(e.key==="Enter")sendText()};

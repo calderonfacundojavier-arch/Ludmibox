@@ -71,7 +71,8 @@ header button{background:none;border:0;cursor:pointer;color:var(--muted);font-si
 .empty{padding:24px 16px;color:var(--muted);text-align:center;font-size:14px}
 #pane header .hb{background:var(--hover);border-radius:8px;padding:8px 12px;color:#e9edef;font-size:13px;font-weight:600;white-space:nowrap}
 .m{position:relative}
-.m .more{position:absolute;top:1px;right:3px;background:none;border:0;color:#ffffffaa;font-size:17px;line-height:1;cursor:pointer;padding:2px 6px;opacity:.55}
+.tk{margin-left:4px;font-size:11px;letter-spacing:-2px;color:#ffffff99}.tk.rd{color:#53bdeb}
+.m .more{position:absolute;top:1px;right:3px;background:none;border:0;color:#ffffffaa;font-size:17px;line-height:1;cursor:pointer;padding:2px 6px;opacity:.85}
 .m .more:hover,.m.sel .more{opacity:1}
 .m .act{display:none;gap:8px;margin:6px 0 2px;clear:both}
 .m.sel .act{display:flex}
@@ -151,7 +152,7 @@ textarea.fi{min-height:78px;resize:vertical;font-family:inherit}
 const SUPABASE_URL="https://otlrgjezfuwlxqigqpfz.supabase.co", SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90bHJnamV6ZnV3bHhxaWdxcGZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5NjY5MDEsImV4cCI6MjEwNjU0MjkwMX0.j_eQn8LafoxQ8WeT4OlBrfFTDvZIV8tO4pGylbGKu7k";
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{storageKey:"agent-auth"}});
 const $=id=>document.getElementById(id), all={}, seen=new Set();
-let cur=null, rt="conectando…", who="", csOK=true, closed={}, reads={}, view="open";
+let cur=null, rt="conectando…", who="", csOK=true, closed={}, reads={}, seenAt={}, rcOK=true, view="open";
 const dbg=()=>{$("dbg").hidden=(rt==="activo"&&csOK);$("dbg").textContent=`Agente: ${who} · ${seen.size} mensajes · chats: ${Object.keys(all).length} · tiempo real: ${rt}`+(csOK?"":" · ⚠ falta ejecutar supabase-chat.sql")};
 const LS={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
 let names={}, lastSeen=LS.get("lastSeen",{});
@@ -180,6 +181,7 @@ const markSeen=id=>{
   if(csOK){
     if(reads[id]&&new Date(reads[id])>=new Date(t))return;
     reads[id]=t;sb.from("chat_state").upsert({visitor_id:id,read_at:t}).then(()=>{},()=>{});
+    if(rcOK)sb.from("agent_read").upsert({visitor_id:id,read_at:t}).then(r=>{if(r&&r.error)rcOK=false},()=>{});
   }else{lastSeen[id]=t;LS.set("lastSeen",lastSeen)}
 };
 let soundOn=LS.get("sound",true), actx=null;
@@ -261,6 +263,7 @@ async function boot(){
   if(!a||!a.length){$("err").textContent="Este usuario no es agente.";await sb.auth.signOut();return}
   const {data:cs,error:ce}=await sb.from("contacts").select("*");(cs||[]).forEach(c=>names[c.visitor_id]=c.name);
   {const {data:st,error:se}=await sb.from("chat_state").select("*");if(se)csOK=false;else(st||[]).forEach(applyState)}
+  await loadSeen();
   $("login").hidden=true;$("app").hidden=false;
   const pch=sb.channel("agent-presence",{config:{presence:{key:"agent-"+session.user.id}}});
   pch.subscribe(async st=>{if(st==="SUBSCRIBED")await pch.track({at:Date.now()})});
@@ -272,6 +275,12 @@ async function boot(){
   startKeepAlive();
   if(!actx||actx.state!=="running")$("snd").hidden=!soundOn;
   renderClose();
+}
+async function loadSeen(){
+  if(!rcOK)return;
+  const {data,error}=await sb.from("visitor_seen").select("*");
+  if(error){rcOK=false;return}
+  (data||[]).forEach(r=>seenAt[r.visitor_id]=r.seen_at);updTicks();
 }
 function applyState(c){
   if(c.closed_at)closed[c.visitor_id]=c.closed_at;else delete closed[c.visitor_id];
@@ -288,6 +297,7 @@ function subscribeRT(){
     .on("postgres_changes",{event:"*",schema:"public",table:"contacts"},p=>{
        if(p.eventType==="DELETE")delete names[p.old.visitor_id];else names[p.new.visitor_id]=p.new.name;
        if(cur){$("title").textContent=nm(cur);avatar($("hav"),cur)}list()});
+  if(rcOK)ch.on("postgres_changes",{event:"*",schema:"public",table:"visitor_seen"},p=>{if(p.new&&p.new.visitor_id){seenAt[p.new.visitor_id]=p.new.seen_at;updTicks();list()}});
   if(csOK)ch.on("postgres_changes",{event:"*",schema:"public",table:"chat_state"},p=>{
        if(p.eventType==="DELETE"){delete closed[p.old.visitor_id];delete reads[p.old.visitor_id]}else applyState(p.new);
        renderClose();list()});
@@ -312,9 +322,12 @@ async function syncNow(){
       }else{add(m,true);fresh++}
     });
     if(csOK){const {data:st,error:se}=await sb.from("chat_state").select("*");if(!se&&st){closed={};reads={};st.forEach(applyState)}}
-    list();dbg();renderClose();
+    await loadSeen();list();dbg();renderClose();
   }catch{}finally{syncing=false}
 }
+/* lo que llegó mientras la ventana estaba sin foco cuenta como leído recién al volver */
+function readNow(){if(cur&&document.hasFocus()&&!document.hidden){markSeen(cur);list()}}
+addEventListener("focus",readNow);document.addEventListener("visibilitychange",readNow);
 function startKeepAlive(){
   setInterval(syncNow,15000);
   addEventListener("online",()=>{subscribeRT();syncNow()});
@@ -325,7 +338,7 @@ function add(m,live){
   if(seen.has(m.id))return;seen.add(m.id);
   (all[m.visitor_id]=all[m.visitor_id]||[]).push(m);
   if(m.visitor_id===cur){
-    draw(m);if(live)markSeen(cur);
+    draw(m);if(live&&document.hasFocus()&&!document.hidden)markSeen(cur);
     renderClose();
   }
   if(live&&m.sender==="visitor"&&!isNote(m)){beep();notify(m)}
@@ -358,7 +371,7 @@ function list(){
     avatar(d.querySelector(".av"),id);
     d.querySelector(".nm").textContent=nm(id);d.querySelector(".tm").textContent=fmt(l.created_at);
     const pre=(isClosed(id)?"✓ Cerrado · ":"")+(l.deleted_at?"🚫 Mensaje eliminado":isAuto(l)?"🤖 Respuesta automática":isSeen(l)?"💳 Se le mostraron los datos":isPay(l)?payLabel(l):l.kind==="text"?l.body:(l.kind==="image"?"📷 Foto":"🎤 Audio"));
-    d.querySelector(".pv span").textContent=(l.sender==="agent"?"Vos: ":"")+pre;
+    d.querySelector(".pv span").textContent=(l.sender==="agent"?((seenAt[id]&&new Date(l.created_at)<=new Date(seenAt[id]))?"✓✓ ":"✓ ")+"Vos: ":"")+pre;
     if(n){const b=d.querySelector(".badge");b.hidden=false;b.textContent=n}
     d.onclick=()=>open(id);return d});
   if(!rows.length){const e=document.createElement("div");e.className="empty";e.textContent=term?"No se encontraron chats.":view==="unread"?"No tenés mensajes sin leer.":"Todavía no hay chats.";rows.push(e)}
@@ -404,7 +417,9 @@ function draw(m){
   else if(m.kind==="text")d.append(isPay(m)?payLabel(m):m.body);
   else{const el=document.createElement(m.kind==="image"?"img":"audio");if(m.kind==="audio")el.controls=true;d.appendChild(el);
     sb.storage.from("chat-media").createSignedUrl(m.media_path,3600).then(({data})=>{if(data){el.src=data.signedUrl;if(m.kind==="image")el.onclick=()=>window.open(data.signedUrl,"_blank")}})}
-  const t=document.createElement("time");t.textContent=(m.edited_at?"editado · ":"")+fmt(m.created_at,true);d.appendChild(t);
+  const t=document.createElement("time");t.textContent=(m.edited_at?"editado · ":"")+fmt(m.created_at,true);
+  if(m.sender==="agent"&&m.id!=null){d.dataset.ts=new Date(m.created_at).getTime();const k=document.createElement("span");k.className="tk";t.append(k)}
+  d.appendChild(t);
   if(m.sender==="agent"&&m.id!=null){
     const more=document.createElement("button"),act=document.createElement("div");
     more.type="button";more.className="more";more.textContent="⋯";more.title="Editar o eliminar";more.setAttribute("aria-label","Opciones del mensaje");
@@ -414,7 +429,11 @@ function draw(m){
     more.onclick=ev=>{ev.stopPropagation();d.classList.toggle("sel")};
     d.append(more,act);
   }
-  box.appendChild(d);box.scrollTop=1e9;
+  box.appendChild(d);box.scrollTop=1e9;updTicks();
+}
+function updTicks(){
+  if(!cur)return;const r=new Date(seenAt[cur]||0).getTime();
+  document.querySelectorAll("#msgs .m[data-ts]").forEach(d=>{const k=d.querySelector(".tk");if(!k)return;const ok=+d.dataset.ts<=r;k.textContent=ok?"✓✓":"✓";k.classList.toggle("rd",ok);k.title=ok?"Visto por el usuario":"Enviado"});
 }
 async function reply(){
   const body=$("txt").value.trim();if(!body||!cur)return;$("txt").value="";
