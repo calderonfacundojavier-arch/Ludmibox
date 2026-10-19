@@ -61,6 +61,12 @@ header button{background:none;border:0;cursor:pointer;color:var(--muted);font-si
 #tabs button{padding:6px 14px;border-radius:18px;background:var(--hover);border:0;color:var(--muted);font-size:13px;cursor:pointer;white-space:nowrap}
 #tabs button.on{background:#0a332c;color:#25d366}
 #tabs button.dot::after{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:#25d366;margin-left:6px}
+#snp{padding:12px 16px;border-bottom:1px solid var(--line);background:var(--panel);display:grid;gap:10px;font-size:13px;flex:none}
+#snp label{display:grid;gap:5px;color:var(--muted);font-size:12px}
+#snp select{background:var(--hover);border:0;border-radius:8px;padding:9px;color:#e9edef;font-size:14px}
+#snp input[type=range]{width:100%;accent-color:var(--accent)}
+#ntf{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:12px;flex-wrap:wrap}
+#cfgBtn{font-size:16px!important}
 #snd{padding:6px 16px;font-size:12px;color:#f59e0b;border-bottom:1px solid var(--line);flex:none}
 .empty{padding:24px 16px;color:var(--muted);text-align:center;font-size:14px}
 #pane header .hb{background:var(--hover);border-radius:8px;padding:8px 12px;color:#e9edef;font-size:13px;font-weight:600;white-space:nowrap}
@@ -118,7 +124,12 @@ textarea.fi{min-height:78px;resize:vertical;font-family:inherit}
   <button>Entrar</button><small id="err"></small></form>
 
 <div id="app" hidden>
-  <aside id="side"><header><span>Chats</span><small id="live" hidden style="color:#f59e0b;font-weight:400">⚠ Sin tiempo real, recargá</small><span class="sp"></span><button id="soundBtn" aria-label="Sonido de mensajes nuevos">🔔</button><button id="edLand">⚙ Landing</button><button id="out">Salir</button></header><div id="dbg"></div><div id="snd" hidden>🔕 Tocá cualquier parte de la pantalla para activar el sonido</div><div id="srch"><input id="q" type="search" placeholder="Buscar un chat o iniciar uno nuevo" autocomplete="off" aria-label="Buscar chats"></div><div id="tabs"><button id="tabOpen" class="on">Todos</button><button id="tabUnread">No leídos</button><button id="tabClosed">Cerrados</button></div><div id="list"></div></aside>
+  <aside id="side"><header><span>Chats</span><small id="live" hidden style="color:#f59e0b;font-weight:400">⚠ Reconectando…</small><span class="sp"></span><button id="soundBtn" aria-label="Sonido de mensajes nuevos">🔔</button><button id="cfgBtn" aria-label="Ajustes de avisos" title="Tono y notificaciones">⚙</button><button id="edLand">⚙ Landing</button><button id="out">Salir</button></header><div id="dbg"></div><div id="snp" hidden>
+  <label>Tono del mensaje entrante<select id="toneSel"></select></label>
+  <button id="toneTest" class="sm" type="button">▶ Probar</button>
+  <label>Volumen<input id="vol" type="range" min="10" max="100" step="5"></label>
+  <div id="ntf"><span id="ntfTxt"></span> <button id="ntfBtn" class="sm" type="button">Activar</button></div>
+</div><div id="snd" hidden>🔕 Tocá cualquier parte de la pantalla para activar el sonido</div><div id="srch"><input id="q" type="search" placeholder="Buscar un chat o iniciar uno nuevo" autocomplete="off" aria-label="Buscar chats"></div><div id="tabs"><button id="tabOpen" class="on">Todos</button><button id="tabUnread">No leídos</button></div><div id="list"></div></aside>
   <section id="chat">
     <div id="blank">Seleccioná una conversación<br>para empezar a responder.</div>
     <div id="pane" hidden>
@@ -140,7 +151,7 @@ textarea.fi{min-height:78px;resize:vertical;font-family:inherit}
 const SUPABASE_URL="https://otlrgjezfuwlxqigqpfz.supabase.co", SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90bHJnamV6ZnV3bHhxaWdxcGZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5NjY5MDEsImV4cCI6MjEwNjU0MjkwMX0.j_eQn8LafoxQ8WeT4OlBrfFTDvZIV8tO4pGylbGKu7k";
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{storageKey:"agent-auth"}});
 const $=id=>document.getElementById(id), all={}, seen=new Set();
-let cur=null, rt="conectando…", who="", csOK=true, closed={}, view="open";
+let cur=null, rt="conectando…", who="", csOK=true, closed={}, reads={}, view="open";
 const dbg=()=>{$("dbg").hidden=(rt==="activo"&&csOK);$("dbg").textContent=`Agente: ${who} · ${seen.size} mensajes · chats: ${Object.keys(all).length} · tiempo real: ${rt}`+(csOK?"":" · ⚠ falta ejecutar supabase-chat.sql")};
 const LS={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
 let names={}, lastSeen=LS.get("lastSeen",{});
@@ -160,8 +171,17 @@ const payLabel=m=>"💳 Datos para transferir ("+payN(m)+(payN(m)===1?" cuenta)"
 const nm=id=>names[id]||"Visitante "+id.slice(0,6);
 const hue=id=>parseInt(id.slice(0,6),16)%360;
 const fmt=(d,full)=>{d=new Date(d);const t=d.toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"});return full||d.toDateString()===new Date().toDateString()?t:d.toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit"})};
-const unreadN=id=>all[id].filter(m=>m.sender==="visitor"&&!isNote(m)&&new Date(m.created_at)>new Date(lastSeen[id]||0)).length;
-const markSeen=id=>{lastSeen[id]=all[id].at(-1).created_at;LS.set("lastSeen",lastSeen)};
+/* "pendiente" = mensajes del visitante posteriores a lo último que leyó o contestó CUALQUIER agente (se comparte por Supabase) */
+const lastAgentAt=id=>{const a=all[id]||[];for(let i=a.length-1;i>=0;i--)if(a[i].sender==="agent")return a[i].created_at;return 0};
+const readMark=id=>Math.max(new Date(csOK?(reads[id]||0):(lastSeen[id]||0)),new Date(lastAgentAt(id)||0));
+const unreadN=id=>all[id].filter(m=>m.sender==="visitor"&&!isNote(m)&&new Date(m.created_at)>readMark(id)).length;
+const markSeen=id=>{
+  const t=all[id].at(-1).created_at;
+  if(csOK){
+    if(reads[id]&&new Date(reads[id])>=new Date(t))return;
+    reads[id]=t;sb.from("chat_state").upsert({visitor_id:id,read_at:t}).then(()=>{},()=>{});
+  }else{lastSeen[id]=t;LS.set("lastSeen",lastSeen)}
+};
 let soundOn=LS.get("sound",true), actx=null;
 function unlockAudio(){
   try{
@@ -172,19 +192,60 @@ function unlockAudio(){
 /* el aviso se oculta después del clic, para que la pantalla no se mueva justo al tocar */
 addEventListener("click",()=>setTimeout(()=>{if(actx&&actx.state==="running")$("snd").hidden=true},0));
 ["pointerdown","keydown","touchstart"].forEach(ev=>addEventListener(ev,unlockAudio,{passive:true}));
-function beep(){
-  if(!soundOn||!actx||actx.state!=="running")return;
+const TONES={
+  ding:{n:"Ding (clásico)",s:[[880,0,.3,"sine"],[1175,.14,.3,"sine"]]},
+  campana:{n:"Campana",s:[[1318,0,1,"sine"],[2637,0,.5,"sine",.5],[1760,.02,.7,"sine",.4]]},
+  gota:{n:"Gota",s:[[1300,0,.2,"sine",1,420]]},
+  marimba:{n:"Marimba",s:[[523,0,.3,"triangle"],[659,.1,.3,"triangle"],[784,.2,.4,"triangle"]]},
+  alerta:{n:"Alerta",s:[[740,0,.12,"square",.4],[740,.2,.12,"square",.4],[988,.4,.2,"square",.4]]},
+  suave:{n:"Suave",s:[[523,0,.8,"sine",.8],[659,.05,.8,"sine",.5]]},
+  pop:{n:"Pop",s:[[600,0,.1,"sine",1,1100],[900,.12,.12,"sine",.8]]},
+  doble:{n:"Doble aviso",s:[[1047,0,.18,"sine"],[1047,.25,.18,"sine"]]}
+};
+let tone=LS.get("tone","ding"),vol=LS.get("vol",70);
+if(!TONES[tone])tone="ding";
+function playTone(k){
+  if(!actx||actx.state!=="running")return;
   try{
-    const t=actx.currentTime;
-    [[880,0],[1175,.14]].forEach(([f,d])=>{
-      const o=actx.createOscillator(),g=actx.createGain();o.type="sine";o.frequency.value=f;
-      g.gain.setValueAtTime(0,t+d);g.gain.linearRampToValueAtTime(.22,t+d+.02);g.gain.exponentialRampToValueAtTime(.001,t+d+.3);
-      o.connect(g);g.connect(actx.destination);o.start(t+d);o.stop(t+d+.32)});
+    const t0=actx.currentTime;
+    (TONES[k]||TONES.ding).s.forEach(([f,d,len,type,gain,to])=>{
+      const o=actx.createOscillator(),g=actx.createGain(),peak=.3*(vol/100)*(gain||1);
+      o.type=type;o.frequency.setValueAtTime(f,t0+d);if(to)o.frequency.exponentialRampToValueAtTime(to,t0+d+len);
+      g.gain.setValueAtTime(0,t0+d);g.gain.linearRampToValueAtTime(peak,t0+d+.02);g.gain.exponentialRampToValueAtTime(.001,t0+d+len);
+      o.connect(g);g.connect(actx.destination);o.start(t0+d);o.stop(t0+d+len+.05)});
   }catch{}
 }
+function beep(){if(soundOn)playTone(tone)}
 function renderSound(){const b=$("soundBtn");b.textContent=soundOn?"🔔":"🔕";b.title=soundOn?"Sonido activado (tocá para silenciar)":"Sonido silenciado (tocá para activar)"}
 $("soundBtn").onclick=()=>{soundOn=!soundOn;LS.set("sound",soundOn);renderSound();unlockAudio();if(soundOn)beep()};
 renderSound();
+/* ajustes: tono, volumen y notificaciones del escritorio */
+$("toneSel").replaceChildren(...Object.entries(TONES).map(([k,v])=>{const o=document.createElement("option");o.value=k;o.textContent=v.n;return o}));
+$("toneSel").value=tone;$("vol").value=vol;
+$("toneSel").onchange=()=>{tone=$("toneSel").value;LS.set("tone",tone);unlockAudio();playTone(tone)};
+$("vol").oninput=()=>{vol=+$("vol").value;LS.set("vol",vol)};
+$("vol").onchange=()=>{unlockAudio();playTone(tone)};
+$("toneTest").onclick=()=>{unlockAudio();playTone(tone)};
+$("cfgBtn").onclick=()=>{$("snp").hidden=!$("snp").hidden;renderNtf()};
+const NOTIF="Notification" in window;
+function renderNtf(){
+  const t=$("ntfTxt"),b=$("ntfBtn");
+  if(!NOTIF){t.textContent="Este navegador no permite notificaciones del escritorio.";b.hidden=true;return}
+  const p=Notification.permission;b.hidden=p!=="default";
+  t.textContent=p==="granted"?"✅ Notificaciones del escritorio activadas":p==="denied"?"🚫 Bloqueadas: habilitalas desde el candado de la barra de direcciones":"Recibí un aviso en la PC aunque estés en otra pestaña";
+}
+$("ntfBtn").onclick=async()=>{try{await Notification.requestPermission()}catch{}renderNtf()};
+function notify(m){
+  if(!NOTIF||Notification.permission!=="granted"||m.deleted_at)return;
+  if(document.hasFocus()&&!document.hidden&&cur===m.visitor_id)return;
+  const body=m.kind==="text"?String(m.body||"").slice(0,120):m.kind==="image"?"📷 Foto":"🎤 Audio";
+  try{
+    const n=new Notification(nm(m.visitor_id)+" · mensaje nuevo",{body,tag:"chat-"+m.visitor_id,renotify:true});
+    n.onclick=()=>{window.focus();if(all[m.visitor_id])open(m.visitor_id);n.close()};
+    setTimeout(()=>n.close(),12000);
+  }catch{}
+}
+renderNtf();
 function avatar(el,id){el.style.background=`hsl(${hue(id)} 45% 38%)`;el.textContent=names[id]?names[id][0].toUpperCase():"👤"}
 
 $("login").onsubmit=async e=>{e.preventDefault();
@@ -199,35 +260,75 @@ async function boot(){
   const {data:a}=await sb.from("agents").select("user_id");
   if(!a||!a.length){$("err").textContent="Este usuario no es agente.";await sb.auth.signOut();return}
   const {data:cs,error:ce}=await sb.from("contacts").select("*");(cs||[]).forEach(c=>names[c.visitor_id]=c.name);
-  {const {data:st,error:se}=await sb.from("chat_state").select("*");if(se)csOK=false;else(st||[]).forEach(c=>closed[c.visitor_id]=c.closed_at)}
+  {const {data:st,error:se}=await sb.from("chat_state").select("*");if(se)csOK=false;else(st||[]).forEach(applyState)}
   $("login").hidden=true;$("app").hidden=false;
   const pch=sb.channel("agent-presence",{config:{presence:{key:"agent-"+session.user.id}}});
   pch.subscribe(async st=>{if(st==="SUBSCRIBED")await pch.track({at:Date.now()})});
   const {data,error}=await sb.from("messages").select("*").order("created_at",{ascending:false}).limit(2000);
   if(error){$("list").textContent="No se pudieron cargar los chats: "+error.message;return}
   data.reverse().forEach(m=>add(m));list();dbg();
-  sb.channel("msgs").on("postgres_changes",{event:"INSERT",schema:"public",table:"messages"},p=>{add(p.new,true);list();dbg()})
-   .on("postgres_changes",{event:"UPDATE",schema:"public",table:"messages"},p=>applyUpdate(p.new))
-   .subscribe(st=>{rt=st==="SUBSCRIBED"?"activo":st;dbg();$("live").hidden=!(st==="CHANNEL_ERROR"||st==="TIMED_OUT")});
-  if(!ce)sb.channel("ctc").on("postgres_changes",{event:"*",schema:"public",table:"contacts"},p=>{
-     if(p.eventType==="DELETE")delete names[p.old.visitor_id];else names[p.new.visitor_id]=p.new.name;
-     if(cur){$("title").textContent=nm(cur);avatar($("hav"),cur)}list()}).subscribe();
-  if(csOK)sb.channel("cst").on("postgres_changes",{event:"*",schema:"public",table:"chat_state"},p=>{
-     if(p.eventType==="DELETE")delete closed[p.old.visitor_id];else closed[p.new.visitor_id]=p.new.closed_at;
-     renderClose();list()}).subscribe();
-  else{$("tabs").hidden=true;$("closeChat").hidden=true;dbg()}
+  subscribeRT();
+  if(!csOK){$("tabs").hidden=true;$("closeChat").hidden=true;dbg()}
+  startKeepAlive();
   if(!actx||actx.state!=="running")$("snd").hidden=!soundOn;
   renderClose();
+}
+function applyState(c){
+  if(c.closed_at)closed[c.visitor_id]=c.closed_at;else delete closed[c.visitor_id];
+  if(c.read_at)reads[c.visitor_id]=c.read_at;
+}
+/* conexión en vivo: un solo canal que se vuelve a armar solo, más un sondeo de respaldo */
+let rtCh=null,rtTimer=null;
+function subscribeRT(){
+  clearTimeout(rtTimer);
+  try{if(rtCh&&sb.removeChannel)sb.removeChannel(rtCh)}catch{}
+  const ch=rtCh=sb.channel("agent-live-"+Date.now());
+  ch.on("postgres_changes",{event:"INSERT",schema:"public",table:"messages"},p=>{add(p.new,true);list();dbg()})
+    .on("postgres_changes",{event:"UPDATE",schema:"public",table:"messages"},p=>applyUpdate(p.new))
+    .on("postgres_changes",{event:"*",schema:"public",table:"contacts"},p=>{
+       if(p.eventType==="DELETE")delete names[p.old.visitor_id];else names[p.new.visitor_id]=p.new.name;
+       if(cur){$("title").textContent=nm(cur);avatar($("hav"),cur)}list()});
+  if(csOK)ch.on("postgres_changes",{event:"*",schema:"public",table:"chat_state"},p=>{
+       if(p.eventType==="DELETE"){delete closed[p.old.visitor_id];delete reads[p.old.visitor_id]}else applyState(p.new);
+       renderClose();list()});
+  ch.subscribe(st=>{
+    rt=st==="SUBSCRIBED"?"activo":st;dbg();$("live").hidden=st==="SUBSCRIBED";
+    if(st==="SUBSCRIBED")syncNow();
+    if(st==="CLOSED"||st==="CHANNEL_ERROR"||st==="TIMED_OUT"){clearTimeout(rtTimer);rtTimer=setTimeout(subscribeRT,4000)}
+  });
+}
+/* trae lo que se haya perdido (pestaña dormida, red caída) y avisa de lo nuevo */
+let syncing=false;
+async function syncNow(){
+  if(syncing)return;syncing=true;
+  try{
+    const {data,error}=await sb.from("messages").select("*").order("created_at",{ascending:false}).limit(300);
+    if(error||!data)return;
+    let fresh=0;
+    data.slice().reverse().forEach(m=>{
+      if(seen.has(m.id)){
+        const a=(all[m.visitor_id]||[]).find(x=>x.id===m.id);
+        if(a&&(a.edited_at!==m.edited_at||a.deleted_at!==m.deleted_at))applyUpdate(m);
+      }else{add(m,true);fresh++}
+    });
+    if(csOK){const {data:st,error:se}=await sb.from("chat_state").select("*");if(!se&&st){closed={};reads={};st.forEach(applyState)}}
+    list();dbg();renderClose();
+  }catch{}finally{syncing=false}
+}
+function startKeepAlive(){
+  setInterval(syncNow,15000);
+  addEventListener("online",()=>{subscribeRT();syncNow()});
+  addEventListener("focus",syncNow);
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden)syncNow()});
 }
 function add(m,live){
   if(seen.has(m.id))return;seen.add(m.id);
   (all[m.visitor_id]=all[m.visitor_id]||[]).push(m);
   if(m.visitor_id===cur){
     draw(m);if(live)markSeen(cur);
-    if(view==="closed"&&!isClosed(cur))view="open";
     renderClose();
   }
-  if(live&&m.sender==="visitor"&&!isNote(m))beep();
+  if(live&&m.sender==="visitor"&&!isNote(m)){beep();notify(m)}
 }
 /* un mensaje editado o eliminado (por vos, desde otro dispositivo o desde este) */
 function applyUpdate(m){
@@ -239,15 +340,15 @@ function applyUpdate(m){
 }
 function list(){
   const ids=Object.keys(all);
-  const openIds=ids.filter(id=>!isClosed(id)),closedIds=ids.filter(id=>isClosed(id));
+  const openIds=ids.filter(id=>!isClosed(id));
   const recent=(a,b)=>new Date(all[b].at(-1).created_at)-new Date(all[a].at(-1).created_at);
   const term=($("q").value||"").trim().toLowerCase();
   const hit=id=>!term||nm(id).toLowerCase().includes(term)||all[id].some(m=>m.kind==="text"&&!m.deleted_at&&!isNote(m)&&String(m.body).toLowerCase().includes(term));
-  let base=view==="closed"?closedIds:openIds;
+  let base=openIds;
   if(view==="unread")base=openIds.filter(id=>id!==cur&&unreadN(id)>0);
   if(term)base=ids.filter(hit);   /* al buscar se revisan todos los chats, abiertos o cerrados */
   const shown=base.sort(recent);
-  $("tabOpen").classList.toggle("on",view==="open");$("tabUnread").classList.toggle("on",view==="unread");$("tabClosed").classList.toggle("on",view==="closed");
+  $("tabOpen").classList.toggle("on",view==="open");$("tabUnread").classList.toggle("on",view==="unread");
   $("tabUnread").classList.toggle("dot",openIds.some(id=>id!==cur&&unreadN(id)>0));
   let total=0;ids.forEach(id=>{if(id!==cur)total+=unreadN(id)});
   const rows=shown.map(id=>{
@@ -256,17 +357,17 @@ function list(){
     d.innerHTML='<div class="av"></div><div class="ci"><div class="top"><span class="nm"></span><span class="tm"></span></div><div class="pv"><span></span><b class="badge" hidden></b></div></div>';
     avatar(d.querySelector(".av"),id);
     d.querySelector(".nm").textContent=nm(id);d.querySelector(".tm").textContent=fmt(l.created_at);
-    const pre=l.deleted_at?"🚫 Mensaje eliminado":isAuto(l)?"🤖 Respuesta automática":isSeen(l)?"💳 Se le mostraron los datos":isPay(l)?payLabel(l):l.kind==="text"?l.body:(l.kind==="image"?"📷 Foto":"🎤 Audio");
+    const pre=(isClosed(id)?"✓ Cerrado · ":"")+(l.deleted_at?"🚫 Mensaje eliminado":isAuto(l)?"🤖 Respuesta automática":isSeen(l)?"💳 Se le mostraron los datos":isPay(l)?payLabel(l):l.kind==="text"?l.body:(l.kind==="image"?"📷 Foto":"🎤 Audio"));
     d.querySelector(".pv span").textContent=(l.sender==="agent"?"Vos: ":"")+pre;
     if(n){const b=d.querySelector(".badge");b.hidden=false;b.textContent=n}
     d.onclick=()=>open(id);return d});
-  if(!rows.length){const e=document.createElement("div");e.className="empty";e.textContent=term?"No se encontraron chats.":view==="closed"?"No hay chats cerrados.":view==="unread"?"No tenés mensajes sin leer.":"Todavía no hay chats.";rows.push(e)}
+  if(!rows.length){const e=document.createElement("div");e.className="empty";e.textContent=term?"No se encontraron chats.":view==="unread"?"No tenés mensajes sin leer.":"Todavía no hay chats.";rows.push(e)}
   $("list").replaceChildren(...rows);
   document.title=(total?`(${total}) `:"")+"Chats";
 }
 function renderClose(){if(cur)$("closeChat").textContent=isClosed(cur)?"↩ Reabrir":"✓ Cerrar chat"}
 function open(id){
-  cur=id;if(isClosed(id))view="closed";else if(view==="closed")view="open";markSeen(id);$("app").classList.add("open");$("blank").hidden=true;$("pane").hidden=false;
+  cur=id;markSeen(id);$("app").classList.add("open");$("blank").hidden=true;$("pane").hidden=false;
   $("title").textContent=nm(id);avatar($("hav"),id);renderClose();
   $("msgs").replaceChildren();all[id].forEach(draw);list();
 }
@@ -755,17 +856,16 @@ async function delMsg(m){
   await patchMsg(m,p,"No se pudo eliminar el mensaje");
 }
 async function setClosed(id,on){
-  if(!csOK){alert("Para cerrar chats ejecutá supabase-chat.sql en Supabase (está explicado en el LEEME).");return}
+  if(!csOK){alert("Para cerrar chats ejecutá supabase-chat.sql y supabase-chat2.sql en Supabase (está explicado en el LEEME).");return}
   const l=lastReal(id),at=l?l.created_at:new Date().toISOString();
-  const r=on?await sb.from("chat_state").upsert({visitor_id:id,closed_at:at}):await sb.from("chat_state").delete().eq("visitor_id",id);
-  if(r.error){alert("No se pudo actualizar el chat: "+r.error.message);return}
-  if(on){closed[id]=at;cur=null;view="open";$("app").classList.remove("open");$("pane").hidden=true;$("blank").hidden=false}
+  const r=await sb.from("chat_state").upsert(on?{visitor_id:id,closed_at:at,read_at:all[id].at(-1).created_at}:{visitor_id:id,closed_at:null});
+  if(r.error){alert("No se pudo actualizar el chat: "+r.error.message+"\n\n¿Ejecutaste supabase-chat2.sql?");return}
+  if(on){closed[id]=at;reads[id]=all[id].at(-1).created_at;cur=null;view="open";$("app").classList.remove("open");$("pane").hidden=true;$("blank").hidden=false}
   else{delete closed[id];view="open";renderClose()}
   list();
 }
 $("closeChat").onclick=()=>{if(cur)setClosed(cur,!isClosed(cur))};
 $("tabOpen").onclick=()=>{view="open";list()};
-$("tabClosed").onclick=()=>{view="closed";list()};
 $("tabUnread").onclick=()=>{view="unread";list()};
 $("q").oninput=()=>list();
 $("sendPay").onclick=sendPayInfo;
