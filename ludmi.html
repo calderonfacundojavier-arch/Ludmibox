@@ -122,6 +122,12 @@ footer{color:var(--mut);margin-top:34px;opacity:.8}
 .m img{max-width:100%;border-radius:8px;display:block}.m audio{max-width:100%}
 .m time{display:block;text-align:right;font-size:10px;color:var(--mut);margin-top:3px}
 .m.card{max-width:96%;align-self:stretch}
+#nameBar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 10px;background:var(--bar);border-bottom:1px solid var(--line)}
+#nameBar label{flex:1 0 100%;font-size:12px;font-weight:700;color:var(--agt)}
+#nameBar input{flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:16px;background:var(--inp);color:var(--inpt)}
+#nameBar button{border:0;border-radius:10px;padding:10px 16px;font:inherit;font-weight:800;font-size:13px;background:var(--acc);color:#fff;cursor:pointer}
+#nameBar button:disabled{opacity:.6}
+#nameBar small{flex:1 0 100%;color:var(--mut);font-size:11px;min-height:0}
 .m a{color:inherit;text-decoration:underline;word-break:break-all}
 .m time em{font-style:normal}
 .tk{margin-left:4px;font-size:11px;letter-spacing:-2px;color:var(--mut)}.tk.rd{color:#53bdeb}
@@ -167,6 +173,7 @@ footer{color:var(--mut);margin-top:34px;opacity:.8}
 
 <section id="chat" class="light" hidden aria-label="Chat">
   <header class="chh" id="chh"><div class="cav" id="cav" aria-hidden="true">👑</div><div class="who"><b id="ctitle"></b><small id="cstat"></small></div><span><button id="pay" hidden title="Datos para transferir" aria-label="Datos para transferir"><span id="icPay">💳</span></button><button id="close" aria-label="Cerrar chat">✕</button></span></header>
+  <form id="nameBar" hidden autocomplete="off"><label for="nameIn" id="nameLbl"></label><input id="nameIn" type="text" maxlength="40" minlength="2" placeholder="Tu nombre de usuario" required><button type="submit" id="nameBtn">Guardar</button><small id="nameErr" role="status"></small></form>
   <div id="msgs"></div>
   <div id="quick" hidden></div>
   <div id="bar">
@@ -183,6 +190,7 @@ const SUPABASE_URL="https://otlrgjezfuwlxqigqpfz.supabase.co", SUPABASE_ANON_KEY
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 const $=id=>document.getElementById(id), seen=new Set();
 let readAt=0, seenSent=0, lastAgentTs=0;
+let myName=null,nameLoaded=false;
 let uid=null, ready=null, ONLINE=false, payShown=false, payLogged=false;
 
 /* ---------- contenido editable (se cambia desde el panel /admin) ---------- */
@@ -203,6 +211,7 @@ const DEF={
   footer:"Solo mayores de 18 años. El juego puede generar adicción: jugá con responsabilidad.",
   license:"Autorización: [COMPLETAR]", chat_title:"Chat con Caja Ludmi", greeting:"¡Hola! ¿En qué te puedo ayudar?",
   chat_notice:"Conectado. Escribinos y te respondemos.", chat_theme:"light",
+  ask_name:true, ask_name_text:"¿Cuál es tu usuario?",
   status_online:"en línea", status_offline:"Te respondemos apenas podamos",
   quick:[{label:"Cargar",text:"Quiero cargar saldo",action:"pay",reply:""},{label:"Retirar",text:"Quiero retirar",action:"message",reply:""},{label:"Soporte",text:"Necesito soporte",action:"message",reply:""}],
   layout:BLOCK_IDS.map(id=>({id,on:true})), faq_title:"Retiros", faq:[]
@@ -256,6 +265,7 @@ function apply(c){
   txt("nm",c.name);txt("ttl",c.title);txt("b1",c.bonus_top);txt("b2",c.bonus_big);txt("b3",c.bonus_bottom);
   $("open").textContent=c.cta;txt("st",c.status);txt("f1",c.footer);txt("f2",c.license);
   $("ctitle").textContent=c.chat_title;
+  $("nameLbl").textContent=c.ask_name_text||"¿Cuál es tu usuario?";nameShow();
   $("chat").className=c.chat_theme==="dark"?"dark":"light";
   {const cv=$("cav"),ci=mkImg(c.avatar_url,"");cv.replaceChildren();if(ci)cv.append(ci);else cv.textContent="👑"}
   renderStatus();renderQuick();
@@ -448,6 +458,7 @@ function init(){
     (data||[]).forEach(render);
     try{const {data:ar}=await sb.from("agent_read").select("read_at").eq("visitor_id",uid).maybeSingle();if(ar&&ar.read_at)readAt=new Date(ar.read_at).getTime();ticks()}catch{}
     reportSeen();
+    loadName();
     await loadPay();
     if(PAY&&PAY.auto&&!(data&&data.length))showPay();
     const pc=sb.channel("agent-presence");
@@ -472,6 +483,25 @@ function change(m){
   const b=d.querySelector(".bt");
   if(b&&m.kind==="text"){b.textContent=m.body;const t=d.querySelector("time");if(t&&!t.textContent.startsWith("editado"))t.textContent="editado · "+t.textContent}
 }
+/* usuario: el visitante dice cómo se llama y queda guardado como contacto en el panel */
+function nameShow(){$("nameBar").hidden=!(CFG.ask_name&&(PREVIEW||(nameLoaded&&!myName)))}
+async function loadName(){
+  try{const {data}=await sb.from("visitor_profile").select("username").eq("visitor_id",uid).maybeSingle();if(data&&data.username)myName=data.username}catch{}
+  nameLoaded=true;nameShow();
+}
+$("nameBar").onsubmit=async e=>{
+  e.preventDefault();
+  if(PREVIEW)return;
+  const v=$("nameIn").value.replace(/[\u0000-\u001f\u007f]/g,"").trim();
+  if(v.length<2||v.length>40){$("nameErr").textContent="Escribí entre 2 y 40 caracteres.";return}
+  if(!uid)return;
+  $("nameBtn").disabled=true;$("nameErr").textContent="";
+  const {error}=await sb.from("visitor_profile").upsert({visitor_id:uid,username:v});
+  $("nameBtn").disabled=false;
+  if(error){$("nameErr").textContent="No se pudo guardar. Probá de nuevo.";return}
+  myName=v;nameShow();
+  const n=document.createElement("div");n.className="sys";n.textContent="¡Listo, "+v+"! Ya te registramos.";$("msgs").append(n);$("msgs").scrollTop=1e9;
+};
 /* tildes: ✓ enviado · ✓✓ azul = lo leyó el agente */
 function ticks(){
   document.querySelectorAll("#msgs .m[data-ts]").forEach(d=>{const k=d.querySelector(".tk");if(!k)return;const ok=+d.dataset.ts<=readAt;k.textContent=ok?"✓✓":"✓";k.classList.toggle("rd",ok);k.title=ok?"Leído":"Enviado"});

@@ -155,6 +155,7 @@ const $=id=>document.getElementById(id), all={}, seen=new Set();
 let cur=null, rt="conectando…", who="", csOK=true, closed={}, reads={}, seenAt={}, rcOK=true, view="open";
 const dbg=()=>{$("dbg").hidden=(rt==="activo"&&csOK);$("dbg").textContent=`Agente: ${who} · ${seen.size} mensajes · chats: ${Object.keys(all).length} · tiempo real: ${rt}`+(csOK?"":" · ⚠ falta ejecutar supabase-chat.sql")};
 const LS={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
+let usernames={};
 let names={}, lastSeen=LS.get("lastSeen",{});
 const MARK="[[CUENTAS]]";
 const SEEN="[[CUENTAS_VISTAS]]";
@@ -169,7 +170,7 @@ const isClosed=id=>{const c=closed[id];if(!c)return false;const l=lastReal(id);r
 const isPay=m=>m.sender==="agent"&&m.kind==="text"&&typeof m.body==="string"&&m.body.startsWith(MARK);
 const payN=m=>{try{return JSON.parse(m.body.slice(MARK.length)).a.length}catch{return 0}};
 const payLabel=m=>"💳 Datos para transferir ("+payN(m)+(payN(m)===1?" cuenta)":" cuentas)");
-const nm=id=>names[id]||"Visitante "+id.slice(0,6);
+const nm=id=>names[id]||usernames[id]||"Visitante "+id.slice(0,6);
 const hue=id=>parseInt(id.slice(0,6),16)%360;
 const fmt=(d,full)=>{d=new Date(d);const t=d.toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"});return full||d.toDateString()===new Date().toDateString()?t:d.toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit"})};
 /* "pendiente" = mensajes del visitante posteriores a lo último que leyó o contestó CUALQUIER agente (se comparte por Supabase) */
@@ -248,7 +249,7 @@ function notify(m){
   }catch{}
 }
 renderNtf();
-function avatar(el,id){el.style.background=`hsl(${hue(id)} 45% 38%)`;el.textContent=names[id]?names[id][0].toUpperCase():"👤"}
+function avatar(el,id){el.style.background=`hsl(${hue(id)} 45% 38%)`;const n=names[id]||usernames[id];el.textContent=n?n[0].toUpperCase():"👤"}
 
 $("login").onsubmit=async e=>{e.preventDefault();
   const {error}=await sb.auth.signInWithPassword({email:$("em").value,password:$("pw").value});
@@ -263,7 +264,7 @@ async function boot(){
   if(!a||!a.length){$("err").textContent="Este usuario no es agente.";await sb.auth.signOut();return}
   const {data:cs,error:ce}=await sb.from("contacts").select("*");(cs||[]).forEach(c=>names[c.visitor_id]=c.name);
   {const {data:st,error:se}=await sb.from("chat_state").select("*");if(se)csOK=false;else(st||[]).forEach(applyState)}
-  await loadSeen();
+  await loadUsers();await loadSeen();
   $("login").hidden=true;$("app").hidden=false;
   const pch=sb.channel("agent-presence",{config:{presence:{key:"agent-"+session.user.id}}});
   pch.subscribe(async st=>{if(st==="SUBSCRIBED")await pch.track({at:Date.now()})});
@@ -275,6 +276,11 @@ async function boot(){
   startKeepAlive();
   if(!actx||actx.state!=="running")$("snd").hidden=!soundOn;
   renderClose();
+}
+async function loadUsers(){
+  const {data,error}=await sb.from("visitor_profile").select("*");
+  if(error||!data)return;
+  data.forEach(r=>usernames[r.visitor_id]=r.username);
 }
 async function loadSeen(){
   if(!rcOK)return;
@@ -297,6 +303,8 @@ function subscribeRT(){
     .on("postgres_changes",{event:"*",schema:"public",table:"contacts"},p=>{
        if(p.eventType==="DELETE")delete names[p.old.visitor_id];else names[p.new.visitor_id]=p.new.name;
        if(cur){$("title").textContent=nm(cur);avatar($("hav"),cur)}list()});
+  ch.on("postgres_changes",{event:"*",schema:"public",table:"visitor_profile"},p=>{
+       if(p.new&&p.new.visitor_id){usernames[p.new.visitor_id]=p.new.username;if(cur===p.new.visitor_id){$("title").textContent=nm(cur);avatar($("hav"),cur)}list()}});
   if(rcOK)ch.on("postgres_changes",{event:"*",schema:"public",table:"visitor_seen"},p=>{if(p.new&&p.new.visitor_id){seenAt[p.new.visitor_id]=p.new.seen_at;updTicks();list()}});
   if(csOK)ch.on("postgres_changes",{event:"*",schema:"public",table:"chat_state"},p=>{
        if(p.eventType==="DELETE"){delete closed[p.old.visitor_id];delete reads[p.old.visitor_id]}else applyState(p.new);
@@ -322,7 +330,7 @@ async function syncNow(){
       }else{add(m,true);fresh++}
     });
     if(csOK){const {data:st,error:se}=await sb.from("chat_state").select("*");if(!se&&st){closed={};reads={};st.forEach(applyState)}}
-    await loadSeen();list();dbg();renderClose();
+    await loadUsers();await loadSeen();list();dbg();renderClose();
   }catch{}finally{syncing=false}
 }
 /* lo que llegó mientras la ventana estaba sin foco cuenta como leído recién al volver */
@@ -488,6 +496,7 @@ const DEFL={
   footer:"Solo mayores de 18 años. El juego puede generar adicción: jugá con responsabilidad.",
   license:"Autorización: [COMPLETAR]", chat_title:"Chat con Caja Ludmi", greeting:"¡Hola! ¿En qué te puedo ayudar?",
   chat_notice:"Conectado. Escribinos y te respondemos.", chat_theme:"light",
+  ask_name:true, ask_name_text:"¿Cuál es tu usuario?",
   status_online:"en línea", status_offline:"Te respondemos apenas podamos",
   quick:[{label:"Cargar",text:"Quiero cargar saldo",action:"pay",reply:""},{label:"Retirar",text:"Quiero retirar",action:"message",reply:""},{label:"Soporte",text:"Necesito soporte",action:"message",reply:""}],
   layout:BLOCKS.map(b=>({id:b[0],on:true})), faq_title:"Retiros", faq:[]
@@ -675,6 +684,8 @@ function buildForm(){
       fText("Texto de estado cuando estás conectado","status_online"),
       fText("Texto de estado cuando no estás conectado","status_offline"),
       fText("Aviso centrado al abrir el chat","chat_notice"),
+      fCheck("Pedirle al usuario su nombre de usuario (queda guardado como contacto en el panel)",cfg,"ask_name"),
+      fText("Texto sobre el campo de usuario","ask_name_text"),
       fText("Mensajes de bienvenida. Separá cada mensaje con una línea en blanco","greeting",{area:true,max:1500})),
     sec("Botones rápidos del chat","Aparecen arriba de la barra de escritura (por ejemplo Cargar, Retirar, Soporte). Al tocarlos se envía un mensaje a tu panel. El primero se ve resaltado.",
       fList("quick",{max:5,add:"+ Agregar botón rápido",make:()=>({label:"",text:"",action:"message",reply:""}),
@@ -768,7 +779,8 @@ function collect(){
   for(const k of ["icon_attach","icon_mic","icon_send","icon_pay","icon_fab"])d[k]=(d[k]||"").trim();
   d.fab_text=(d.fab_text||"").trim();
   d.chat_theme=d.chat_theme==="dark"?"dark":"light";
-  for(const k of ["chat_title","chat_notice","status_online","status_offline","greeting"])d[k]=(d[k]||"").trim();
+  for(const k of ["chat_title","chat_notice","status_online","status_offline","greeting","ask_name_text"])d[k]=(d[k]||"").trim();
+  d.ask_name=!!d.ask_name;
   const qk=[];
   for(const q of d.quick){
     if(!q||!(q.label||"").trim())continue;
