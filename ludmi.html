@@ -205,7 +205,7 @@ footer{color:var(--mut);margin-top:34px;opacity:.8}
 <button class="fab" id="fab" hidden aria-label="Abrir chat"><span id="icFab">💬</span><span id="fabT"></span></button>
 
 <section id="chat" class="light" hidden aria-label="Chat">
-  <header class="chh" id="chh"><div class="cav" id="cav" aria-hidden="true">👑</div><div class="who"><b id="ctitle"></b><small id="cstat"></small></div><span><button id="pay" hidden title="Datos para transferir" aria-label="Datos para transferir"><span id="icPay">💳</span></button><button id="close" aria-label="Cerrar chat">✕</button></span></header>
+  <header class="chh" id="chh"><div class="cav" id="cav" aria-hidden="true">👑</div><div class="who"><b id="ctitle"></b><small id="cstat"></small></div><span><button id="bell" hidden title="Recibir un aviso cuando te respondan" aria-label="Activar avisos">🔔</button><button id="pay" hidden title="Datos para transferir" aria-label="Datos para transferir"><span id="icPay">💳</span></button><button id="close" aria-label="Cerrar chat">✕</button></span></header>
   <form id="nameBar" hidden autocomplete="off"><label for="nameIn" id="nameLbl"></label><input id="nameIn" type="text" maxlength="20" minlength="2" placeholder="Tu nombre o apodo" required autocapitalize="words"><button type="submit" id="nameBtn">Continuar</button><small id="nameHint">Le agregamos 2 números para que tu usuario sea único. Ej.: Juan → Juan00</small><small id="nameErr" role="alert"></small></form>
   <div id="msgs"></div>
   <div id="quick" hidden></div>
@@ -247,7 +247,7 @@ const DEF={
   footer:"Solo mayores de 18 años. El juego puede generar adicción: jugá con responsabilidad.",
   license:"Autorización: [COMPLETAR]", chat_title:"Chat con Caja Ludmi", greeting:"¡Hola! ¿En qué te puedo ayudar?",
   chat_notice:"Conectado. Escribinos y te respondemos.", chat_theme:"light",
-  ask_name:true, ask_name_text:"¿Cómo te llamás?", pwa_on:true, pwa_text:"📲 Instalar app",
+  ask_name:true, ask_name_text:"¿Cómo te llamás?", pwa_on:true, pwa_text:"📲 Instalar app", push_on:true,
   wheel_on:true, wheel_mode:"first", wheel_title:"🎡 Girá la ruleta y ganá tu bono", wheel_sub:"Tocá GIRAR y frená la ruleta cuando quieras", wheel_spin:"GIRAR", wheel_stop:"FRENAR",
   wheel_msg:"Quiero mi {premio}", wheel_reply:"¡Felicitaciones! En un momento un asesor te confirma tu bono.", wheel_once:true, wheel_odds:true,
   wheel_prizes:[{label:"Bono 10%",w:15},{label:"Bono 20%",w:20},{label:"Bono 30%",w:35},{label:"Bono 40%",w:20},{label:"Bono 50%",w:10}],
@@ -319,6 +319,33 @@ document.addEventListener("click",e=>{
   if(e.target!==$("pwaBtn"))return;
   if(pwaEv){pwaEv.prompt();pwaEv.userChoice.finally(()=>{pwaEv=null;pwaApply()});return}
   const h=$("pwaHint");h.textContent="En el iPhone: tocá el botón Compartir de Safari y elegí «Agregar a inicio».";h.hidden=false;
+});
+/* Avisos push: llegan aunque cierren la app */
+var VAPID="BN36ZEYcr-nXbu0h_fMV8kOtiUdPufSe8DV72-pDS0UoRyruo5i7aDJf-nTRXqAAW5qc5_ItNnSVp1M2YJMZYps";
+function b64u(u){const p="=".repeat((4-u.length%4)%4),r=atob((u+p).replace(/-/g,"+").replace(/_/g,"/"));return Uint8Array.from(r,c=>c.charCodeAt(0))}
+var PUSHOK="serviceWorker" in navigator&&"PushManager" in window&&"Notification" in window;
+async function pushSub(){
+  const reg=await navigator.serviceWorker.ready;
+  let sub=await reg.pushManager.getSubscription();
+  if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(VAPID)});
+  const r=await sb.from("push_subs").upsert({endpoint:sub.endpoint,user_id:uid,role:"visitor",sub:sub.toJSON()});
+  if(r.error)throw r.error;
+}
+async function pushCheck(){
+  const b=$("bell");
+  if(!b||!PUSHOK||!CFG.push_on||PREVIEW||!uid||Notification.permission==="denied"){if(b)b.hidden=true;return}
+  if(Notification.permission==="granted"){try{await pushSub();b.hidden=true;return}catch{}}
+  b.hidden=false;
+}
+function pushNote(t){const n=document.createElement("div");n.className="sys";n.textContent=t;$("msgs").append(n);$("msgs").scrollTop=$("msgs").scrollHeight}
+document.addEventListener("click",async e=>{
+  if(!e.target.closest||!e.target.closest("#bell"))return;
+  if(pwaIOS()&&!pwaStandalone()){pushNote("En iPhone, primero instalá la app (Compartir → Agregar a inicio) y activá los avisos desde ahí.");return}
+  try{
+    const p=await Notification.requestPermission();
+    if(p!=="granted"){$("bell").hidden=true;return}
+    await pushSub();$("bell").hidden=true;pushNote("🔔 Listo: te avisamos cuando te respondan, aunque cierres la app.");
+  }catch(err){console.error(err);pushNote("No pudimos activar los avisos en este dispositivo.")}
 });
 function apply(c){
   CFG=c;
@@ -520,6 +547,7 @@ function init(){
     (data||[]).forEach(render);
     try{const {data:ar}=await sb.from("agent_read").select("read_at").eq("visitor_id",uid).maybeSingle();if(ar&&ar.read_at)readAt=new Date(ar.read_at).getTime();ticks()}catch{}
     reportSeen();
+    pushCheck();
     await loadName();
     await loadPay();
     if(PAY&&PAY.auto&&!(data&&data.length))showPay();

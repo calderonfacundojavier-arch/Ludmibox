@@ -66,7 +66,7 @@ header button{background:none;border:0;cursor:pointer;color:var(--muted);font-si
 #snp label{display:grid;gap:5px;color:var(--muted);font-size:12px}
 #snp select{background:var(--hover);border:0;border-radius:8px;padding:9px;color:#e9edef;font-size:14px}
 #snp input[type=range]{width:100%;accent-color:var(--accent)}
-#ntf{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:12px;flex-wrap:wrap}
+#ntf,#ntf2{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:12px;flex-wrap:wrap}
 #cfgBtn{font-size:16px!important}
 #snd{padding:6px 16px;font-size:12px;color:#f59e0b;border-bottom:1px solid var(--line);flex:none}
 .empty{padding:24px 16px;color:var(--muted);text-align:center;font-size:14px}
@@ -225,6 +225,7 @@ textarea.fi{min-height:78px;resize:vertical;font-family:inherit}
   <button id="toneTest" class="sm" type="button">▶ Probar</button>
   <label>Volumen<input id="vol" type="range" min="10" max="100" step="5"></label>
   <div id="ntf"><span id="ntfTxt"></span> <button id="ntfBtn" class="sm" type="button">Activar</button></div>
+  <div id="ntf2"><span id="pushTxt"></span> <button id="pushBtn" class="sm" type="button" hidden></button></div>
 </div><div id="snd" hidden>🔕 Tocá cualquier parte de la pantalla para activar el sonido</div><div id="srch"><input id="q" type="search" placeholder="Buscar un chat o iniciar uno nuevo" autocomplete="off" aria-label="Buscar chats"></div><div id="tabs"><button id="tabOpen" class="on">Todos</button><button id="tabUnread">No leídos</button></div><div id="list"></div></aside>
   <section id="chat">
     <div id="blank">Seleccioná una conversación<br>para empezar a responder.</div>
@@ -327,7 +328,7 @@ $("toneSel").onchange=()=>{tone=$("toneSel").value;LS.set("tone",tone);unlockAud
 $("vol").oninput=()=>{vol=+$("vol").value;LS.set("vol",vol)};
 $("vol").onchange=()=>{unlockAudio();playTone(tone)};
 $("toneTest").onclick=()=>{unlockAudio();playTone(tone)};
-$("cfgBtn").onclick=()=>{$("snp").hidden=!$("snp").hidden;renderNtf()};
+$("cfgBtn").onclick=()=>{$("snp").hidden=!$("snp").hidden;renderNtf();renderPush()};
 const NOTIF="Notification" in window;
 function renderNtf(){
   const t=$("ntfTxt"),b=$("ntfBtn");
@@ -347,6 +348,35 @@ function notify(m){
   }catch{}
 }
 renderNtf();
+/* Avisos push con la app cerrada */
+var VAPID="BN36ZEYcr-nXbu0h_fMV8kOtiUdPufSe8DV72-pDS0UoRyruo5i7aDJf-nTRXqAAW5qc5_ItNnSVp1M2YJMZYps";
+function b64u(u){const p="=".repeat((4-u.length%4)%4),r=atob((u+p).replace(/-/g,"+").replace(/_/g,"/"));return Uint8Array.from(r,c=>c.charCodeAt(0))}
+const PUSHOK="serviceWorker" in navigator&&"PushManager" in window&&NOTIF;
+async function pushGet(){const reg=await navigator.serviceWorker.ready;return {reg,sub:await reg.pushManager.getSubscription()}}
+async function pushSave(sub){
+  const {data:{session}}=await sb.auth.getSession();if(!session)throw new Error("sin sesión");
+  const r=await sb.from("push_subs").upsert({endpoint:sub.endpoint,user_id:session.user.id,role:"agent",sub:sub.toJSON()});if(r.error)throw r.error;
+}
+async function renderPush(){
+  const t=$("pushTxt"),b=$("pushBtn");
+  if(!PUSHOK){t.textContent="Este navegador no permite avisos con la app cerrada.";b.hidden=true;return}
+  if(Notification.permission==="denied"){t.textContent="🚫 Notificaciones bloqueadas en el navegador.";b.hidden=true;return}
+  let on=false;try{on=!!(await pushGet()).sub}catch{}
+  t.textContent=on&&Notification.permission==="granted"?"✅ Avisos con la app cerrada activados en este dispositivo":"Recibí avisos en este dispositivo aunque cierres el panel";
+  b.hidden=false;b.textContent=on&&Notification.permission==="granted"?"Desactivar":"Activar avisos";b.dataset.on=on&&Notification.permission==="granted"?"1":"";
+}
+$("pushBtn").onclick=async()=>{
+  const b=$("pushBtn");b.disabled=true;
+  try{
+    if(b.dataset.on){const {sub}=await pushGet();if(sub){await sb.from("push_subs").delete().eq("endpoint",sub.endpoint);await sub.unsubscribe()}}
+    else{
+      if(Notification.permission!=="granted"&&await Notification.requestPermission()!=="granted")throw new Error("permiso");
+      const {reg,sub}=await pushGet();await pushSave(sub||await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(VAPID)}));
+    }
+  }catch(e){console.error(e)}
+  b.disabled=false;renderPush();renderNtf();
+};
+async function pushRefresh(){try{if(PUSHOK&&Notification.permission==="granted"){const {sub}=await pushGet();if(sub)await pushSave(sub)}}catch{}}
 function avatar(el,id){el.style.background=`hsl(${hue(id)} 45% 38%)`;const n=names[id]||usernames[id];el.textContent=n?n[0].toUpperCase():"👤"}
 
 $("login").onsubmit=async e=>{e.preventDefault();
@@ -358,6 +388,7 @@ async function boot(){
   const {data:{session}}=await sb.auth.getSession();
   if(!session||session.user.is_anonymous)return;
   who=session.user.email;
+  pushRefresh();
   const {data:a}=await sb.from("agents").select("user_id");
   if(!a||!a.length){$("err").textContent="Este usuario no es agente.";await sb.auth.signOut();return}
   const {data:cs,error:ce}=await sb.from("contacts").select("*");(cs||[]).forEach(c=>names[c.visitor_id]=c.name);
@@ -595,7 +626,7 @@ const DEFL={
   footer:"Solo mayores de 18 años. El juego puede generar adicción: jugá con responsabilidad.",
   license:"Autorización: [COMPLETAR]", chat_title:"Chat con Caja Ludmi", greeting:"¡Hola! ¿En qué te puedo ayudar?",
   chat_notice:"Conectado. Escribinos y te respondemos.", chat_theme:"light",
-  ask_name:true, ask_name_text:"¿Cómo te llamás?", pwa_on:true, pwa_text:"📲 Instalar app",
+  ask_name:true, ask_name_text:"¿Cómo te llamás?", pwa_on:true, pwa_text:"📲 Instalar app", push_on:true,
   wheel_on:true, wheel_mode:"first", wheel_title:"🎡 Girá la ruleta y ganá tu bono", wheel_sub:"Tocá GIRAR y frená la ruleta cuando quieras", wheel_spin:"GIRAR", wheel_stop:"FRENAR",
   wheel_msg:"Quiero mi {premio}", wheel_reply:"¡Felicitaciones! En un momento un asesor te confirma tu bono.", wheel_once:true, wheel_odds:true,
   wheel_prizes:[{label:"Bono 10%",w:15},{label:"Bono 20%",w:20},{label:"Bono 30%",w:35},{label:"Bono 40%",w:20},{label:"Bono 50%",w:10}],
@@ -740,7 +771,8 @@ function buildForm(){
       fText("Título","title"),fText("Bono: línea superior","bonus_top"),fText("Bono: texto grande","bonus_big"),
       fText("Bono: línea inferior","bonus_bottom"),fText("Texto del botón verde","cta"),fText("Texto de estado (debajo del botón)","status")),
     sec("App instalable","Muestra un botón «Instalar app» en la landing para que la persona la agregue a su pantalla de inicio como una aplicación (Android, PC y iPhone). Si lo desactivás, el botón desaparece y la página deja de ofrecerse como app. Quienes ya la instalaron la siguen abriendo, pero como una página común.",
-      fCheck("Permitir que instalen la landing como app",cfg,"pwa_on"),fText("Texto del botón","pwa_text")),
+      fCheck("Permitir que instalen la landing como app",cfg,"pwa_on"),fText("Texto del botón","pwa_text"),
+      fCheck("Permitir avisos de respuesta al usuario (campanita 🔔 en el chat; le llega una notificación cuando le contestan, aunque cierre la app)",cfg,"push_on")),
     sec("Fondo","Si no subís nada, queda el degradado violeta. Se oscurece solo para que se lea el texto.",
       fImg("Imagen de fondo","bg_url",1600)),
     sec("Beneficios","Las tres cajitas debajo del botón.",
@@ -930,7 +962,7 @@ function collect(){
   d.fab_text=(d.fab_text||"").trim();
   d.chat_theme=d.chat_theme==="dark"?"dark":"light";
   for(const k of ["chat_title","chat_notice","status_online","status_offline","greeting","ask_name_text"])d[k]=(d[k]||"").trim();
-  d.ask_name=!!d.ask_name;d.pwa_on=!!d.pwa_on;d.pwa_text=String(d.pwa_text||"").trim().slice(0,30)||"📲 Instalar app";
+  d.ask_name=!!d.ask_name;d.pwa_on=!!d.pwa_on;d.push_on=!!d.push_on;d.pwa_text=String(d.pwa_text||"").trim().slice(0,30)||"📲 Instalar app";
   for(const k of ["wheel_title","wheel_sub","wheel_spin","wheel_stop","wheel_msg","wheel_reply"])d[k]=String(d[k]||"").trim();
   d.wheel_mode=d.wheel_mode==="block"?"block":"first";
   d.wheel_on=!!d.wheel_on;d.wheel_once=!!d.wheel_once;d.wheel_odds=!!d.wheel_odds;
