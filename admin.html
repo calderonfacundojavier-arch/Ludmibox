@@ -2,6 +2,7 @@
 <html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
+<link rel="manifest" href="/manifest-admin.webmanifest"><link rel="apple-touch-icon" href="/admin-apple-touch-icon.png"><meta name="theme-color" content="#00a884"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes">
 <title>Chats</title>
 <style>
 :root{--bg:#111b21;--panel:#202c33;--wall:#0b141a;--out:#005c4b;--accent:#00a884;--muted:#8696a0;--line:#222d34;--hover:#2a3942}
@@ -218,7 +219,7 @@ textarea.fi{min-height:78px;resize:vertical;font-family:inherit}
   <button>Entrar</button><small id="err"></small></form>
 
 <div id="app" hidden>
-  <nav id="rail"><button class="on" title="Chats" aria-label="Chats" tabindex="-1"><svg viewBox="0 0 24 24"><path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/></svg></button><span class="sp"></span><button data-go="soundBtn" id="rSound" title="Sonido"><svg viewBox="0 0 24 24"><path d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2zm6-6V11c0-3.1-1.6-5.6-4.5-6.3V4a1.5 1.5 0 0 0-3 0v.7C7.6 5.4 6 7.9 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></button><button data-go="cfgBtn" title="Tono y notificaciones"><svg viewBox="0 0 24 24"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.400 7.400 0 0 0-1.700 1l-2.500-1-2 3.500L6.600 11a7.500 7.500 0 0 0 0 2l-2.100 1.600 2 3.500 2.500-1c.5.4 1.100.7 1.700 1l.4 2.600h4l.4-2.600c.6-.3 1.200-.6 1.700-1l2.500 1 2-3.500zM13 15.500a3.500 3.500 0 1 1 0-7 3.500 3.500 0 0 1 0 7z"/></svg></button><button data-go="edLand" title="Editar landing"><svg viewBox="0 0 24 24"><path d="M3 17.250V21h3.750L17.810 9.940l-3.750-3.750zM20.710 7.040a1 1 0 0 0 0-1.410l-2.340-2.340a1 1 0 0 0-1.410 0l-1.830 1.830 3.750 3.750z"/></svg></button><button data-go="out" title="Salir"><svg viewBox="0 0 24 24"><path d="M10 17l1.400-1.400L8.800 13H20v-2H8.800l2.600-2.600L10 7l-5 5zM4 5h8V3H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8v-2H4z"/></svg></button></nav>
+  <nav id="rail"><button class="on" title="Chats" aria-label="Chats" tabindex="-1"><svg viewBox="0 0 24 24"><path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/></svg></button><span class="sp"></span><button id="rInstall" hidden title="Instalar el panel como app" aria-label="Instalar app"><svg viewBox="0 0 24 24"><path d="M5 20h14v-2H5zM19 9h-4V3H9v6H5l7 7z"/></svg></button><button data-go="soundBtn" id="rSound" title="Sonido"><svg viewBox="0 0 24 24"><path d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2zm6-6V11c0-3.1-1.6-5.6-4.5-6.3V4a1.5 1.5 0 0 0-3 0v.7C7.6 5.4 6 7.9 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></button><button data-go="cfgBtn" title="Tono y notificaciones"><svg viewBox="0 0 24 24"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.400 7.400 0 0 0-1.700 1l-2.500-1-2 3.500L6.600 11a7.500 7.500 0 0 0 0 2l-2.100 1.600 2 3.500 2.500-1c.5.4 1.100.7 1.700 1l.4 2.600h4l.4-2.600c.6-.3 1.200-.6 1.700-1l2.500 1 2-3.500zM13 15.500a3.500 3.500 0 1 1 0-7 3.500 3.500 0 0 1 0 7z"/></svg></button><button data-go="edLand" title="Editar landing"><svg viewBox="0 0 24 24"><path d="M3 17.250V21h3.750L17.810 9.940l-3.750-3.750zM20.710 7.040a1 1 0 0 0 0-1.410l-2.340-2.340a1 1 0 0 0-1.410 0l-1.830 1.830 3.750 3.750z"/></svg></button><button data-go="out" title="Salir"><svg viewBox="0 0 24 24"><path d="M10 17l1.400-1.400L8.800 13H20v-2H8.800l2.600-2.600L10 7l-5 5zM4 5h8V3H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8v-2H4z"/></svg></button></nav>
   <aside id="side"><header><span>Chats</span><small id="live" hidden style="color:#f59e0b;font-weight:400">⚠ Reconectando…</small><span class="sp"></span><button id="soundBtn" aria-label="Sonido de mensajes nuevos">🔔</button><button id="cfgBtn" aria-label="Ajustes de avisos" title="Tono y notificaciones">⚙</button><button id="edLand">⚙ Landing</button><button id="out">Salir</button></header><div id="dbg"></div><div id="snp" hidden>
   <label>Tono del mensaje entrante<select id="toneSel"></select></label>
   <button id="toneTest" class="sm" type="button">▶ Probar</button>
@@ -594,7 +595,7 @@ const DEFL={
   footer:"Solo mayores de 18 años. El juego puede generar adicción: jugá con responsabilidad.",
   license:"Autorización: [COMPLETAR]", chat_title:"Chat con Caja Ludmi", greeting:"¡Hola! ¿En qué te puedo ayudar?",
   chat_notice:"Conectado. Escribinos y te respondemos.", chat_theme:"light",
-  ask_name:true, ask_name_text:"¿Cómo te llamás?",
+  ask_name:true, ask_name_text:"¿Cómo te llamás?", pwa_on:true, pwa_text:"📲 Instalar app",
   wheel_on:true, wheel_mode:"first", wheel_title:"🎡 Girá la ruleta y ganá tu bono", wheel_sub:"Tocá GIRAR y frená la ruleta cuando quieras", wheel_spin:"GIRAR", wheel_stop:"FRENAR",
   wheel_msg:"Quiero mi {premio}", wheel_reply:"¡Felicitaciones! En un momento un asesor te confirma tu bono.", wheel_once:true, wheel_odds:true,
   wheel_prizes:[{label:"Bono 10%",w:15},{label:"Bono 20%",w:20},{label:"Bono 30%",w:35},{label:"Bono 40%",w:20},{label:"Bono 50%",w:10}],
@@ -738,6 +739,8 @@ function buildForm(){
     sec("Textos principales",null,
       fText("Título","title"),fText("Bono: línea superior","bonus_top"),fText("Bono: texto grande","bonus_big"),
       fText("Bono: línea inferior","bonus_bottom"),fText("Texto del botón verde","cta"),fText("Texto de estado (debajo del botón)","status")),
+    sec("App instalable","Muestra un botón «Instalar app» en la landing para que la persona la agregue a su pantalla de inicio como una aplicación (Android, PC y iPhone). Si lo desactivás, el botón desaparece y la página deja de ofrecerse como app. Quienes ya la instalaron la siguen abriendo, pero como una página común.",
+      fCheck("Permitir que instalen la landing como app",cfg,"pwa_on"),fText("Texto del botón","pwa_text")),
     sec("Fondo","Si no subís nada, queda el degradado violeta. Se oscurece solo para que se lea el texto.",
       fImg("Imagen de fondo","bg_url",1600)),
     sec("Beneficios","Las tres cajitas debajo del botón.",
@@ -852,7 +855,7 @@ const IC={
 const TABS=[
  ["perfil","Perfil",["Perfil","Textos principales","Beneficios","Pie de página"]],
  ["pagos","Pagos",["Datos para transferir"]],
- ["diseno","Diseño",["Orden de la página","Fondo"]],
+ ["diseno","Diseño",["Orden de la página","Fondo","App instalable"]],
  ["plataformas","Plataformas",["Plataformas","Juegos"]],
  ["contacto","Contacto",["Instagram","Botones de contacto"]],
  ["chat","Chat",["Chat","Botones rápidos del chat","Botón flotante de chat","Íconos del chat"]],
@@ -927,7 +930,7 @@ function collect(){
   d.fab_text=(d.fab_text||"").trim();
   d.chat_theme=d.chat_theme==="dark"?"dark":"light";
   for(const k of ["chat_title","chat_notice","status_online","status_offline","greeting","ask_name_text"])d[k]=(d[k]||"").trim();
-  d.ask_name=!!d.ask_name;
+  d.ask_name=!!d.ask_name;d.pwa_on=!!d.pwa_on;d.pwa_text=String(d.pwa_text||"").trim().slice(0,30)||"📲 Instalar app";
   for(const k of ["wheel_title","wheel_sub","wheel_spin","wheel_stop","wheel_msg","wheel_reply"])d[k]=String(d[k]||"").trim();
   d.wheel_mode=d.wheel_mode==="block"?"block":"first";
   d.wheel_on=!!d.wheel_on;d.wheel_once=!!d.wheel_once;d.wheel_odds=!!d.wheel_odds;
@@ -1085,6 +1088,12 @@ $("tabOpen").onclick=()=>{view="open";list()};
 $("tabUnread").onclick=()=>{view="unread";list()};
 $("q").oninput=()=>list();
 $("sendPay").onclick=sendPayInfo;
+/* instalar el panel como app */
+if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(()=>{});
+var instEv=null;
+addEventListener("beforeinstallprompt",e=>{e.preventDefault();instEv=e;$("rInstall").hidden=false});
+addEventListener("appinstalled",()=>{instEv=null;$("rInstall").hidden=true});
+$("rInstall").onclick=()=>{if(instEv){instEv.prompt();instEv.userChoice.finally(()=>{instEv=null;$("rInstall").hidden=true})}};
 document.querySelectorAll("#rail [data-go]").forEach(b=>b.onclick=()=>$(b.dataset.go).click());
 $("edLand").onclick=openEditor;
 $("edSave").onclick=saveLanding;

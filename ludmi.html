@@ -2,6 +2,7 @@
 <html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Cajas Online</title>
+<link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="theme-color" content="#6d28d9"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Ludmi">
 <style>
 :root{--bg:#0b0414;--pink:#d41cd8;--gold:#ffd21f;--card:rgba(20,6,34,.75)}
 *{box-sizing:border-box}
@@ -168,6 +169,10 @@ footer{color:var(--mut);margin-top:34px;opacity:.8}
 .ic.rec{background:#dc2626;color:#fff;animation:p 1s infinite}
 @keyframes p{50%{opacity:.5}}
 @media(prefers-reduced-motion:reduce){.ic.rec{animation:none}}
+#pwaWrap{text-align:center;margin:18px 0 4px}
+#pwaBtn{border:1px solid #ffffff55;background:#ffffff1f;color:#fff;border-radius:999px;padding:11px 20px;font-size:14px;font-weight:600;cursor:pointer;backdrop-filter:blur(8px)}
+#pwaBtn:hover{background:#ffffff33}
+#pwaHint{margin:10px auto 0;max-width:320px;font-size:13px;line-height:1.45;color:#fffc}
 </style></head>
 <body>
 <div id="bg" hidden></div>
@@ -191,6 +196,7 @@ footer{color:var(--mut);margin-top:34px;opacity:.8}
     <div id="b-faq"><section class="sec faq" id="faq" hidden><h2 id="faqT"></h2><div id="faqList"></div></section></div>
     <div id="b-contacts"><div class="contacts" id="ct" hidden></div></div>
   </div>
+  <div id="pwaWrap"><button id="pwaBtn" type="button" hidden></button><p id="pwaHint" hidden></p></div>
   <footer><span id="f1"></span><br><span id="f2"></span></footer>
 </main>
 
@@ -241,7 +247,7 @@ const DEF={
   footer:"Solo mayores de 18 años. El juego puede generar adicción: jugá con responsabilidad.",
   license:"Autorización: [COMPLETAR]", chat_title:"Chat con Caja Ludmi", greeting:"¡Hola! ¿En qué te puedo ayudar?",
   chat_notice:"Conectado. Escribinos y te respondemos.", chat_theme:"light",
-  ask_name:true, ask_name_text:"¿Cómo te llamás?",
+  ask_name:true, ask_name_text:"¿Cómo te llamás?", pwa_on:true, pwa_text:"📲 Instalar app",
   wheel_on:true, wheel_mode:"first", wheel_title:"🎡 Girá la ruleta y ganá tu bono", wheel_sub:"Tocá GIRAR y frená la ruleta cuando quieras", wheel_spin:"GIRAR", wheel_stop:"FRENAR",
   wheel_msg:"Quiero mi {premio}", wheel_reply:"¡Felicitaciones! En un momento un asesor te confirma tu bono.", wheel_once:true, wheel_odds:true,
   wheel_prizes:[{label:"Bono 10%",w:15},{label:"Bono 20%",w:20},{label:"Bono 30%",w:35},{label:"Bono 40%",w:20},{label:"Bono 50%",w:10}],
@@ -294,9 +300,30 @@ function fillRow(sec,row,items){
     const n=document.createElement("span");n.textContent=it.name||"";d.append(n);return d}));
   sec.hidden=!list.length;
 }
+/* App instalable (PWA): se puede quitar desde el editor de landing */
+var pwaEv=null,pwaReady=false,pwaReg=false;
+function pwaStandalone(){return matchMedia("(display-mode: standalone)").matches||navigator.standalone===true}
+function pwaIOS(){return /iphone|ipad|ipod/i.test(navigator.userAgent)&&!/crios|fxios/i.test(navigator.userAgent)}
+function pwaApply(){
+  if(!pwaReady)return;
+  const b=$("pwaBtn"),on=!!CFG.pwa_on&&!PREVIEW;
+  const l=document.querySelector('link[rel=manifest]');
+  if(!on){if(l)l.remove();b.hidden=true;$("pwaHint").hidden=true;return}
+  if(!pwaReg&&"serviceWorker" in navigator){pwaReg=true;navigator.serviceWorker.register("/sw.js").catch(()=>{})}
+  b.textContent=CFG.pwa_text||"📲 Instalar app";
+  b.hidden=pwaStandalone()||!(pwaEv||pwaIOS());
+}
+addEventListener("beforeinstallprompt",e=>{e.preventDefault();pwaEv=e;pwaApply()});
+addEventListener("appinstalled",()=>{pwaEv=null;$("pwaBtn").hidden=true;$("pwaHint").hidden=true});
+document.addEventListener("click",e=>{
+  if(e.target!==$("pwaBtn"))return;
+  if(pwaEv){pwaEv.prompt();pwaEv.userChoice.finally(()=>{pwaEv=null;pwaApply()});return}
+  const h=$("pwaHint");h.textContent="En el iPhone: tocá el botón Compartir de Safari y elegí «Agregar a inicio».";h.hidden=false;
+});
 function apply(c){
   CFG=c;
   txt("nm",c.name);txt("ttl",c.title);txt("b1",c.bonus_top);txt("b2",c.bonus_big);txt("b3",c.bonus_bottom);
+  pwaReady=true;pwaApply();
   $("open").textContent=c.cta;txt("st",c.status);txt("f1",c.footer);txt("f2",c.license);
   $("ctitle").textContent=c.chat_title;
   wheelApply();
