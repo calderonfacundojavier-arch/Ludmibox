@@ -179,6 +179,7 @@ textarea.fi{min-height:78px;resize:vertical;font-family:inherit}
 #snd{color:#b45309;background:#fff8e6}
 .empty{color:var(--muted)}
 #chat{background:#efeae2}
+.c.cl .nm,.c.cl .av{opacity:.6}
 #blank{color:#667781}
 #pane{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 220 220' fill='none' stroke='%23b9ac95' stroke-opacity='.28' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='30' cy='32' r='9'/%3E%3Cpath d='M80 30l6 12 13 2-9 9 2 13-12-6-12 6 2-13-9-9 13-2z'/%3E%3Cpath d='M140 28q8-12 16 0t16 0'/%3E%3Crect x='186' y='20' width='20' height='16' rx='4'/%3E%3Cpath d='M20 92q10-14 20 0t20 0'/%3E%3Ccircle cx='100' cy='96' r='12'/%3E%3Cpath d='M95 96h10M100 91v10'/%3E%3Cpath d='M150 84l16 16M166 84l-16 16'/%3E%3Cpath d='M190 96c0-8 14-8 14 0s-14 14-14 20c0-6-14-12-14-20s14-8 14 0z' transform='translate(-6 -4) scale(.8)'/%3E%3Ccircle cx='36' cy='158' r='5'/%3E%3Cpath d='M70 150h30M70 160h22M70 170h26'/%3E%3Cpath d='M130 150l10 18 10-18z'/%3E%3Cpath d='M180 150a12 12 0 1 0 0 24 12 12 0 0 0 0-24zM176 160v0M184 160v0M175 167q5 5 10 0'/%3E%3Cpath d='M18 204q14-14 28 0'/%3E%3Cpath d='M110 200l8-14 8 14'/%3E%3Ccircle cx='170' cy='204' r='4'/%3E%3C/svg%3E") #efeae2}
 #pane>header{background:#f0f2f5;height:64px;color:#111b21;border-left:1px solid var(--line)}
@@ -462,7 +463,7 @@ function list(){
   const recent=(a,b)=>new Date(all[b].at(-1).created_at)-new Date(all[a].at(-1).created_at);
   const term=($("q").value||"").trim().toLowerCase();
   const hit=id=>!term||nm(id).toLowerCase().includes(term)||all[id].some(m=>m.kind==="text"&&!m.deleted_at&&!isNote(m)&&String(m.body).toLowerCase().includes(term));
-  let base=openIds;
+  let base=ids;
   if(view==="unread")base=openIds.filter(id=>id!==cur&&unreadN(id)>0);
   if(term)base=ids.filter(hit);   /* al buscar se revisan todos los chats, abiertos o cerrados */
   const shown=base.sort(recent);
@@ -471,7 +472,7 @@ function list(){
   let total=0;ids.forEach(id=>{if(id!==cur)total+=unreadN(id)});
   const rows=shown.map(id=>{
     const l=all[id].at(-1),n=id===cur?0:unreadN(id);
-    const d=document.createElement("div");d.className="c"+(id===cur?" on":"")+(n?" un":"");
+    const d=document.createElement("div");d.className="c"+(id===cur?" on":"")+(n?" un":"")+(isClosed(id)?" cl":"");
     d.innerHTML='<div class="av"></div><div class="ci"><div class="top"><span class="nm"></span><span class="tm"></span></div><div class="pv"><span></span><b class="badge" hidden></b></div></div>';
     avatar(d.querySelector(".av"),id);
     d.querySelector(".nm").textContent=nm(id);d.querySelector(".tm").textContent=fmt(l.created_at);
