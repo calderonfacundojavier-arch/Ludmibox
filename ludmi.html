@@ -34,6 +34,10 @@ h1{font-size:34px;line-height:1;margin:14px 0;font-weight:900;text-transform:upp
 .wbox{position:relative;width:min(300px,82vw);aspect-ratio:1;margin:6px auto 16px}
 .wbox canvas{width:100%;height:100%;display:block;border-radius:50%;box-shadow:0 0 0 6px #ffd21f,0 0 0 9px #0006,0 10px 34px #000a,0 0 40px #d41cd88a}
 .wptr{position:absolute;left:50%;top:-14px;width:0;height:0;margin-left:-14px;border-left:14px solid transparent;border-right:14px solid transparent;border-top:30px solid #fff;filter:drop-shadow(0 3px 3px #000a);z-index:2}
+#wov{position:fixed;inset:0;z-index:40;display:grid;place-items:center;padding:16px;background:rgba(6,1,14,.82);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);overflow:auto}
+.wmodal{position:relative;width:min(380px,100%);animation:rise .45s both}
+.wmodal .wheel{margin:0}
+#wx{position:absolute;right:8px;top:8px;z-index:3;width:34px;height:34px;border-radius:50%;border:0;background:#0006;color:#fff;font-size:16px;cursor:pointer}
 .wheel .cta:disabled{opacity:.6;cursor:default}
 #wres{margin:14px 0 4px;padding:12px;border-radius:14px;background:#ffd21f22;box-shadow:inset 0 0 0 1px #ffd21f66;font-weight:800;font-size:18px;color:#ffe066}
 #wodds{display:block;margin-top:10px;font-size:11px;color:var(--mut,#b9aec9);line-height:1.5}
@@ -137,6 +141,11 @@ footer{color:var(--mut);margin-top:34px;opacity:.8}
 #nameBar button{border:0;border-radius:10px;padding:10px 16px;font:inherit;font-weight:800;font-size:13px;background:var(--acc);color:#fff;cursor:pointer}
 #nameBar button:disabled{opacity:.6}
 #nameBar small{flex:1 0 100%;color:var(--mut);font-size:11px;min-height:0}
+#nameBar #nameErr{color:#dc2626;font-weight:700}
+#chat.needname #msgs,#chat.needname #quick,#chat.needname #bar{display:none}
+#chat.needname #nameBar{flex:1;align-content:center;justify-content:center;padding:26px 20px;border:0;background:var(--bg)}
+#chat.needname #nameBar label{font-size:18px;text-align:center}
+#chat.needname #nameBar small{text-align:center}
 .m a{color:inherit;text-decoration:underline;word-break:break-all}
 .m time em{font-style:normal}
 .tk{margin-left:4px;font-size:11px;letter-spacing:-2px;color:var(--mut)}.tk.rd{color:#53bdeb}
@@ -185,11 +194,13 @@ footer{color:var(--mut);margin-top:34px;opacity:.8}
   <footer><span id="f1"></span><br><span id="f2"></span></footer>
 </main>
 
+<div id="wov" hidden><div class="wmodal" role="dialog" aria-modal="true" aria-label="Ruleta de bonos"><button type="button" id="wx" aria-label="Cerrar">✕</button><div id="wslot"></div></div></div>
+
 <button class="fab" id="fab" hidden aria-label="Abrir chat"><span id="icFab">💬</span><span id="fabT"></span></button>
 
 <section id="chat" class="light" hidden aria-label="Chat">
   <header class="chh" id="chh"><div class="cav" id="cav" aria-hidden="true">👑</div><div class="who"><b id="ctitle"></b><small id="cstat"></small></div><span><button id="pay" hidden title="Datos para transferir" aria-label="Datos para transferir"><span id="icPay">💳</span></button><button id="close" aria-label="Cerrar chat">✕</button></span></header>
-  <form id="nameBar" hidden autocomplete="off"><label for="nameIn" id="nameLbl"></label><input id="nameIn" type="text" maxlength="40" minlength="2" placeholder="Tu nombre de usuario" required><button type="submit" id="nameBtn">Guardar</button><small id="nameErr" role="status"></small></form>
+  <form id="nameBar" hidden autocomplete="off"><label for="nameIn" id="nameLbl"></label><input id="nameIn" type="text" maxlength="20" minlength="2" placeholder="Tu nombre o apodo" required autocapitalize="words"><button type="submit" id="nameBtn">Continuar</button><small id="nameHint">Le agregamos 2 números para que tu usuario sea único. Ej.: Juan → Juan00</small><small id="nameErr" role="alert"></small></form>
   <div id="msgs"></div>
   <div id="quick" hidden></div>
   <div id="bar">
@@ -230,8 +241,8 @@ const DEF={
   footer:"Solo mayores de 18 años. El juego puede generar adicción: jugá con responsabilidad.",
   license:"Autorización: [COMPLETAR]", chat_title:"Chat con Caja Ludmi", greeting:"¡Hola! ¿En qué te puedo ayudar?",
   chat_notice:"Conectado. Escribinos y te respondemos.", chat_theme:"light",
-  ask_name:true, ask_name_text:"¿Cuál es tu usuario?",
-  wheel_on:true, wheel_title:"🎡 Girá la ruleta y ganá tu bono", wheel_sub:"Tocá GIRAR y frená la ruleta cuando quieras", wheel_spin:"GIRAR", wheel_stop:"FRENAR",
+  ask_name:true, ask_name_text:"¿Cómo te llamás?",
+  wheel_on:true, wheel_mode:"first", wheel_title:"🎡 Girá la ruleta y ganá tu bono", wheel_sub:"Tocá GIRAR y frená la ruleta cuando quieras", wheel_spin:"GIRAR", wheel_stop:"FRENAR",
   wheel_msg:"Quiero mi {premio}", wheel_reply:"¡Felicitaciones! En un momento un asesor te confirma tu bono.", wheel_once:true, wheel_odds:true,
   wheel_prizes:[{label:"Bono 10%",w:15},{label:"Bono 20%",w:20},{label:"Bono 30%",w:35},{label:"Bono 40%",w:20},{label:"Bono 50%",w:10}],
   status_online:"en línea", status_offline:"Te respondemos apenas podamos",
@@ -481,7 +492,7 @@ function init(){
     (data||[]).forEach(render);
     try{const {data:ar}=await sb.from("agent_read").select("read_at").eq("visitor_id",uid).maybeSingle();if(ar&&ar.read_at)readAt=new Date(ar.read_at).getTime();ticks()}catch{}
     reportSeen();
-    loadName();
+    await loadName();
     await loadPay();
     if(PAY&&PAY.auto&&!(data&&data.length))showPay();
     const pc=sb.channel("agent-presence");
@@ -541,9 +552,26 @@ function wBtn(){
   b.disabled=st==="stopping";
   b.textContent=st==="spinning"?(CFG.wheel_stop||"FRENAR"):st==="done"&&CFG.wheel_once&&!PREVIEW?"Hablar con un asesor":(CFG.wheel_spin||"GIRAR");
 }
+/* modo "primera vez": la ruleta sale como ventana emergente una sola vez por persona */
+function wModal(){return !PREVIEW&&CFG.wheel_mode==="first"}
+function wCloseModal(){
+  $("wov").hidden=true;$("b-wheel").append($("wheel"));W.inModal=false;
+  $("wheel").hidden=true;
+}
+function wOpenModal(){
+  if(W.inModal||!wModal()||!CFG.wheel_on||!wPrizes()||LSG.get("wheel_seen")||LSG.get("wheel_done")||!$("chat").hidden)return;
+  LSG.set("wheel_seen","1");
+  $("wslot").append($("wheel"));$("wheel").hidden=false;W.inModal=true;$("wov").hidden=false;
+  wheelApply();$("wbtn").focus({preventScroll:true});
+}
+$("wx").onclick=wCloseModal;
+$("wov").addEventListener("click",e=>{if(e.target===$("wov"))wCloseModal()});
+addEventListener("keydown",e=>{if(e.key==="Escape"&&W.inModal)wCloseModal()});
 function wheelApply(){
   const P=wPrizes();
-  $("wheel").hidden=!(CFG.wheel_on&&P);
+  if(!W.sched){W.sched=true;setTimeout(wOpenModal,1000)}
+  if(!wModal()&&W.inModal)wCloseModal();
+  $("wheel").hidden=!(CFG.wheel_on&&P)||(wModal()&&!W.inModal);
   if(!P)return;
   txt("wheelT",CFG.wheel_title);txt("wheelS",CFG.wheel_sub);
   const tot=P.reduce((s,x)=>s+x.w,0)||P.length;
@@ -594,8 +622,10 @@ function wFinish(){
 }
 /* al terminar: se abre el chat y sale solo el mensaje "Quiero mi bono X" */
 async function wClaim(label){
+  if(W.inModal)wCloseModal();
   $("chat").hidden=false;syncFab();
   await init();if(!uid)return;
+  await whenNamed();
   const prize=label.charAt(0).toLowerCase()+label.slice(1);
   const msg=String(CFG.wheel_msg||"Quiero mi {premio}").replace(/\{premio\}/g,prize).slice(0,200);
   await quick({label:"Ruleta",text:msg,action:CFG.wheel_reply?"reply":"message",reply:CFG.wheel_reply||""});
@@ -604,11 +634,18 @@ async function wClaim(label){
 }
 $("wbtn").onclick=()=>{
   if(W.state==="spinning")wStop();
-  else if(W.state==="done"&&CFG.wheel_once&&!PREVIEW){$("chat").hidden=false;syncFab();init().then(()=>$("txt").focus())}
+  else if(W.state==="done"&&CFG.wheel_once&&!PREVIEW){if(W.inModal)wCloseModal();$("chat").hidden=false;syncFab();init().then(()=>$("txt").focus())}
   else if(W.state==="idle"||W.state==="done"){W.state="idle";wSpin()}
 };
 /* usuario: el visitante dice cómo se llama y queda guardado como contacto en el panel */
-function nameShow(){$("nameBar").hidden=!(CFG.ask_name&&(PREVIEW||(nameLoaded&&!myName)))}
+function nameNeeded(){return !!(CFG.ask_name&&!PREVIEW&&nameLoaded&&!myName)}
+function nameShow(){
+  const need=CFG.ask_name&&(PREVIEW||(nameLoaded&&!myName));
+  $("nameBar").hidden=!need;$("chat").classList.toggle("needname",!!need&&!PREVIEW);
+}
+const nameWaiters=[];
+/* los mensajes automáticos (ruleta, etc.) esperan a que la persona ponga su nombre */
+async function whenNamed(){if(nameNeeded())await new Promise(r=>nameWaiters.push(r))}
 async function loadName(){
   try{const {data}=await sb.from("visitor_profile").select("username").eq("visitor_id",uid).maybeSingle();if(data&&data.username)myName=data.username}catch{}
   nameLoaded=true;nameShow();
@@ -617,14 +654,20 @@ $("nameBar").onsubmit=async e=>{
   e.preventDefault();
   if(PREVIEW)return;
   const v=$("nameIn").value.replace(/[\u0000-\u001f\u007f]/g,"").trim();
-  if(v.length<2||v.length>40){$("nameErr").textContent="Escribí entre 2 y 40 caracteres.";return}
+  if(v.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/g,"").length<2){$("nameErr").textContent="Escribí al menos 2 letras.";return}
   if(!uid)return;
   $("nameBtn").disabled=true;$("nameErr").textContent="";
-  const {error}=await sb.from("visitor_profile").upsert({visitor_id:uid,username:v});
+  const {data,error}=await sb.rpc("register_username",{p_name:v});
   $("nameBtn").disabled=false;
-  if(error){$("nameErr").textContent="No se pudo guardar. Probá de nuevo.";return}
-  myName=v;nameShow();
-  const n=document.createElement("div");n.className="sys";n.textContent="¡Listo, "+v+"! Ya te registramos.";$("msgs").append(n);$("msgs").scrollTop=1e9;
+  if(error||!data||typeof data!=="string"){
+    const m=String((error&&error.message)||"");
+    $("nameErr").textContent=/name_full/.test(m)?"Ese nombre ya lo usan muchas personas. Probá con otro o agregale una letra.":/invalid_name/.test(m)?"Usá al menos 2 letras (sin símbolos raros).":"No se pudo guardar. Probá de nuevo.";
+    return;
+  }
+  myName=data;nameShow();
+  const n=document.createElement("div");n.className="sys";n.textContent="¡Listo! Tu usuario es "+data;$("msgs").append(n);$("msgs").scrollTop=1e9;
+  nameWaiters.splice(0).forEach(f=>f());
+  $("txt").focus();
 };
 /* tildes: ✓ enviado · ✓✓ azul = lo leyó el agente */
 function ticks(){

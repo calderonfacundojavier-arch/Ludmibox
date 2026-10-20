@@ -496,8 +496,8 @@ const DEFL={
   footer:"Solo mayores de 18 años. El juego puede generar adicción: jugá con responsabilidad.",
   license:"Autorización: [COMPLETAR]", chat_title:"Chat con Caja Ludmi", greeting:"¡Hola! ¿En qué te puedo ayudar?",
   chat_notice:"Conectado. Escribinos y te respondemos.", chat_theme:"light",
-  ask_name:true, ask_name_text:"¿Cuál es tu usuario?",
-  wheel_on:true, wheel_title:"🎡 Girá la ruleta y ganá tu bono", wheel_sub:"Tocá GIRAR y frená la ruleta cuando quieras", wheel_spin:"GIRAR", wheel_stop:"FRENAR",
+  ask_name:true, ask_name_text:"¿Cómo te llamás?",
+  wheel_on:true, wheel_mode:"first", wheel_title:"🎡 Girá la ruleta y ganá tu bono", wheel_sub:"Tocá GIRAR y frená la ruleta cuando quieras", wheel_spin:"GIRAR", wheel_stop:"FRENAR",
   wheel_msg:"Quiero mi {premio}", wheel_reply:"¡Felicitaciones! En un momento un asesor te confirma tu bono.", wheel_once:true, wheel_odds:true,
   wheel_prizes:[{label:"Bono 10%",w:15},{label:"Bono 20%",w:20},{label:"Bono 30%",w:35},{label:"Bono 40%",w:20},{label:"Bono 50%",w:10}],
   status_online:"en línea", status_offline:"Te respondemos apenas podamos",
@@ -646,6 +646,8 @@ function buildForm(){
       ...cfg.features.map((f,i)=>el("div",{class:"li"},inp(f,"t","Título "+(i+1),40),inp(f,"s","Detalle",60)))),
     sec("Ruleta de bonos","El usuario toca GIRAR, la ruleta empieza a dar vueltas y la frena con el botón. Al terminar se abre el chat y se envía solo «Quiero mi bono X». El «peso» define qué tan seguido sale cada premio: a mayor número, más probable (el porcentaje se calcula solo). La ruleta se puede mover de lugar en «Orden de la página».",
       fCheck("Mostrar la ruleta",cfg,"wheel_on"),
+      fSelect("Cuándo aparece",cfg,"wheel_mode",[["first","Ventana emergente, solo la primera vez que la persona entra a la landing"],["block","Siempre visible dentro de la página"]]),
+      el("p",{class:"nt"},"En esta vista previa la ruleta se muestra siempre dentro de la página, para que puedas editarla. En la landing real, con la opción «solo la primera vez», sale como ventana emergente una única vez por persona (en ese navegador)."),
       fText("Título","wheel_title"),fText("Texto debajo del título","wheel_sub"),
       fText("Texto del botón para girar","wheel_spin"),fText("Texto del botón para frenar","wheel_stop"),
       fText("Mensaje que se envía al chat ({premio} se reemplaza por el premio que salió)","wheel_msg"),
@@ -705,8 +707,8 @@ function buildForm(){
       fText("Texto de estado cuando estás conectado","status_online"),
       fText("Texto de estado cuando no estás conectado","status_offline"),
       fText("Aviso centrado al abrir el chat","chat_notice"),
-      fCheck("Pedirle al usuario su nombre de usuario (queda guardado como contacto en el panel)",cfg,"ask_name"),
-      fText("Texto sobre el campo de usuario","ask_name_text"),
+      fCheck("Pedirle un nombre o apodo (obligatorio para chatear). Se le agregan 2 números para que no se repita, ej. Juan00; queda guardado como contacto en el panel",cfg,"ask_name"),
+      fText("Pregunta que ve antes de chatear","ask_name_text"),
       fText("Mensajes de bienvenida. Separá cada mensaje con una línea en blanco","greeting",{area:true,max:1500})),
     sec("Botones rápidos del chat","Aparecen arriba de la barra de escritura (por ejemplo Cargar, Retirar, Soporte). Al tocarlos se envía un mensaje a tu panel. El primero se ve resaltado.",
       fList("quick",{max:5,add:"+ Agregar botón rápido",make:()=>({label:"",text:"",action:"message",reply:""}),
@@ -809,6 +811,7 @@ function collect(){
   for(const k of ["chat_title","chat_notice","status_online","status_offline","greeting","ask_name_text"])d[k]=(d[k]||"").trim();
   d.ask_name=!!d.ask_name;
   for(const k of ["wheel_title","wheel_sub","wheel_spin","wheel_stop","wheel_msg","wheel_reply"])d[k]=String(d[k]||"").trim();
+  d.wheel_mode=d.wheel_mode==="block"?"block":"first";
   d.wheel_on=!!d.wheel_on;d.wheel_once=!!d.wheel_once;d.wheel_odds=!!d.wheel_odds;
   d.wheel_prizes=(d.wheel_prizes||[]).filter(x=>x&&String(x.label||"").trim()).slice(0,10).map(x=>({label:String(x.label).trim().slice(0,24),w:Math.max(0,Math.min(1000,Number(x.w)||0))}));
   if(d.wheel_on&&d.wheel_prizes.length<2){say("La ruleta necesita al menos 2 premios. Agregalos o desactivá la ruleta.");return null}
