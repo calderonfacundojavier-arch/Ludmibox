@@ -263,6 +263,7 @@ function safe(u,schemes){
 }
 function txt(id,v){const e=$(id);e.textContent=v;e.hidden=!v}
 function mkImg(src,alt){
+  if(!String(src||"").trim())return null;
   const u=safe(src);if(!u)return null;
   const i=document.createElement("img");i.src=u;i.alt=alt||"";i.loading="lazy";i.decoding="async";return i;
 }
