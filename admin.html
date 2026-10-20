@@ -69,6 +69,7 @@ header button{background:none;border:0;cursor:pointer;color:var(--muted);font-si
 #cfgBtn{font-size:16px!important}
 #snd{padding:6px 16px;font-size:12px;color:#f59e0b;border-bottom:1px solid var(--line);flex:none}
 .empty{padding:24px 16px;color:var(--muted);text-align:center;font-size:14px}
+#pane header .hb:hover{background:#34454f}
 #pane header .hb{background:var(--hover);border-radius:8px;padding:8px 12px;color:#e9edef;font-size:13px;font-weight:600;white-space:nowrap}
 .m{position:relative}
 .tk{margin-left:4px;font-size:11px;letter-spacing:-2px;color:#ffffff99}.tk.rd{color:#53bdeb}
@@ -134,7 +135,7 @@ textarea.fi{min-height:78px;resize:vertical;font-family:inherit}
   <section id="chat">
     <div id="blank">Seleccioná una conversación<br>para empezar a responder.</div>
     <div id="pane" hidden>
-      <header><button id="back" aria-label="Volver">←</button><div class="av" id="hav" style="width:40px;height:40px;font-size:16px"></div><span id="title" title="Tocá para poner un nombre"></span><button class="hb" id="closeChat">✓ Cerrar chat</button></header>
+      <header><button id="back" aria-label="Volver">←</button><div class="av" id="hav" style="width:40px;height:40px;font-size:16px"></div><span id="title" title="Tocá para poner un nombre"></span><button class="hb" id="closeChat">✓ Cerrar chat</button><button class="hb" id="delChat" title="Eliminar este chat para siempre" aria-label="Eliminar chat" style="color:#f87171">🗑</button></header>
       <div id="msgs"></div>
       <div id="bar"><label class="ic" title="Enviar imagen" tabindex="0">📎<input id="file" type="file" accept="image/jpeg,image/png,image/webp" hidden></label><button class="ic" id="sendPay" aria-label="Enviar datos para transferir" title="Enviar datos para transferir">💳</button><input id="txt" placeholder="Escribí un mensaje" autocomplete="off" maxlength="2000"><button class="ic" id="mic" aria-label="Grabar audio" title="Grabar audio">🎤</button><button id="send" aria-label="Enviar">➤</button></div>
     </div>
@@ -298,6 +299,7 @@ function subscribeRT(){
   clearTimeout(rtTimer);
   try{if(rtCh&&sb.removeChannel)sb.removeChannel(rtCh)}catch{}
   const ch=rtCh=sb.channel("agent-live-"+Date.now());
+  ch.on("postgres_changes",{event:"DELETE",schema:"public",table:"messages"},p=>{if(p.old&&p.old.id!=null)removeMsg(p.old.id)});
   ch.on("postgres_changes",{event:"INSERT",schema:"public",table:"messages"},p=>{add(p.new,true);list();dbg()})
     .on("postgres_changes",{event:"UPDATE",schema:"public",table:"messages"},p=>applyUpdate(p.new))
     .on("postgres_changes",{event:"*",schema:"public",table:"contacts"},p=>{
@@ -930,6 +932,39 @@ async function setClosed(id,on){
   list();
 }
 $("closeChat").onclick=()=>{if(cur)setClosed(cur,!isClosed(cur))};
+/* ----- eliminar un chat completo (mensajes, contacto, usuario, estado y archivos) ----- */
+function dropLocal(id){
+  (all[id]||[]).forEach(m=>seen.delete(m.id));
+  delete all[id];delete names[id];delete usernames[id];delete closed[id];delete reads[id];delete seenAt[id];
+  if(cur===id){cur=null;$("app").classList.remove("open");$("pane").hidden=true;$("blank").hidden=false}
+  list();dbg();
+}
+async function delChat(id){
+  const n=(all[id]||[]).length;
+  if(!confirm("¿Eliminar para siempre el chat con "+nm(id)+" ("+n+" mensajes)?\n\nTambién se borran sus fotos y audios, y desaparece de la pantalla del usuario. No se puede deshacer."))return;
+  const r=await sb.from("messages").delete().eq("visitor_id",id).select();
+  if(r.error||(n>0&&(!r.data||!r.data.length))){
+    alert("No se pudo eliminar el chat"+(r.error?": "+r.error.message:"")+".\n\n¿Ejecutaste supabase-eliminar.sql en Supabase?");return}
+  try{
+    const {data:fl}=await sb.storage.from("chat-media").list(id,{limit:1000});
+    if(fl&&fl.length)await sb.storage.from("chat-media").remove(fl.map(f=>id+"/"+f.name));
+  }catch{}
+  for(const t of ["contacts","chat_state","visitor_seen","agent_read","visitor_profile"]){
+    try{await sb.from(t).delete().eq("visitor_id",id)}catch{}
+  }
+  dropLocal(id);
+}
+$("delChat").onclick=()=>{if(cur)delChat(cur)};
+/* otro administrador (u otra pestaña) eliminó mensajes */
+function removeMsg(mid){
+  for(const id of Object.keys(all)){
+    const i=all[id].findIndex(m=>m.id===mid);if(i<0)continue;
+    seen.delete(mid);all[id].splice(i,1);
+    if(!all[id].length){dropLocal(id)}
+    else{if(id===cur){$("msgs").replaceChildren();all[id].forEach(draw)}list()}
+    return;
+  }
+}
 $("tabOpen").onclick=()=>{view="open";list()};
 $("tabUnread").onclick=()=>{view="unread";list()};
 $("q").oninput=()=>list();

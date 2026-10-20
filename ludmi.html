@@ -499,6 +499,7 @@ function init(){
     pc.on("presence",{event:"sync"},()=>{ONLINE=Object.keys(pc.presenceState()).length>0;renderStatus()}).subscribe();
     sb.channel("m-"+uid).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"visitor_id=eq."+uid},p=>{render(p.new,true)})
       .on("postgres_changes",{event:"UPDATE",schema:"public",table:"messages",filter:"visitor_id=eq."+uid},p=>change(p.new))
+      .on("postgres_changes",{event:"DELETE",schema:"public",table:"messages"},p=>{if(p.old&&p.old.id!=null){const d=document.querySelector('#msgs .m[data-id="'+p.old.id+'"]');if(d)d.remove()}})
       .on("postgres_changes",{event:"*",schema:"public",table:"agent_read",filter:"visitor_id=eq."+uid},p=>{if(p.new&&p.new.read_at){readAt=new Date(p.new.read_at).getTime();ticks()}}).subscribe();
   })());
 }
