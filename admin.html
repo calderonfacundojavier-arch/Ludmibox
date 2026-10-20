@@ -145,6 +145,69 @@ textarea.fi{min-height:78px;resize:vertical;font-family:inherit}
 .ck{display:flex;gap:8px;align-items:center;font-size:14px;margin:8px 0;cursor:pointer}
 .acc{flex:1 1 100%;border:1px solid var(--line);border-radius:10px;padding:10px;display:grid;gap:6px}
 #edMsg{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);padding:11px 16px;border-radius:8px;font-size:14px;max-width:90%;z-index:30;box-shadow:0 4px 20px #0008}
+
+/* ===== Panel de chats estilo mensajería clara ===== */
+#app{--bg:#fff;--panel:#f0f2f5;--wall:#efeae2;--out:#d9fdd3;--accent:#00a884;--muted:#667781;--line:#e9edef;--hover:#f5f6f6;color:#111b21;background:#fff}
+#rail{width:64px;flex:none;background:#f0f2f5;border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 0}
+#rail .sp{flex:1}
+#rail button{width:42px;height:42px;border:0;border-radius:50%;background:none;color:#54656f;cursor:pointer;display:grid;place-items:center}
+#rail button:hover{background:#d9dbdf}#rail button.on{background:#d9dbdf;color:#111b21}
+#rail svg,.ico svg{width:24px;height:24px;fill:currentColor;display:block}
+#side{width:410px;background:#fff}
+#side>header{background:#fff;height:64px;font-size:22px;font-weight:700;color:#111b21;padding:0 16px}
+#side>header button{color:#54656f;width:40px;height:40px;border-radius:50%;font-size:18px}
+#side>header button:hover{background:#f0f2f5}
+#side>header #edLand,#side>header #out{width:auto;border-radius:18px;padding:0 12px;font-size:13px}
+#dbg{color:var(--muted);border-bottom:0}
+#srch{padding:4px 12px 6px}
+#q{background:#f0f2f5;border-radius:22px;padding:10px 16px 10px 44px;font-size:14px;color:#111b21;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23667781'%3E%3Cpath d='M15.9 14.3h-.8l-.3-.3a6.5 6.5 0 1 0-.7.7l.3.3v.8l5 5 1.5-1.5-5-5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:14px center;background-size:20px}
+#q:focus{box-shadow:0 0 0 2px #00a88455}
+#tabs{border-bottom:0;padding:4px 12px 8px}
+#tabs button{background:#fff;border:1px solid #d1d7db;color:#54656f;font-weight:500}
+#tabs button:hover{background:#f0f2f5}
+#tabs button.on{background:#d9fdd3;border-color:#d9fdd3;color:#0b6b4b}
+#tabs button.dot::after{background:#00a884}
+.c{padding:0 0 0 14px;gap:14px;height:72px}
+.c .ci{border-bottom:1px solid #f0f2f5;height:100%;display:flex;flex-direction:column;justify-content:center;padding-right:16px}
+.c:hover{background:#f5f6f6}.c.on{background:#f0f2f5}
+.nm{font-size:16.5px;color:#111b21;font-weight:400}.c.un .nm{font-weight:600}
+.tm{font-size:12px;color:var(--muted)}.c.un .tm{color:#00a884}
+.pv{font-size:14px;color:var(--muted)}
+.badge{background:#25d366;color:#fff}
+#snp{background:#f7f8fa;color:#111b21}#snp select{background:#fff;border:1px solid #d1d7db;color:#111b21}
+#snp .sm{background:#fff;border:1px solid #d1d7db;color:#111b21}
+#snd{color:#b45309;background:#fff8e6}
+.empty{color:var(--muted)}
+#chat{background:#efeae2}
+#blank{color:#667781}
+#pane{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 220 220' fill='none' stroke='%23b9ac95' stroke-opacity='.28' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='30' cy='32' r='9'/%3E%3Cpath d='M80 30l6 12 13 2-9 9 2 13-12-6-12 6 2-13-9-9 13-2z'/%3E%3Cpath d='M140 28q8-12 16 0t16 0'/%3E%3Crect x='186' y='20' width='20' height='16' rx='4'/%3E%3Cpath d='M20 92q10-14 20 0t20 0'/%3E%3Ccircle cx='100' cy='96' r='12'/%3E%3Cpath d='M95 96h10M100 91v10'/%3E%3Cpath d='M150 84l16 16M166 84l-16 16'/%3E%3Cpath d='M190 96c0-8 14-8 14 0s-14 14-14 20c0-6-14-12-14-20s14-8 14 0z' transform='translate(-6 -4) scale(.8)'/%3E%3Ccircle cx='36' cy='158' r='5'/%3E%3Cpath d='M70 150h30M70 160h22M70 170h26'/%3E%3Cpath d='M130 150l10 18 10-18z'/%3E%3Cpath d='M180 150a12 12 0 1 0 0 24 12 12 0 0 0 0-24zM176 160v0M184 160v0M175 167q5 5 10 0'/%3E%3Cpath d='M18 204q14-14 28 0'/%3E%3Cpath d='M110 200l8-14 8 14'/%3E%3Ccircle cx='170' cy='204' r='4'/%3E%3C/svg%3E") #efeae2}
+#pane>header{background:#f0f2f5;height:64px;color:#111b21;border-left:1px solid var(--line)}
+#title{font-size:16px;font-weight:500;color:#111b21}
+#back{color:#54656f}
+#pane header .hb{background:#fff;border:1px solid #d1d7db;color:#111b21;font-weight:500;border-radius:20px;padding:8px 14px}
+#pane header .hb:hover{background:#e9edef}
+#delChat{display:grid;place-items:center;padding:8px!important;width:38px;height:38px;color:#dc2626!important}
+#delChat svg{width:20px;height:20px;fill:currentColor}
+#msgs{background:none;padding:16px 7%}
+.m{box-shadow:0 1px .5px #0b141a21;color:#111b21;font-size:14.2px}
+.m.in{background:#fff;border-top-left-radius:0}
+.m.out{background:#d9fdd3;border-top-right-radius:0}
+.m time{color:#667781}
+.tk{color:#667781}.tk.rd{color:#53bdeb}
+.m .more{color:#667781}
+.m .act button{background:#0000000d;color:#111b21}.m .act .dl{color:#dc2626}
+.pcap{color:#667781}.pcc{background:#0000000a}
+.sysn{background:#fff;color:#54656f;box-shadow:0 1px .5px #0b141a21}
+#bar{background:#f0f2f5;gap:6px;padding:10px 16px}
+#bar .ic{color:#54656f}#bar .ic:hover{background:#e0e3e6}
+#bar .ic svg{width:26px;height:26px;fill:currentColor}
+#txt{background:#fff;border-radius:22px;padding:12px 18px;font-size:15px;color:#111b21}
+#txt::placeholder{color:#667781}
+#send{background:none;color:#54656f;display:grid;place-items:center}
+#send:hover{background:#e0e3e6}#send svg{width:26px;height:26px;fill:currentColor}
+#send{color:#00a884}
+@media(max-width:760px){#rail{display:none}#side{width:100%}#side>header{font-size:20px}#msgs{padding:12px 3%}}
+@media(min-width:761px){#side>header #soundBtn,#side>header #cfgBtn,#side>header #edLand,#side>header #out{display:none}}
 @media(max-width:760px){#side{width:100%}#chat{display:none;position:fixed;inset:0;z-index:5}#app.open #chat{display:flex}#back{display:block}}
 </style></head>
 <body>
@@ -154,6 +217,7 @@ textarea.fi{min-height:78px;resize:vertical;font-family:inherit}
   <button>Entrar</button><small id="err"></small></form>
 
 <div id="app" hidden>
+  <nav id="rail"><button class="on" title="Chats" aria-label="Chats" tabindex="-1"><svg viewBox="0 0 24 24"><path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/></svg></button><span class="sp"></span><button data-go="soundBtn" id="rSound" title="Sonido"><svg viewBox="0 0 24 24"><path d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2zm6-6V11c0-3.1-1.6-5.6-4.5-6.3V4a1.5 1.5 0 0 0-3 0v.7C7.6 5.4 6 7.9 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></button><button data-go="cfgBtn" title="Tono y notificaciones"><svg viewBox="0 0 24 24"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.400 7.400 0 0 0-1.700 1l-2.500-1-2 3.500L6.600 11a7.500 7.500 0 0 0 0 2l-2.100 1.600 2 3.500 2.500-1c.5.4 1.100.7 1.700 1l.4 2.600h4l.4-2.600c.6-.3 1.200-.6 1.700-1l2.500 1 2-3.500zM13 15.500a3.500 3.500 0 1 1 0-7 3.500 3.500 0 0 1 0 7z"/></svg></button><button data-go="edLand" title="Editar landing"><svg viewBox="0 0 24 24"><path d="M3 17.250V21h3.750L17.810 9.940l-3.750-3.750zM20.710 7.040a1 1 0 0 0 0-1.410l-2.340-2.340a1 1 0 0 0-1.410 0l-1.830 1.830 3.750 3.750z"/></svg></button><button data-go="out" title="Salir"><svg viewBox="0 0 24 24"><path d="M10 17l1.400-1.400L8.800 13H20v-2H8.800l2.600-2.600L10 7l-5 5zM4 5h8V3H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8v-2H4z"/></svg></button></nav>
   <aside id="side"><header><span>Chats</span><small id="live" hidden style="color:#f59e0b;font-weight:400">⚠ Reconectando…</small><span class="sp"></span><button id="soundBtn" aria-label="Sonido de mensajes nuevos">🔔</button><button id="cfgBtn" aria-label="Ajustes de avisos" title="Tono y notificaciones">⚙</button><button id="edLand">⚙ Landing</button><button id="out">Salir</button></header><div id="dbg"></div><div id="snp" hidden>
   <label>Tono del mensaje entrante<select id="toneSel"></select></label>
   <button id="toneTest" class="sm" type="button">▶ Probar</button>
@@ -163,9 +227,9 @@ textarea.fi{min-height:78px;resize:vertical;font-family:inherit}
   <section id="chat">
     <div id="blank">Seleccioná una conversación<br>para empezar a responder.</div>
     <div id="pane" hidden>
-      <header><button id="back" aria-label="Volver">←</button><div class="av" id="hav" style="width:40px;height:40px;font-size:16px"></div><span id="title" title="Tocá para poner un nombre"></span><button class="hb" id="closeChat">✓ Cerrar chat</button><button class="hb" id="delChat" title="Eliminar este chat para siempre" aria-label="Eliminar chat" style="color:#f87171">🗑</button></header>
+      <header><button id="back" aria-label="Volver">←</button><div class="av" id="hav" style="width:40px;height:40px;font-size:16px"></div><span id="title" title="Tocá para poner un nombre"></span><button class="hb" id="closeChat">✓ Cerrar chat</button><button class="hb" id="delChat" title="Eliminar este chat para siempre" aria-label="Eliminar chat"><svg viewBox="0 0 24 24"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6zM19 4h-3.500l-1-1h-5l-1 1H5v2h14z"/></svg></button></header>
       <div id="msgs"></div>
-      <div id="bar"><label class="ic" title="Enviar imagen" tabindex="0">📎<input id="file" type="file" accept="image/jpeg,image/png,image/webp" hidden></label><button class="ic" id="sendPay" aria-label="Enviar datos para transferir" title="Enviar datos para transferir">💳</button><input id="txt" placeholder="Escribí un mensaje" autocomplete="off" maxlength="2000"><button class="ic" id="mic" aria-label="Grabar audio" title="Grabar audio">🎤</button><button id="send" aria-label="Enviar">➤</button></div>
+      <div id="bar"><label class="ic" title="Enviar imagen" tabindex="0"><span class="ico"><svg viewBox="0 0 24 24"><path d="M16.500 6v11.500a4 4 0 0 1-8 0V5a2.500 2.500 0 0 1 5 0v10.500a1 1 0 0 1-2 0V6H10v9.500a2.500 2.500 0 0 0 5 0V5a4 4 0 0 0-8 0v12.500a5.500 5.500 0 0 0 11 0V6z"/></svg></span><input id="file" type="file" accept="image/jpeg,image/png,image/webp" hidden></label><button class="ic" id="sendPay" aria-label="Enviar datos para transferir" title="Enviar datos para transferir"><span class="ico"><svg viewBox="0 0 24 24"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 14H4v-6h16zm0-10H4V6h16z"/></svg></span></button><input id="txt" placeholder="Escribí un mensaje" autocomplete="off" maxlength="2000"><button class="ic" id="mic" aria-label="Grabar audio" title="Grabar audio"><span class="ico"><svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.900V21h2v-3.100A7 7 0 0 0 19 11z"/></svg></span></button><button id="send" aria-label="Enviar"><span class="ico"><svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></span></button></div>
     </div>
   </section>
 </div>
@@ -1020,6 +1084,7 @@ $("tabOpen").onclick=()=>{view="open";list()};
 $("tabUnread").onclick=()=>{view="unread";list()};
 $("q").oninput=()=>list();
 $("sendPay").onclick=sendPayInfo;
+document.querySelectorAll("#rail [data-go]").forEach(b=>b.onclick=()=>$(b.dataset.go).click());
 $("edLand").onclick=openEditor;
 $("edSave").onclick=saveLanding;
 $("edBack").onclick=()=>{if(dirty&&!confirm("Tenés cambios sin guardar. ¿Salir igual?"))return;$("ed").hidden=true;pvStop()};
