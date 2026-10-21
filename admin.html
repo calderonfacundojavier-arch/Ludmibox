@@ -423,6 +423,7 @@ function applyState(c){
 }
 /* conexión en vivo: un solo canal que se vuelve a armar solo, más un sondeo de respaldo */
 let rtCh=null,rtTimer=null;
+var liveT=0;
 function subscribeRT(){
   clearTimeout(rtTimer);
   try{if(rtCh&&sb.removeChannel)sb.removeChannel(rtCh)}catch{}
@@ -440,8 +441,11 @@ function subscribeRT(){
        if(p.eventType==="DELETE"){delete closed[p.old.visitor_id];delete reads[p.old.visitor_id]}else applyState(p.new);
        renderClose();list()});
   ch.subscribe(st=>{
-    rt=st==="SUBSCRIBED"?"activo":st;dbg();$("live").hidden=st==="SUBSCRIBED";
-    if(st==="SUBSCRIBED")syncNow();
+    if(ch!==rtCh)return; /* avisos de un canal viejo ya reemplazado: se ignoran (si no, se re-creaba en bucle y parpadeaba «Reconectando») */
+    rt=st==="SUBSCRIBED"?"activo":st;dbg();
+    clearTimeout(liveT);
+    if(st==="SUBSCRIBED"){$("live").hidden=true;syncNow()}
+    else liveT=setTimeout(()=>{if(rtCh===ch&&rt!=="activo")$("live").hidden=false},3000); /* solo avisa si tarda más de 3 s */
     if(st==="CLOSED"||st==="CHANNEL_ERROR"||st==="TIMED_OUT"){clearTimeout(rtTimer);rtTimer=setTimeout(subscribeRT,4000)}
   });
 }
