@@ -208,8 +208,43 @@ textarea.fi{min-height:78px;resize:vertical;font-family:inherit}
 #send{background:none;color:#54656f;display:grid;place-items:center}
 #send:hover{background:#e0e3e6}#send svg{width:26px;height:26px;fill:currentColor}
 #send{color:#00a884}
+
+/* ===== Modo nocturno ===== */
+#app.dark{--bg:#111b21;--panel:#202c33;--wall:#0b141a;--out:#005c4b;--muted:#8696a0;--line:#222d34;--hover:#2a3942;color:#e9edef;background:#111b21}
+#app.dark #rail{background:#202c33;border-right-color:#222d34}
+#app.dark #rail button{color:#aebac1}#app.dark #rail button:hover,#app.dark #rail button.on{background:#2a3942;color:#e9edef}
+#app.dark #side,#app.dark #side>header{background:#111b21;color:#e9edef}
+#app.dark #side>header button{color:#aebac1}#app.dark #side>header button:hover{background:#202c33}
+#app.dark #q{background-color:#202c33;color:#e9edef}
+#app.dark #tabs button{background:none;border-color:#2f3b43;color:#aebac1}
+#app.dark #tabs button:hover{background:#202c33}
+#app.dark #tabs button.on{background:#103529;border-color:#103529;color:#25d366}
+#app.dark .c:hover{background:#202c33}#app.dark .c.on{background:#2a3942}
+#app.dark .c .ci{border-bottom-color:#222d34}
+#app.dark .nm{color:#e9edef}#app.dark .badge{color:#111b21}
+#app.dark #snp{background:#202c33;color:#e9edef}
+#app.dark #snp select,#app.dark #snp .sm{background:#2a3942;border:0;color:#e9edef}
+#app.dark #snd{background:#2b2410;color:#f59e0b}
+#app.dark #chat{background:#0b141a}
+#app.dark #pane{background-color:#0b141a;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 220 220' fill='none' stroke='%238696a0' stroke-opacity='.11' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='30' cy='32' r='9'/%3E%3Cpath d='M80 30l6 12 13 2-9 9 2 13-12-6-12 6 2-13-9-9 13-2z'/%3E%3Cpath d='M140 28q8-12 16 0t16 0'/%3E%3Crect x='186' y='20' width='20' height='16' rx='4'/%3E%3Cpath d='M20 92q10-14 20 0t20 0'/%3E%3Ccircle cx='100' cy='96' r='12'/%3E%3Cpath d='M95 96h10M100 91v10'/%3E%3Cpath d='M150 84l16 16M166 84l-16 16'/%3E%3Cpath d='M190 96c0-8 14-8 14 0s-14 14-14 20c0-6-14-12-14-20s14-8 14 0z' transform='translate(-6 -4) scale(.8)'/%3E%3Ccircle cx='36' cy='158' r='5'/%3E%3Cpath d='M70 150h30M70 160h22M70 170h26'/%3E%3Cpath d='M130 150l10 18 10-18z'/%3E%3Cpath d='M180 150a12 12 0 1 0 0 24 12 12 0 0 0 0-24zM176 160v0M184 160v0M175 167q5 5 10 0'/%3E%3Cpath d='M18 204q14-14 28 0'/%3E%3Cpath d='M110 200l8-14 8 14'/%3E%3Ccircle cx='170' cy='204' r='4'/%3E%3C/svg%3E")}
+#app.dark #pane>header{background:#202c33;color:#e9edef;border-left-color:#222d34}
+#app.dark #title{color:#e9edef}#app.dark #back{color:#aebac1}
+#app.dark #pane header .hb{background:#2a3942;border:0;color:#e9edef}
+#app.dark #pane header .hb:hover{background:#34454f}
+#app.dark #delChat{color:#f87171!important}
+#app.dark .m{color:#e9edef;box-shadow:0 1px .5px #0006}
+#app.dark .m.in{background:#202c33}#app.dark .m.out{background:#005c4b}
+#app.dark .m time,#app.dark .tk{color:#ffffff99}#app.dark .tk.rd{color:#53bdeb}
+#app.dark .m .more{color:#ffffffaa}
+#app.dark .m .act button{background:#0005;color:#fff}#app.dark .m .act .dl{color:#fca5a5}
+#app.dark .pcap{color:#ffffffaa}#app.dark .pcc{background:#0005}
+#app.dark .sysn{background:#182229;color:#8696a0;box-shadow:none}
+#app.dark #bar{background:#202c33}
+#app.dark #bar .ic{color:#aebac1}#app.dark #bar .ic:hover{background:#2a3942}
+#app.dark #txt{background:#2a3942;color:#e9edef}#app.dark #txt::placeholder{color:#8696a0}
+#app.dark #send:hover{background:#2a3942}
 @media(max-width:760px){#rail{display:none}#side{width:100%}#side>header{font-size:20px}#msgs{padding:12px 3%}}
-@media(min-width:761px){#side>header #soundBtn,#side>header #cfgBtn,#side>header #edLand,#side>header #out{display:none}}
+@media(min-width:761px){#side>header #themeBtn,#side>header #soundBtn,#side>header #cfgBtn,#side>header #edLand,#side>header #out{display:none}}
 @media(max-width:760px){#side{width:100%}#chat{display:none;position:fixed;inset:0;z-index:5}#app.open #chat{display:flex}#back{display:block}}
 </style></head>
 <body>
@@ -219,8 +254,8 @@ textarea.fi{min-height:78px;resize:vertical;font-family:inherit}
   <button>Entrar</button><small id="err"></small></form>
 
 <div id="app" hidden>
-  <nav id="rail"><button class="on" title="Chats" aria-label="Chats" tabindex="-1"><svg viewBox="0 0 24 24"><path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/></svg></button><span class="sp"></span><button id="rInstall" hidden title="Instalar el panel como app" aria-label="Instalar app"><svg viewBox="0 0 24 24"><path d="M5 20h14v-2H5zM19 9h-4V3H9v6H5l7 7z"/></svg></button><button data-go="soundBtn" id="rSound" title="Sonido"><svg viewBox="0 0 24 24"><path d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2zm6-6V11c0-3.1-1.6-5.6-4.5-6.3V4a1.5 1.5 0 0 0-3 0v.7C7.6 5.4 6 7.9 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></button><button data-go="cfgBtn" title="Tono y notificaciones"><svg viewBox="0 0 24 24"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.400 7.400 0 0 0-1.700 1l-2.500-1-2 3.500L6.600 11a7.500 7.500 0 0 0 0 2l-2.100 1.600 2 3.500 2.500-1c.5.4 1.100.7 1.700 1l.4 2.600h4l.4-2.600c.6-.3 1.200-.6 1.700-1l2.500 1 2-3.500zM13 15.500a3.500 3.500 0 1 1 0-7 3.500 3.500 0 0 1 0 7z"/></svg></button><button data-go="edLand" title="Editar landing"><svg viewBox="0 0 24 24"><path d="M3 17.250V21h3.750L17.810 9.940l-3.750-3.750zM20.710 7.040a1 1 0 0 0 0-1.410l-2.340-2.340a1 1 0 0 0-1.410 0l-1.830 1.830 3.750 3.750z"/></svg></button><button data-go="out" title="Salir"><svg viewBox="0 0 24 24"><path d="M10 17l1.400-1.400L8.800 13H20v-2H8.800l2.600-2.600L10 7l-5 5zM4 5h8V3H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8v-2H4z"/></svg></button></nav>
-  <aside id="side"><header><span>Chats</span><small id="live" hidden style="color:#f59e0b;font-weight:400">⚠ Reconectando…</small><span class="sp"></span><button id="soundBtn" aria-label="Sonido de mensajes nuevos">🔔</button><button id="cfgBtn" aria-label="Ajustes de avisos" title="Tono y notificaciones">⚙</button><button id="edLand">⚙ Landing</button><button id="out">Salir</button></header><div id="dbg"></div><div id="snp" hidden>
+  <nav id="rail"><button class="on" title="Chats" aria-label="Chats" tabindex="-1"><svg viewBox="0 0 24 24"><path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/></svg></button><span class="sp"></span><button id="rTheme" title="Modo nocturno" aria-label="Modo nocturno"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg></button><button id="rInstall" hidden title="Instalar el panel como app" aria-label="Instalar app"><svg viewBox="0 0 24 24"><path d="M5 20h14v-2H5zM19 9h-4V3H9v6H5l7 7z"/></svg></button><button data-go="soundBtn" id="rSound" title="Sonido"><svg viewBox="0 0 24 24"><path d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2zm6-6V11c0-3.1-1.6-5.6-4.5-6.3V4a1.5 1.5 0 0 0-3 0v.7C7.6 5.4 6 7.9 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></button><button data-go="cfgBtn" title="Tono y notificaciones"><svg viewBox="0 0 24 24"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.400 7.400 0 0 0-1.700 1l-2.500-1-2 3.500L6.600 11a7.500 7.500 0 0 0 0 2l-2.100 1.600 2 3.500 2.500-1c.5.4 1.100.7 1.700 1l.4 2.600h4l.4-2.600c.6-.3 1.200-.6 1.700-1l2.500 1 2-3.500zM13 15.500a3.500 3.500 0 1 1 0-7 3.500 3.500 0 0 1 0 7z"/></svg></button><button data-go="edLand" title="Editar landing"><svg viewBox="0 0 24 24"><path d="M3 17.250V21h3.750L17.810 9.940l-3.750-3.750zM20.710 7.040a1 1 0 0 0 0-1.410l-2.340-2.340a1 1 0 0 0-1.410 0l-1.830 1.830 3.750 3.750z"/></svg></button><button data-go="out" title="Salir"><svg viewBox="0 0 24 24"><path d="M10 17l1.400-1.400L8.800 13H20v-2H8.800l2.600-2.600L10 7l-5 5zM4 5h8V3H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8v-2H4z"/></svg></button></nav>
+  <aside id="side"><header><span>Chats</span><small id="live" hidden style="color:#f59e0b;font-weight:400">⚠ Reconectando…</small><span class="sp"></span><button id="themeBtn" aria-label="Modo nocturno" title="Modo nocturno">🌙</button><button id="soundBtn" aria-label="Sonido de mensajes nuevos">🔔</button><button id="cfgBtn" aria-label="Ajustes de avisos" title="Tono y notificaciones">⚙</button><button id="edLand">⚙ Landing</button><button id="out">Salir</button></header><div id="dbg"></div><div id="snp" hidden>
   <label>Tono del mensaje entrante<select id="toneSel"></select></label>
   <button id="toneTest" class="sm" type="button">▶ Probar</button>
   <label>Volumen<input id="vol" type="range" min="10" max="100" step="5"></label>
@@ -1124,6 +1159,16 @@ $("tabOpen").onclick=()=>{view="open";list()};
 $("tabUnread").onclick=()=>{view="unread";list()};
 $("q").oninput=()=>list();
 $("sendPay").onclick=sendPayInfo;
+/* modo nocturno (se recuerda; la primera vez sigue el modo del sistema) */
+const SUN='<svg viewBox="0 0 24 24"><path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zM2 13h2v-2H2zm18 0h2v-2h-2zM11 2v2h2V2zm0 18v2h2v-2zM5.640 7.050 4.220 5.640 5.640 4.220l1.410 1.420zm12.720 12.730-1.410-1.420 1.410-1.410 1.420 1.410zM4.220 18.360l1.420 1.420 1.410-1.420-1.410-1.410zM19.780 5.640l-1.420-1.420-1.410 1.420 1.410 1.410z"/></svg>',MOON='<svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg>';
+function setDark(on,save){
+  $("app").classList.toggle("dark",on);if(save)LS.set("dark",on);
+  $("rTheme").innerHTML=on?SUN:MOON;$("themeBtn").textContent=on?"☀️":"🌙";
+  $("rTheme").title=$("themeBtn").title=on?"Modo claro":"Modo nocturno";
+  const t=document.querySelector('meta[name=theme-color]');if(t)t.content=on?"#202c33":"#00a884";
+}
+$("rTheme").onclick=$("themeBtn").onclick=()=>setDark(!$("app").classList.contains("dark"),true);
+setDark(LS.get("dark",matchMedia("(prefers-color-scheme: dark)").matches),false);
 /* instalar el panel como app */
 if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(()=>{});
 var instEv=null;
