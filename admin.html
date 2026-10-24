@@ -265,6 +265,10 @@ textarea.fi{min-height:78px;resize:vertical;font-family:inherit}
 .vrow span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vrow .vb{grid-column:1/3;height:5px;border-radius:3px;background:var(--line);overflow:hidden}.vrow .vb i{display:block;height:100%;background:var(--accent)}
 .vnote{margin:0 20px;color:var(--muted);font-size:12px;line-height:1.5}
+.vlk{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.vlk label{display:grid;gap:5px;font-size:12px;color:var(--muted)}
+.vlk select,.vlk input,.vlk2 input{border:1px solid var(--line);background:var(--bg);color:inherit;border-radius:8px;padding:10px 12px;font-size:14px;outline:0;width:100%}
+.vlk2{display:flex;gap:8px;margin-top:12px;align-items:center}.vlk2 input{font-size:13px}
 @media(max-width:760px){#vis{inset:0}}
 @media(max-width:760px){#rail{display:none}#side{width:100%}#side>header{font-size:20px}#msgs{padding:12px 3%}}
 @media(min-width:761px){#side>header #visBtn,#side>header #themeBtn,#side>header #soundBtn,#side>header #cfgBtn,#side>header #edLand,#side>header #out{display:none}}
@@ -293,7 +297,12 @@ textarea.fi{min-height:78px;resize:vertical;font-family:inherit}
       <div id="bar"><label class="ic" title="Enviar imagen" tabindex="0"><span class="ico"><svg viewBox="0 0 24 24"><path d="M16.500 6v11.500a4 4 0 0 1-8 0V5a2.500 2.500 0 0 1 5 0v10.500a1 1 0 0 1-2 0V6H10v9.500a2.500 2.500 0 0 0 5 0V5a4 4 0 0 0-8 0v12.500a5.500 5.500 0 0 0 11 0V6z"/></svg></span><input id="file" type="file" accept="image/jpeg,image/png,image/webp" hidden></label><button class="ic" id="sendPay" aria-label="Enviar datos para transferir" title="Enviar datos para transferir"><span class="ico"><svg viewBox="0 0 24 24"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 14H4v-6h16zm0-10H4V6h16z"/></svg></span></button><input id="txt" placeholder="Escribí un mensaje" autocomplete="off" maxlength="2000"><button class="ic" id="mic" aria-label="Grabar audio" title="Grabar audio"><span class="ico"><svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.900V21h2v-3.100A7 7 0 0 0 19 11z"/></svg></span></button><button id="send" aria-label="Enviar"><span class="ico"><svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></span></button></div>
     </div>
   </section>
-  <section id="vis" hidden aria-label="Visitas a la landing"><div class="vh"><h2>Visitas a la landing</h2><div class="vseg" id="vseg"><button data-d="1">Hoy</button><button data-d="7" class="on">7 días</button><button data-d="30">30 días</button></div><button class="vx" id="visReload" title="Actualizar" aria-label="Actualizar">↻</button><button class="vx" id="visClose" title="Cerrar" aria-label="Cerrar">✕</button></div><div id="visBody"></div></section>
+  <section id="vis" hidden aria-label="Visitas a la landing"><div class="vh"><h2>Visitas a la landing</h2><div class="vseg" id="vseg"><button data-d="1">Hoy</button><button data-d="7" class="on">7 días</button><button data-d="30">30 días</button></div><button class="vx" id="visReload" title="Actualizar" aria-label="Actualizar">↻</button><button class="vx" id="visClose" title="Cerrar" aria-label="Cerrar">✕</button></div><div class="vcard" id="visLink" style="margin-top:16px"><h3>Generador de links para anuncios</h3>
+    <div class="vlk"><label>Dónde va el anuncio<select id="lkSrc"><option value="instagram">Instagram</option><option value="facebook">Facebook</option><option value="tiktok">TikTok</option><option value="google">Google</option><option value="whatsapp">WhatsApp</option><option value="otro">Otro…</option></select></label>
+    <label id="lkOtroL" hidden>Nombre del origen<input id="lkOtro" maxlength="30" placeholder="ej: youtube"></label>
+    <label>Nombre de la campaña<input id="lkCamp" maxlength="40" placeholder="ej: octubre-bono"></label></div>
+    <div class="vlk2"><input id="lkOut" readonly aria-label="Link listo para copiar"><button id="lkCopy" class="vx" style="width:auto;padding:0 16px;border-radius:18px" type="button">Copiar</button></div>
+    <p class="vnote" style="margin:8px 0 0">Pegalo como «URL del sitio web» del anuncio, o en la bio o la historia. Después ves cuánta gente entró por ese link en la tabla de abajo.</p></div><div id="visBody"></div></section>
 </div>
 
 <div id="ed" hidden>
@@ -334,15 +343,18 @@ const hue=id=>parseInt(id.slice(0,6),16)%360;
 const fmt=(d,full)=>{d=new Date(d);const t=d.toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"});return full||d.toDateString()===new Date().toDateString()?t:d.toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit"})};
 /* "pendiente" = mensajes del visitante posteriores a lo último que leyó o contestó CUALQUIER agente (se comparte por Supabase) */
 const lastAgentAt=id=>{const a=all[id]||[];for(let i=a.length-1;i>=0;i--)if(a[i].sender==="agent")return a[i].created_at;return 0};
-const readMark=id=>Math.max(new Date(csOK?(reads[id]||0):(lastSeen[id]||0)),new Date(lastAgentAt(id)||0));
+/* lo leído nunca "retrocede": se toma lo más nuevo entre lo guardado en Supabase, lo guardado en este dispositivo y la última respuesta de un agente */
+const readMark=id=>Math.max(new Date(reads[id]||0),new Date(lastSeen[id]||0),new Date(lastAgentAt(id)||0));
+const laterT=(a,b)=>!a?b:!b?a:(new Date(a)>=new Date(b)?a:b);
 const unreadN=id=>all[id].filter(m=>m.sender==="visitor"&&!isNote(m)&&new Date(m.created_at)>readMark(id)).length;
 const markSeen=id=>{
   const t=all[id].at(-1).created_at;
+  if(!lastSeen[id]||new Date(lastSeen[id])<new Date(t)){lastSeen[id]=t;LS.set("lastSeen",lastSeen)}
   if(csOK){
     if(reads[id]&&new Date(reads[id])>=new Date(t))return;
     reads[id]=t;sb.from("chat_state").upsert({visitor_id:id,read_at:t}).then(()=>{},()=>{});
     if(rcOK)sb.from("agent_read").upsert({visitor_id:id,read_at:t}).then(r=>{if(r&&r.error)rcOK=false},()=>{});
-  }else{lastSeen[id]=t;LS.set("lastSeen",lastSeen)}
+  }
 };
 let soundOn=LS.get("sound",true), actx=null;
 function unlockAudio(){
@@ -479,7 +491,7 @@ async function loadSeen(){
 }
 function applyState(c){
   if(c.closed_at)closed[c.visitor_id]=c.closed_at;else delete closed[c.visitor_id];
-  if(c.read_at)reads[c.visitor_id]=c.read_at;
+  if(c.read_at)reads[c.visitor_id]=laterT(reads[c.visitor_id],c.read_at);
 }
 /* conexión en vivo: un solo canal que se vuelve a armar solo, más un sondeo de respaldo */
 let rtCh=null,rtTimer=null;
@@ -524,7 +536,7 @@ async function syncNow(){
         if(a&&(a.edited_at!==m.edited_at||a.deleted_at!==m.deleted_at))applyUpdate(m);
       }else{add(m,true);fresh++}
     });
-    if(csOK){const {data:st,error:se}=await sb.from("chat_state").select("*");if(!se&&st){closed={};reads={};st.forEach(applyState)}}
+    if(csOK){const {data:st,error:se}=await sb.from("chat_state").select("*");if(!se&&st){closed={};st.forEach(applyState)}}
     await loadUsers();await loadSeen();list();dbg();renderClose();
   }catch{}finally{syncing=false}
 }
@@ -1222,6 +1234,15 @@ async function visLoad(){
   box.append(g);
   box.append(vh("p","vnote","Se cuenta una visita por sesión. La ubicación sale de la conexión y es aproximada (a veces marca la ciudad de la compañía de internet). No se guarda la IP. Tu propia ventana de vista previa del editor no suma. Para medir anuncios, usá enlaces con ?utm_source=instagram&utm_campaign=nombre."));
 }
+function lkMake(){
+  const sel=$("lkSrc").value;$("lkOtroL").hidden=sel!=="otro";
+  const slug=v=>String(v||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9_-]+/g,"-").replace(/^-+|-+$/g,"").slice(0,40);
+  const src=sel==="otro"?slug($("lkOtro").value):sel,camp=slug($("lkCamp").value);
+  const q=[];if(src)q.push("utm_source="+src);if(camp)q.push("utm_campaign="+camp);
+  $("lkOut").value=location.origin+"/ludmi"+(q.length?"?"+q.join("&"):"");
+}
+["lkSrc","lkOtro","lkCamp"].forEach(i=>$(i).oninput=lkMake);lkMake();
+$("lkCopy").onclick=async()=>{const o=$("lkOut");try{await navigator.clipboard.writeText(o.value)}catch{o.select();document.execCommand("copy")}$("lkCopy").textContent="¡Copiado!";setTimeout(()=>$("lkCopy").textContent="Copiar",1500)};
 function visOpen(on){
   $("vis").hidden=!on;$("rVis").classList.toggle("on",on);clearInterval(visTimer);
   if(on){visLoad();visTimer=setInterval(visLoad,60000)}
