@@ -406,6 +406,20 @@ if("IntersectionObserver" in window)new IntersectionObserver(es=>{ctaVis=es[0].i
 $("fab").onclick=()=>$("open").click();
 /* vista previa dentro del editor del panel (mismo sitio): recibe la configuración en vivo y no usa el chat real */
 const PREVIEW=new URLSearchParams(location.search).has("preview")&&window.parent!==window;
+/* Estadísticas de visitas: se cuenta una visita por sesión y un «abrió el chat» por sesión. No se guarda la IP. */
+function track(ev){
+  if(PREVIEW||location.protocol==="file:")return;
+  try{
+    const k="tr_"+ev;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1");
+    let vid=localStorage.getItem("vid");
+    if(!vid||vid.length<8){vid=(crypto.randomUUID?crypto.randomUUID():String(Math.random()).slice(2)+Date.now());localStorage.setItem("vid",vid)}
+    const q=new URLSearchParams(location.search);
+    let src=q.get("utm_source")||(q.has("fbclid")?"facebook":q.has("igshid")?"instagram":"");
+    fetch("/api/visit",{method:"POST",keepalive:true,headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({vid,event:ev,ref:document.referrer||"",utm_source:src,utm_campaign:q.get("utm_campaign")||""})}).catch(()=>{});
+  }catch{}
+}
+track("view");
 if(PREVIEW){
   addEventListener("message",e=>{
     if(e.origin!==location.origin||e.source!==window.parent||!e.data)return;
@@ -536,6 +550,7 @@ function ding(){
 
 /* ---------- chat ---------- */
 function init(){
+  track("chat");
   return ready||(ready=(async()=>{
     let {data:{session}}=await sb.auth.getSession();
     if(!session){const r=await sb.auth.signInAnonymously(); if(r.error){console.error(r.error);alert("El chat no está disponible por ahora.\n\nDetalle técnico: "+r.error.message+(r.error.status?" (código "+r.error.status+")":""));ready=null;return}; session=r.data.session}
