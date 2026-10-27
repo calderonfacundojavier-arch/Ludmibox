@@ -749,8 +749,16 @@ function ticks(){
 function reportSeen(){
   if(PREVIEW||!uid||!lastAgentTs||lastAgentTs<=seenSent||$("chat").hidden||document.hidden)return;
   seenSent=lastAgentTs;
-  sb.from("visitor_seen").upsert({visitor_id:uid,seen_at:new Date(lastAgentTs).toISOString()}).then(r=>{if(r&&r.error)seenSent=0},()=>{seenSent=0});
+  sb.from("visitor_seen").upsert({visitor_id:uid,seen_at:new Date(lastAgentTs).toISOString()}).then(r=>{if(r&&r.error){seenSent=0;console.warn("visitor_seen:",r.error.message)}},()=>{seenSent=0});
 }
+/* respaldo: si la conexión en vivo se pierde, igual se actualizan los tildes */
+async function pollRead(){
+  if(PREVIEW||!uid||$("chat").hidden)return;
+  try{const {data:ar,error}=await sb.from("agent_read").select("read_at").eq("visitor_id",uid).maybeSingle();
+    if(error){console.warn("agent_read:",error.message);return}
+    if(ar&&ar.read_at){const t=new Date(ar.read_at).getTime();if(t>readAt){readAt=t;ticks()}}}catch{}
+}
+setInterval(()=>{reportSeen();pollRead()},12000);
 addEventListener("focus",reportSeen);document.addEventListener("visibilitychange",reportSeen);
 async function render(m,live){
   if(seen.has(m.id))return; seen.add(m.id);

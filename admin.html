@@ -321,7 +321,7 @@ const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{storageKey:
 const $=id=>document.getElementById(id), all={}, seen=new Set();
 let cur=null, rt="conectando…", who="", csOK=true, closed={}, reads={}, seenAt={}, rcOK=true, view="open";
 var rtDown=0;
-const dbg=()=>{$("dbg").hidden=(csOK&&(rt==="activo"||!rtDown||Date.now()-rtDown<8000));$("dbg").textContent=`Agente: ${who} · ${seen.size} mensajes · chats: ${Object.keys(all).length} · tiempo real: ${rt}`+(csOK?"":" · ⚠ falta ejecutar supabase-chat.sql")};
+const dbg=()=>{$("dbg").hidden=(csOK&&!rcErr&&!(!rcOK)&&(rt==="activo"||!rtDown||Date.now()-rtDown<8000));$("dbg").textContent=`Agente: ${who} · ${seen.size} mensajes · chats: ${Object.keys(all).length} · tiempo real: ${rt}`+(csOK?"":" · ⚠ falta ejecutar supabase-chat.sql")+(rcOK?(rcErr?" · ⚠ tildes: "+rcErr:""):" · ⚠ tildes: falta ejecutar supabase-recibos.sql")};
 const LS={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
 let usernames={};
 let names={}, lastSeen=LS.get("lastSeen",{});
@@ -347,14 +347,24 @@ const lastAgentAt=id=>{const a=all[id]||[];for(let i=a.length-1;i>=0;i--)if(a[i]
 const readMark=id=>Math.max(new Date(reads[id]||0),new Date(lastSeen[id]||0),new Date(lastAgentAt(id)||0));
 const laterT=(a,b)=>!a?b:!b?a:(new Date(a)>=new Date(b)?a:b);
 const unreadN=id=>all[id].filter(m=>m.sender==="visitor"&&!isNote(m)&&new Date(m.created_at)>readMark(id)).length;
+/* tildes ✓✓ para el usuario: se avisa que el agente leyó (independiente del estado compartido de «no leídos») */
+var rcErr="",arSent={};
+const rcFatal=e=>!!e&&(e.code==="42P01"||e.code==="PGRST205"||/does not exist|schema cache/i.test(e.message||""));
+function sendAgentRead(id,t){
+  if(!rcOK||(arSent[id]&&new Date(arSent[id])>=new Date(t)))return;
+  arSent[id]=t;
+  sb.from("agent_read").upsert({visitor_id:id,read_at:t}).then(r=>{
+    if(r&&r.error){delete arSent[id];rcErr=r.error.message||"error";if(rcFatal(r.error))rcOK=false;dbg()}
+    else if(rcErr){rcErr="";dbg()}
+  },()=>{delete arSent[id]});
+}
 const markSeen=id=>{
   const t=all[id].at(-1).created_at;
   if(!lastSeen[id]||new Date(lastSeen[id])<new Date(t)){lastSeen[id]=t;LS.set("lastSeen",lastSeen)}
-  if(csOK){
-    if(reads[id]&&new Date(reads[id])>=new Date(t))return;
+  if(csOK&&!(reads[id]&&new Date(reads[id])>=new Date(t))){
     reads[id]=t;sb.from("chat_state").upsert({visitor_id:id,read_at:t}).then(()=>{},()=>{});
-    if(rcOK)sb.from("agent_read").upsert({visitor_id:id,read_at:t}).then(r=>{if(r&&r.error)rcOK=false},()=>{});
   }
+  sendAgentRead(id,t);
 };
 let soundOn=LS.get("sound",true), actx=null;
 function unlockAudio(){
@@ -486,8 +496,9 @@ async function loadUsers(){
 async function loadSeen(){
   if(!rcOK)return;
   const {data,error}=await sb.from("visitor_seen").select("*");
-  if(error){rcOK=false;return}
-  (data||[]).forEach(r=>seenAt[r.visitor_id]=r.seen_at);updTicks();
+  if(error){rcErr=error.message||"error";if(rcFatal(error))rcOK=false;dbg();return}
+  if(rcErr){rcErr="";dbg()}
+  (data||[]).forEach(r=>seenAt[r.visitor_id]=r.seen_at);updTicks();list();
 }
 function applyState(c){
   if(c.closed_at)closed[c.visitor_id]=c.closed_at;else delete closed[c.visitor_id];
