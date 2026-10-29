@@ -173,6 +173,15 @@ footer{color:var(--mut);margin-top:34px;opacity:.8}
 #pwaBtn{border:1px solid #ffffff55;background:#ffffff1f;color:#fff;border-radius:999px;padding:11px 20px;font-size:14px;font-weight:600;cursor:pointer;backdrop-filter:blur(8px)}
 #pwaBtn:hover{background:#ffffff33}
 #pwaHint{margin:10px auto 0;max-width:320px;font-size:13px;line-height:1.45;color:#fffc}
+.pcar{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 2px 10px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.pcar::-webkit-scrollbar{display:none}
+.pcd{flex:0 0 84%;scroll-snap-align:center;border:1px solid var(--pink);border-radius:18px;overflow:hidden;background:var(--card);display:flex;flex-direction:column}
+.pcar.one .pcd{flex-basis:100%}
+.pcd img{width:100%;height:auto;display:block;background:#150626}
+.pcd .pb{padding:12px;display:grid;gap:10px}
+.pcd .pb b{font-size:15px;line-height:1.3}
+.pbtn{border:0;border-radius:12px;padding:12px;font:inherit;font-size:14px;font-weight:800;color:#fff;text-align:center;text-decoration:none;cursor:pointer;background:linear-gradient(180deg,#34d570,#16a34a);box-shadow:0 6px 16px #22c55e44}
+#wskip{background:none;border:0;color:inherit;opacity:.85;text-decoration:underline;margin-top:12px;cursor:pointer;font:inherit;font-size:13px}
 </style></head>
 <body>
 <div id="bg" hidden></div>
@@ -189,7 +198,9 @@ footer{color:var(--mut);margin-top:34px;opacity:.8}
       <button class="cta" id="wbtn" type="button"></button>
       <div id="wres" role="status" aria-live="polite" hidden></div>
       <small id="wodds"></small>
+      <button id="wskip" type="button" hidden></button>
     </section></div>
+    <div id="b-promos"><section class="sec" id="prm" hidden><h2 id="prmT"></h2><div class="pcar" id="prmRow"></div></section></div>
     <div id="b-platforms"><section class="sec" id="plat" hidden><h2 id="platT"></h2><div class="row round" id="platRow"></div></section></div>
     <div id="b-games"><section class="sec" id="gms" hidden><h2 id="gmsT"></h2><div class="row" id="gmsRow"></div></section></div>
     <div id="b-features"><div class="grid" id="feat"></div></div>
@@ -230,12 +241,12 @@ const LSG={get(k){try{return localStorage.getItem(k)}catch{return null}},set(k,v
 let uid=null, ready=null, ONLINE=false, payShown=false, payLogged=false;
 
 /* ---------- contenido editable (se cambia desde el panel /admin) ---------- */
-const BLOCK_IDS=["bonus","cta","wheel","platforms","games","features","faq","contacts"];
+const BLOCK_IDS=["bonus","cta","wheel","promos","platforms","games","features","faq","contacts"];
 function normLayout(a){
   const out=[],ids=new Set();
   (Array.isArray(a)?a:[]).forEach(x=>{
     if(x&&typeof x==="object"&&BLOCK_IDS.includes(x.id)&&!ids.has(x.id)){ids.add(x.id);out.push({id:x.id,on:x.on!==false})}});
-  BLOCK_IDS.forEach(id=>{if(ids.has(id))return;if(id==="wheel"&&out.some(x=>x.id==="cta"))out.splice(out.findIndex(x=>x.id==="cta")+1,0,{id,on:true});else out.push({id,on:true})});
+  BLOCK_IDS.forEach(id=>{if(ids.has(id))return;{const af=id==="wheel"?"cta":id==="promos"?"wheel":null;if(af&&out.some(x=>x.id===af))out.splice(out.findIndex(x=>x.id===af)+1,0,{id,on:true});else out.push({id,on:true})}});
   return out;
 }
 const DEF={
@@ -243,13 +254,13 @@ const DEF={
   bonus_top:"Hasta 50% de bono", bonus_big:"Hasta 50% de bono", bonus_bottom:"Consultá condiciones por el chat",
   cta:"Quiero mi bono ahora", status:"Caja asignada: Caja Ludmi · Atención por chat", bg_url:"",
   features:[{t:"Pagos rápidos",s:"Por transferencia"},{t:"Atención por chat",s:"Respondemos acá"},{t:"Retiros",s:"Consultá condiciones"}],
-  fab_on:true, fab_always:true, fab_text:"Chat", icon_fab:"", icon_attach:"", icon_mic:"", icon_send:"", icon_pay:"", instagram:"", instagram_icon:"", contacts:[], platforms_title:"Plataformas", platforms:[], games_title:"Juegos", games:[],
+  fab_on:true, fab_always:true, fab_text:"Chat", icon_fab:"", icon_attach:"", icon_mic:"", icon_send:"", icon_pay:"", instagram:"", instagram_icon:"", contacts:[], promos_title:"Promociones", promos:[], platforms_title:"Plataformas", platforms:[], games_title:"Juegos", games:[],
   footer:"Solo mayores de 18 años. El juego puede generar adicción: jugá con responsabilidad.",
   license:"Autorización: [COMPLETAR]", chat_title:"Chat con Caja Ludmi", greeting:"¡Hola! ¿En qué te puedo ayudar?",
   chat_notice:"Conectado. Escribinos y te respondemos.", chat_theme:"light",
   ask_name:true, ask_name_text:"¿Cómo te llamás?", pwa_on:true, pwa_text:"📲 Instalar app", push_on:true,
   wheel_on:true, wheel_mode:"first", wheel_title:"🎡 Girá la ruleta y ganá tu bono", wheel_sub:"Tocá GIRAR y frená la ruleta cuando quieras", wheel_spin:"GIRAR", wheel_stop:"FRENAR",
-  wheel_msg:"Quiero mi {premio}", wheel_reply:"¡Felicitaciones! En un momento un asesor te confirma tu bono.", wheel_once:true, wheel_odds:true,
+  wheel_msg:"Quiero mi {premio}", wheel_reply:"¡Felicitaciones! En un momento un asesor te confirma tu bono.", wheel_once:true, wheel_odds:true, wheel_only_link:false, wheel_skip:false, wheel_skip_text:"Ya tengo cuenta",
   wheel_prizes:[{label:"Bono 10%",w:15},{label:"Bono 20%",w:20},{label:"Bono 30%",w:35},{label:"Bono 40%",w:20},{label:"Bono 50%",w:10}],
   status_online:"en línea", status_offline:"Te respondemos apenas podamos",
   quick:[{label:"Cargar",text:"Quiero cargar saldo",action:"pay",reply:""},{label:"Retirar",text:"Quiero retirar",action:"message",reply:""},{label:"Soporte",text:"Necesito soporte",action:"message",reply:""}],
@@ -387,6 +398,23 @@ function apply(c){
   $("ct").hidden=!items.length;
   txt("platT",c.platforms_title);fillRow($("plat"),$("platRow"),c.platforms);
   txt("gmsT",c.games_title);fillRow($("gms"),$("gmsRow"),c.games);
+  /* promociones: carrusel de imágenes; el botón abre el chat con el mensaje escrito (o un enlace) */
+  txt("prmT",c.promos_title);
+  {const list=(c.promos||[]).filter(x=>x&&typeof x==="object"&&safe(x.img)).slice(0,12),row=$("prmRow");
+   row.className="pcar"+(list.length===1?" one":"");
+   row.replaceChildren(...list.map(x=>{
+     const card=document.createElement("div");card.className="pcd";
+     const im=mkImg(x.img,x.title);if(im)card.append(im);
+     const title=String(x.title||"").trim(),btn=String(x.btn||"").trim();
+     if(title||btn){const pb=document.createElement("div");pb.className="pb";
+       if(title){const b=document.createElement("b");b.textContent=title;pb.append(b)}
+       if(btn){const link=safe(x.url);let e;
+         if(link){e=document.createElement("a");e.href=link;e.target="_blank";e.rel="noopener noreferrer"}
+         else{e=document.createElement("button");e.type="button";e.onclick=()=>{$("txt").value=String(x.msg||"").trim().slice(0,200)||("Quiero la promo: "+(title||"promo"));$("open").click()}}
+         e.className="pbtn";e.textContent=btn.slice(0,30);pb.append(e)}
+       card.append(pb)}
+     return card}));
+   $("prm").hidden=!list.length}
   $("plat").hidden=$("plat").hidden||!c.platforms.length;
   $("gms").hidden=$("gms").hidden||!c.games.length;
   /* desplegables (por ejemplo "Retiros"): se abren y cierran al tocarlos */
@@ -492,6 +520,7 @@ function showPay(){
 }
 /* cuentas que te manda el agente por el chat: llegan como mensaje con esta marca */
 const MARK="[[CUENTAS]]";
+const WHEEL="[[RULETA]]"; /* nota interna: qué premio le salió en la ruleta (el panel lo muestra como etiqueta) */
 const AUTO="[[RESPUESTA_AUTO]]"; /* nota interna: qué respuesta automática vio el usuario */
 const SEEN="[[CUENTAS_VISTAS]]"; /* nota interna: avisa al panel que el usuario vio los datos */
 function agentPay(m){
@@ -619,31 +648,46 @@ function wPick(P){
   for(let i=0;i<P.length;i++){r-=P[i].w;if(r<0)return i}
   return P.length-1;
 }
+function wSkipVis(){
+  const sk=$("wskip"),st=W.state;sk.textContent=CFG.wheel_skip_text||"Ya tengo cuenta";
+  sk.hidden=!(CFG.wheel_skip&&!PREVIEW&&st!=="spinning"&&st!=="stopping"&&!(st==="done"&&CFG.wheel_once));
+}
 function wBtn(){
-  const b=$("wbtn"),st=W.state;
+  const b=$("wbtn"),st=W.state;wSkipVis();
   b.disabled=st==="stopping";
   b.textContent=st==="spinning"?(CFG.wheel_stop||"FRENAR"):st==="done"&&CFG.wheel_once&&!PREVIEW?"Hablar con un asesor":(CFG.wheel_spin||"GIRAR");
 }
 /* modo "primera vez": la ruleta sale como ventana emergente una sola vez por persona */
 function wModal(){return !PREVIEW&&CFG.wheel_mode==="first"}
+/* ¿corresponde mostrar la ruleta a esta persona? (en la vista previa del editor siempre se ve) */
+function wEnabled(){
+  if(!CFG.wheel_on)return false;
+  if(PREVIEW)return true;
+  if(CFG.wheel_only_link&&!new URLSearchParams(location.search).has("bono"))return false;
+  if(LSG.get("wheel_skip"))return false;
+  return true;
+}
 function wCloseModal(){
   $("wov").hidden=true;$("b-wheel").append($("wheel"));W.inModal=false;
   $("wheel").hidden=true;
 }
 function wOpenModal(){
-  if(W.inModal||!wModal()||!CFG.wheel_on||!wPrizes()||LSG.get("wheel_seen")||LSG.get("wheel_done")||!$("chat").hidden)return;
+  if(W.inModal||!wModal()||!wEnabled()||!wPrizes()||LSG.get("wheel_seen")||LSG.get("wheel_done")||!$("chat").hidden)return;
   LSG.set("wheel_seen","1");
   $("wslot").append($("wheel"));$("wheel").hidden=false;W.inModal=true;$("wov").hidden=false;
   wheelApply();$("wbtn").focus({preventScroll:true});
 }
 $("wx").onclick=wCloseModal;
+/* «Ya tengo cuenta»: no se vuelve a mostrar la ruleta en este dispositivo y se abre el chat sin bono */
+$("wskip").onclick=()=>{LSG.set("wheel_skip","1");if(W.inModal)wCloseModal();$("wheel").hidden=true;$("open").click()};
 $("wov").addEventListener("click",e=>{if(e.target===$("wov"))wCloseModal()});
 addEventListener("keydown",e=>{if(e.key==="Escape"&&W.inModal)wCloseModal()});
 function wheelApply(){
   const P=wPrizes();
   if(!W.sched){W.sched=true;setTimeout(wOpenModal,1000)}
   if(!wModal()&&W.inModal)wCloseModal();
-  $("wheel").hidden=!(CFG.wheel_on&&P)||(wModal()&&!W.inModal);
+  $("wheel").hidden=!(wEnabled()&&P)||(wModal()&&!W.inModal);
+  wSkipVis();
   if(!P)return;
   txt("wheelT",CFG.wheel_title);txt("wheelS",CFG.wheel_sub);
   const tot=P.reduce((s,x)=>s+x.w,0)||P.length;
@@ -701,6 +745,7 @@ async function wClaim(label){
   const prize=label.charAt(0).toLowerCase()+label.slice(1);
   const msg=String(CFG.wheel_msg||"Quiero mi {premio}").replace(/\{premio\}/g,prize).slice(0,200);
   await quick({label:"Ruleta",text:msg,action:CFG.wheel_reply?"reply":"message",reply:CFG.wheel_reply||""});
+  try{await sb.from("messages").insert({visitor_id:uid,sender:"visitor",kind:"text",body:WHEEL+JSON.stringify({p:String(label).slice(0,24)})})}catch{}
   $("txt").focus();
   if(!CFG.wheel_once){W.state="idle";wBtn()}
 }
@@ -763,7 +808,7 @@ addEventListener("focus",reportSeen);document.addEventListener("visibilitychange
 async function render(m,live){
   if(seen.has(m.id))return; seen.add(m.id);
   if(m.deleted_at)return;
-  if(m.sender==="visitor"&&m.kind==="text"&&typeof m.body==="string"&&(m.body.startsWith(SEEN)||m.body.startsWith(AUTO)))return;
+  if(m.sender==="visitor"&&m.kind==="text"&&typeof m.body==="string"&&(m.body.startsWith(SEEN)||m.body.startsWith(AUTO)||m.body.startsWith(WHEEL)))return;
   if(m.sender==="agent"){lastAgentTs=Math.max(lastAgentTs,new Date(m.created_at).getTime());if(live){ding();reportSeen()}}
   if(m.kind==="text"){if(m.sender==="agent"&&typeof m.body==="string"&&m.body.startsWith(MARK)&&agentPay(m))return;return bubble(m)}
   const {data}=await sb.storage.from("chat-media").createSignedUrl(m.media_path,3600);

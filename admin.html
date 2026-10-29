@@ -280,6 +280,8 @@ textarea.fi{min-height:78px;resize:vertical;font-family:inherit}
 .rnb{display:flex;gap:8px;justify-content:flex-end}
 .rnb button{border:0;border-radius:20px;padding:10px 18px;font-weight:600;cursor:pointer;background:var(--panel);color:inherit}
 .rnb #rnSave{background:var(--accent);color:#fff}.rnb button:disabled{opacity:.6}
+.wtag{margin-left:8px;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;background:#d9fdd3;color:#0b6b4b;vertical-align:middle;white-space:nowrap}
+#app.dark .wtag{background:#103529;color:#25d366}
 @media(max-width:760px){#rail{display:none}#side{width:100%}#side>header{font-size:20px}#msgs{padding:12px 3%}}
 @media(min-width:761px){#side>header #visBtn,#side>header #themeBtn,#side>header #soundBtn,#side>header #cfgBtn,#side>header #edLand,#side>header #out{display:none}}
 @media(max-width:760px){#side{width:100%}#chat{display:none;position:fixed;inset:0;z-index:5}#app.open #chat{display:flex}#back{display:block}}
@@ -339,9 +341,13 @@ let names={}, lastSeen=LS.get("lastSeen",{});
 const MARK="[[CUENTAS]]";
 const SEEN="[[CUENTAS_VISTAS]]";
 const AUTO="[[RESPUESTA_AUTO]]";
+const WHEEL="[[RULETA]]";
 const isSeen=m=>m.sender==="visitor"&&m.kind==="text"&&typeof m.body==="string"&&m.body.startsWith(SEEN);
 const isAuto=m=>m.sender==="visitor"&&m.kind==="text"&&typeof m.body==="string"&&m.body.startsWith(AUTO);
-const isNote=m=>isSeen(m)||isAuto(m);
+const isWheel=m=>m.sender==="visitor"&&m.kind==="text"&&typeof m.body==="string"&&m.body.startsWith(WHEEL);
+const wheelPrize=m=>{try{return String(JSON.parse(m.body.slice(WHEEL.length)).p||"")}catch{return ""}};
+const chatPrize=id=>{const a=all[id]||[];for(let i=a.length-1;i>=0;i--)if(isWheel(a[i]))return wheelPrize(a[i])||"bono";return ""};
+const isNote=m=>isSeen(m)||isAuto(m)||isWheel(m);
 const autoData=m=>{try{const d=JSON.parse(m.body.slice(AUTO.length));return d&&typeof d.t==="string"?d:null}catch{return null}};
 /* un chat está cerrado hasta que llegue (o envíes) un mensaje nuevo */
 const lastReal=id=>{const a=all[id]||[];for(let i=a.length-1;i>=0;i--)if(!isNote(a[i]))return a[i];return null};
@@ -602,12 +608,13 @@ function list(){
   $("tabUnread").classList.toggle("dot",openIds.some(id=>id!==cur&&unreadN(id)>0));
   let total=0;ids.forEach(id=>{if(id!==cur)total+=unreadN(id)});
   const rows=shown.map(id=>{
-    const l=all[id].at(-1),n=id===cur?0:unreadN(id);
+    const l0=all[id].at(-1),l=isWheel(l0)?(lastReal(id)||l0):l0,n=id===cur?0:unreadN(id);
     const d=document.createElement("div");d.className="c"+(id===cur?" on":"")+(n?" un":"")+(isClosed(id)?" cl":"");
     d.innerHTML='<div class="av"></div><div class="ci"><div class="top"><span class="nm"></span><span class="tm"></span></div><div class="pv"><span></span><b class="badge" hidden></b></div></div>';
     avatar(d.querySelector(".av"),id);
     d.querySelector(".nm").textContent=nm(id);d.querySelector(".tm").textContent=fmt(l.created_at);
-    const pre=(isClosed(id)?"✓ Cerrado · ":"")+(l.deleted_at?"🚫 Mensaje eliminado":isAuto(l)?"🤖 Respuesta automática":isSeen(l)?"💳 Se le mostraron los datos":isPay(l)?payLabel(l):l.kind==="text"?l.body:(l.kind==="image"?"📷 Foto":"🎤 Audio"));
+    {const wp=chatPrize(id);if(wp){const t=document.createElement("span");t.className="wtag";t.textContent="🎡 "+wp;t.title="Giró la ruleta: "+wp;d.querySelector(".nm").append(t)}}
+    const pre=(isClosed(id)?"✓ Cerrado · ":"")+(l.deleted_at?"🚫 Mensaje eliminado":isWheel(l)?"🎡 Giró la ruleta":isAuto(l)?"🤖 Respuesta automática":isSeen(l)?"💳 Se le mostraron los datos":isPay(l)?payLabel(l):l.kind==="text"?l.body:(l.kind==="image"?"📷 Foto":"🎤 Audio"));
     d.querySelector(".pv span").textContent=(l.sender==="agent"?((seenAt[id]&&new Date(l.created_at)<=new Date(seenAt[id]))?"✓✓ ":"✓ ")+"Vos: ":"")+pre;
     if(n){const b=d.querySelector(".badge");b.hidden=false;b.textContent=n}
     d.onclick=()=>open(id);return d});
@@ -640,6 +647,7 @@ function draw(m){
   const box=$("msgs");
   const line=(txt,cls)=>{const n=document.createElement("div");n.className="sysn"+(cls?" "+cls:"");n.textContent=txt;box.appendChild(n);box.scrollTop=1e9};
   if(m.deleted_at)return line("🚫 Mensaje eliminado · "+fmt(m.created_at,true),"gone");
+  if(isWheel(m))return line("🎡 Giró la ruleta y le salió: "+(wheelPrize(m)||"un bono")+" · "+fmt(m.created_at,true));
   if(isSeen(m)&&!parsePay(m,SEEN))return line("💳 Se le mostraron los datos para transferir · "+fmt(m.created_at,true));
   if(isAuto(m)&&!autoData(m))return line("🤖 Se le mostró una respuesta automática · "+fmt(m.created_at,true));
   const d=document.createElement("div");d.className="m "+(m.sender==="agent"||isNote(m)?"out":"in");
@@ -743,7 +751,7 @@ const DEFL={
   chat_notice:"Conectado. Escribinos y te respondemos.", chat_theme:"light",
   ask_name:true, ask_name_text:"¿Cómo te llamás?", pwa_on:true, pwa_text:"📲 Instalar app", push_on:true,
   wheel_on:true, wheel_mode:"first", wheel_title:"🎡 Girá la ruleta y ganá tu bono", wheel_sub:"Tocá GIRAR y frená la ruleta cuando quieras", wheel_spin:"GIRAR", wheel_stop:"FRENAR",
-  wheel_msg:"Quiero mi {premio}", wheel_reply:"¡Felicitaciones! En un momento un asesor te confirma tu bono.", wheel_once:true, wheel_odds:true,
+  wheel_msg:"Quiero mi {premio}", wheel_reply:"¡Felicitaciones! En un momento un asesor te confirma tu bono.", wheel_once:true, wheel_odds:true, wheel_only_link:false, wheel_skip:false, wheel_skip_text:"Ya tengo cuenta",
   wheel_prizes:[{label:"Bono 10%",w:15},{label:"Bono 20%",w:20},{label:"Bono 30%",w:35},{label:"Bono 40%",w:20},{label:"Bono 50%",w:10}],
   status_online:"en línea", status_offline:"Te respondemos apenas podamos",
   quick:[{label:"Cargar",text:"Quiero cargar saldo",action:"pay",reply:""},{label:"Retirar",text:"Quiero retirar",action:"message",reply:""},{label:"Soporte",text:"Necesito soporte",action:"message",reply:""}],
@@ -902,6 +910,9 @@ function buildForm(){
       fText("Respuesta automática que ve el usuario (dejá vacío para no mostrar ninguna)","wheel_reply",{area:true,max:400}),
       fCheck("Una sola vez por persona (en ese navegador)",cfg,"wheel_once"),
       fCheck("Mostrar las probabilidades debajo de la ruleta (recomendado: es transparente con el usuario)",cfg,"wheel_odds"),
+      fCheck("Mostrar la ruleta solo si el link trae ?bono=1 (ej. ludmibox.vercel.app/ludmi?bono=1). Usalo en los anuncios; quien entre por el link normal no la ve. En la vista previa de acá se ve siempre",cfg,"wheel_only_link"),
+      fCheck("Agregar el botón «Ya tengo cuenta» en la ruleta: abre el chat sin bono y no vuelve a mostrar la ruleta en ese dispositivo",cfg,"wheel_skip"),
+      fText("Texto de ese botón","wheel_skip_text"),
       el("label",{class:"fl"},"Premios (mínimo 2, máximo 10)"),
       fList("wheel_prizes",{max:10,add:"+ Agregar premio",make:()=>({label:"",w:10}),
         row:it=>{
@@ -1087,7 +1098,7 @@ function collect(){
   d.ask_name=!!d.ask_name;d.pwa_on=!!d.pwa_on;d.push_on=!!d.push_on;d.pwa_text=String(d.pwa_text||"").trim().slice(0,30)||"📲 Instalar app";
   for(const k of ["wheel_title","wheel_sub","wheel_spin","wheel_stop","wheel_msg","wheel_reply"])d[k]=String(d[k]||"").trim();
   d.wheel_mode=d.wheel_mode==="block"?"block":"first";
-  d.wheel_on=!!d.wheel_on;d.wheel_once=!!d.wheel_once;d.wheel_odds=!!d.wheel_odds;
+  d.wheel_on=!!d.wheel_on;d.wheel_once=!!d.wheel_once;d.wheel_odds=!!d.wheel_odds;d.wheel_only_link=!!d.wheel_only_link;d.wheel_skip=!!d.wheel_skip;d.wheel_skip_text=String(d.wheel_skip_text||"").trim().slice(0,30)||"Ya tengo cuenta";
   d.wheel_prizes=(d.wheel_prizes||[]).filter(x=>x&&String(x.label||"").trim()).slice(0,10).map(x=>({label:String(x.label).trim().slice(0,24),w:Math.max(0,Math.min(1000,Number(x.w)||0))}));
   if(d.wheel_on&&d.wheel_prizes.length<2){say("La ruleta necesita al menos 2 premios. Agregalos o desactivá la ruleta.");return null}
   const qk=[];
