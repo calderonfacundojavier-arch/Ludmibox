@@ -197,6 +197,17 @@ footer{color:var(--mut);margin-top:34px;opacity:.8}
 #tkX{background:none;border:0;color:#fff;font-size:16px;width:38px;height:38px;cursor:pointer;opacity:.85}
 #tkHint{position:fixed;top:calc(46px + env(safe-area-inset-top));left:12px;right:12px;z-index:30;margin:0;background:#111;color:#fff;border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.45;box-shadow:0 8px 30px #000a}
 body.hastk{padding-top:calc(38px + env(safe-area-inset-top))}
+.sec{position:relative}
+.arb{position:absolute;right:2px;top:-6px;width:30px;height:30px;border-radius:50%;border:1px solid #ffffff40;background:#ffffff14;color:#fff;font-size:12px;cursor:pointer;display:grid;place-items:center;padding:0}
+.row.auto{scroll-snap-type:none}
+.row{cursor:grab;-webkit-user-select:none;user-select:none}
+.row .item img{-webkit-user-drag:none;user-drag:none}
+@property --neon{syntax:"<angle>";initial-value:0deg;inherits:false}
+.tub.neon{position:relative;isolation:isolate;border:2px solid transparent;background:linear-gradient(#1b0a33,#1b0a33) padding-box,conic-gradient(from var(--neon),#22d3ee,#a855f7,#ec4899,#facc15,#22d3ee) border-box;box-shadow:0 0 16px #a855f755;text-shadow:0 0 10px #d8b4fe,0 0 22px #a855f7;animation:neonspin 4s linear infinite;-webkit-backdrop-filter:none;backdrop-filter:none}
+.tub.neon::after{content:"";position:absolute;inset:-5px;border-radius:inherit;z-index:-1;background:conic-gradient(from var(--neon),#22d3ee,#a855f7,#ec4899,#facc15,#22d3ee);filter:blur(11px);opacity:.55;animation:neonpulse 2.4s ease-in-out infinite}
+@keyframes neonspin{to{--neon:360deg}}
+@keyframes neonpulse{50%{opacity:.95;transform:scale(1.03)}}
+@media(prefers-reduced-motion:reduce){.tub.neon,.tub.neon::after{animation:none}}
 </style></head>
 <body>
 <div id="tk" hidden><button type="button" id="tkB"><span class="tkm"><span id="tkT"></span><span id="tkT2" aria-hidden="true"></span></span></button><button type="button" id="tkX" aria-label="Cerrar aviso">✕</button></div><p id="tkHint" hidden></p>
@@ -209,7 +220,7 @@ body.hastk{padding-top:calc(38px + env(safe-area-inset-top))}
     <div id="b-bonus"><div class="bonus"><small id="b1"></small><b id="b2"></b><small id="b3"></small></div></div>
     <div id="b-cta"><button class="cta" id="open"></button><div class="status" id="st"></div></div>
     <div id="b-topup"><section class="tu" id="tu" hidden>
-      <button type="button" class="tub" id="tuBtn" aria-expanded="false" aria-controls="tuBox"><span id="tuT"></span><span class="chev" aria-hidden="true">▾</span></button>
+      <button type="button" class="tub neon" id="tuBtn" aria-expanded="false" aria-controls="tuBox"><span id="tuT"></span><span class="chev" aria-hidden="true">▾</span></button>
       <div id="tuBox" hidden><div id="tuBody"></div><small id="tuNote"></small><input id="tuFile" type="file" accept="image/jpeg,image/png,image/webp" hidden></div>
     </section></div>
     <div id="b-wheel"><section class="wheel" id="wheel" hidden aria-label="Ruleta de bonos">
@@ -221,8 +232,8 @@ body.hastk{padding-top:calc(38px + env(safe-area-inset-top))}
       <button id="wskip" type="button" hidden></button>
     </section></div>
     <div id="b-promos"><section class="sec" id="prm" hidden><h2 id="prmT"></h2><div class="pcar" id="prmRow"></div></section></div>
-    <div id="b-platforms"><section class="sec" id="plat" hidden><h2 id="platT"></h2><div class="row round" id="platRow"></div></section></div>
-    <div id="b-games"><section class="sec" id="gms" hidden><h2 id="gmsT"></h2><div class="row" id="gmsRow"></div></section></div>
+    <div id="b-platforms"><section class="sec" id="plat" hidden><h2 id="platT"></h2><button type="button" class="arb" id="platAB" aria-label="Pausar el movimiento" hidden>⏸</button><div class="row round" id="platRow"></div></section></div>
+    <div id="b-games"><section class="sec" id="gms" hidden><h2 id="gmsT"></h2><button type="button" class="arb" id="gmsAB" aria-label="Pausar el movimiento" hidden>⏸</button><div class="row" id="gmsRow"></div></section></div>
     <div id="b-features"><div class="grid" id="feat"></div></div>
     <div id="b-faq"><section class="sec faq" id="faq" hidden><h2 id="faqT"></h2><div id="faqList"></div></section></div>
     <div id="b-contacts"><div class="contacts" id="ct" hidden></div></div>
@@ -274,7 +285,7 @@ const DEF={
   bonus_top:"Hasta 50% de bono", bonus_big:"Hasta 50% de bono", bonus_bottom:"Consultá condiciones por el chat",
   cta:"Quiero mi bono ahora", status:"Caja asignada: Caja Ludmi · Atención por chat", bg_url:"",
   features:[{t:"Pagos rápidos",s:"Por transferencia"},{t:"Atención por chat",s:"Respondemos acá"},{t:"Retiros",s:"Consultá condiciones"}],
-  fab_on:true, fab_always:true, fab_text:"Chat", icon_fab:"", icon_attach:"", icon_mic:"", icon_send:"", icon_pay:"", instagram:"", instagram_icon:"", contacts:[], topup_on:true, topup_text:"Cargar crédito", topup_proof:"Enviar comprobante", topup_note:"Después de transferir, tocá «Enviar comprobante» y lo recibimos por el chat.", ticker_on:true, ticker_text:"📲 Descargá la app para chatear más rápido y sin perder mensajes", promos_title:"Promociones", promos:[], platforms_title:"Plataformas", platforms:[], games_title:"Juegos", games:[],
+  fab_on:true, fab_always:true, fab_text:"Chat", icon_fab:"", icon_attach:"", icon_mic:"", icon_send:"", icon_pay:"", instagram:"", instagram_icon:"", contacts:[], plat_auto:true, games_auto:true, auto_speed:"mid", topup_neon:true, topup_on:true, topup_text:"Cargar crédito", topup_proof:"Enviar comprobante", topup_note:"Después de transferir, tocá «Enviar comprobante» y lo recibimos por el chat.", ticker_on:true, ticker_text:"📲 Descargá la app para chatear más rápido y sin perder mensajes", promos_title:"Promociones", promos:[], platforms_title:"Plataformas", platforms:[], games_title:"Juegos", games:[],
   footer:"Solo mayores de 18 años. El juego puede generar adicción: jugá con responsabilidad.",
   license:"Autorización: [COMPLETAR]", chat_title:"Chat con Caja Ludmi", greeting:"¡Hola! ¿En qué te puedo ayudar?",
   chat_notice:"Conectado. Escribinos y te respondemos.", chat_theme:"light",
@@ -331,6 +342,60 @@ function fillRow(sec,row,items){
     const n=document.createElement("span");n.textContent=it.name||"";d.append(n);return d}));
   sec.hidden=!list.length;
 }
+/* Filas que se mueven solas (plataformas / juegos): se frenan al tocarlas o pasar el mouse, se pueden deslizar o arrastrar, y hay un botón de pausa */
+var AR=[],arLast=0;
+const arReduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const AR_SPEED={slow:16,mid:28,fast:46};
+function autoRow(row,btn,on){
+  if(!AR.includes(row)){
+    AR.push(row);
+    const now=()=>performance.now();
+    row.addEventListener("touchstart",()=>{row._hold=true;row._last=now()},{passive:true});
+    ["touchend","touchcancel"].forEach(ev=>row.addEventListener(ev,()=>{row._hold=false;row._last=now()},{passive:true}));
+    row.addEventListener("mouseenter",()=>{row._hover=true});
+    row.addEventListener("mouseleave",()=>{row._hover=false;row._last=now()});
+    row.addEventListener("wheel",()=>{row._last=now()},{passive:true});
+    row.addEventListener("scroll",()=>{if(Math.abs(row.scrollLeft-(row._set||0))>1.5)row._last=now()},{passive:true});
+    row.addEventListener("mousedown",e=>{if(e.button!==0)return;row._drag={x:e.clientX,s:row.scrollLeft,moved:false};row._last=now()});
+    addEventListener("mousemove",e=>{const d=row._drag;if(!d)return;const dx=e.clientX-d.x;if(Math.abs(dx)>5)d.moved=true;if(d.moved){row.scrollLeft=d.s-dx;row._last=now()}});
+    addEventListener("mouseup",()=>{if(row._drag){const m=row._drag.moved;row._drag=null;row._last=now();if(m){row._swallow=true;setTimeout(()=>{row._swallow=false},0)}}});
+    row.addEventListener("click",e=>{if(row._swallow){e.preventDefault();e.stopPropagation()}},true);
+    row.addEventListener("dragstart",e=>e.preventDefault());
+  }
+  row.querySelectorAll(".cl").forEach(n=>n.remove());
+  row._cl=false;row._half=0;row._paused=false;row._auto=!!on&&!arReduce;
+  row.classList.toggle("auto",row._auto);
+  if(btn){
+    btn.hidden=!row._auto;btn.textContent="⏸";btn.setAttribute("aria-label","Pausar el movimiento");
+    btn.onclick=()=>{row._paused=!row._paused;btn.textContent=row._paused?"▶":"⏸";btn.setAttribute("aria-label",row._paused?"Reanudar el movimiento":"Pausar el movimiento")};
+  }
+}
+function arTick(ts){
+  const dt=Math.min(250,ts-(arLast||ts));arLast=ts;
+  const sp=AR_SPEED[CFG.auto_speed]||AR_SPEED.mid;
+  for(const r of AR){
+    if(!r._auto||r.offsetParent===null)continue;
+    if(!r._cl){
+      const kids=[...r.children];if(!kids.length)continue;
+      const w=kids[kids.length-1].offsetLeft+kids[kids.length-1].offsetWidth-kids[0].offsetLeft;
+      if(w+12<=r.clientWidth)continue; /* entra todo en pantalla: no hace falta mover nada */
+      for(let k=0;k<2;k++)kids.forEach(c=>{const n=c.cloneNode(true);n.classList.add("cl");n.setAttribute("aria-hidden","true");n.tabIndex=-1;n.querySelectorAll("a").forEach(a=>a.tabIndex=-1);r.append(n)});
+      r._half=r.children[kids.length].offsetLeft-kids[0].offsetLeft;r._cl=true;
+      r.scrollLeft=r._half;r._set=r.scrollLeft;
+    }
+    const lastT=r._last==null?-1e9:r._last,idle=ts-lastT>3000;
+    /* ajuste invisible para que nunca se acabe: siempre se queda en la copia del medio */
+    if(!r._hold&&!r._drag&&ts-lastT>150){
+      if(r.scrollLeft>=2*r._half){r.scrollLeft-=r._half}
+      else if(r.scrollLeft<r._half*0.05){r.scrollLeft+=r._half}
+    }
+    if(r._paused||r._hold||r._drag||r._hover||!idle){r._pos=null;continue}
+    if(r._pos==null||Math.abs(r._pos-r.scrollLeft)>2)r._pos=r.scrollLeft;
+    r._pos+=sp*dt/1000;r.scrollLeft=r._pos;r._set=r.scrollLeft;
+  }
+  requestAnimationFrame(arTick);
+}
+requestAnimationFrame(arTick);
 /* App instalable (PWA): se puede quitar desde el editor de landing */
 var pwaEv=null,pwaReady=false,pwaReg=false;
 function pwaStandalone(){return matchMedia("(display-mode: standalone)").matches||navigator.standalone===true}
@@ -383,7 +448,7 @@ document.addEventListener("click",async e=>{
 });
 /* Cargar crédito en la pantalla principal: desplegable con los datos y envío de comprobante al chat */
 function topupApply(){
-  $("tu").hidden=!CFG.topup_on;
+  $("tu").hidden=!CFG.topup_on;$("tuBtn").classList.toggle("neon",CFG.topup_neon!==false);
   $("tuT").textContent=CFG.topup_text||"Cargar crédito";
   $("tuNote").textContent=CFG.topup_note||"";
 }
@@ -488,6 +553,7 @@ function apply(c){
        card.append(pb)}
      return card}));
    $("prm").hidden=!list.length}
+  autoRow($("platRow"),$("platAB"),c.plat_auto);autoRow($("gmsRow"),$("gmsAB"),c.games_auto);
   $("plat").hidden=$("plat").hidden||!c.platforms.length;
   $("gms").hidden=$("gms").hidden||!c.games.length;
   /* desplegables (por ejemplo "Retiros"): se abren y cierran al tocarlos */

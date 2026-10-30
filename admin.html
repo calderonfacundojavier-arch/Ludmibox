@@ -759,7 +759,7 @@ const DEFL={
   bonus_top:"Hasta 50% de bono", bonus_big:"Hasta 50% de bono", bonus_bottom:"Consultá condiciones por el chat",
   cta:"Quiero mi bono ahora", status:"Caja asignada: Caja Ludmi · Atención por chat", bg_url:"",
   features:[{t:"Pagos rápidos",s:"Por transferencia"},{t:"Atención por chat",s:"Respondemos acá"},{t:"Retiros",s:"Consultá condiciones"}],
-  fab_on:true, fab_always:true, fab_text:"Chat", icon_fab:"", icon_attach:"", icon_mic:"", icon_send:"", icon_pay:"", instagram:"", instagram_icon:"", contacts:[], topup_on:true, topup_text:"Cargar crédito", topup_proof:"Enviar comprobante", topup_note:"Después de transferir, tocá «Enviar comprobante» y lo recibimos por el chat.", ticker_on:true, ticker_text:"📲 Descargá la app para chatear más rápido y sin perder mensajes", promos_title:"Promociones", promos:[], platforms_title:"Plataformas", platforms:[], games_title:"Juegos", games:[],
+  fab_on:true, fab_always:true, fab_text:"Chat", icon_fab:"", icon_attach:"", icon_mic:"", icon_send:"", icon_pay:"", instagram:"", instagram_icon:"", contacts:[], plat_auto:true, games_auto:true, auto_speed:"mid", topup_neon:true, topup_on:true, topup_text:"Cargar crédito", topup_proof:"Enviar comprobante", topup_note:"Después de transferir, tocá «Enviar comprobante» y lo recibimos por el chat.", ticker_on:true, ticker_text:"📲 Descargá la app para chatear más rápido y sin perder mensajes", promos_title:"Promociones", promos:[], platforms_title:"Plataformas", platforms:[], games_title:"Juegos", games:[],
   footer:"Solo mayores de 18 años. El juego puede generar adicción: jugá con responsabilidad.",
   license:"Autorización: [COMPLETAR]", chat_title:"Chat con Caja Ludmi", greeting:"¡Hola! ¿En qué te puedo ayudar?",
   chat_notice:"Conectado. Escribinos y te respondemos.", chat_theme:"light",
@@ -968,13 +968,17 @@ function buildForm(){
         row:it=>el("div",{class:"acc"},imgCtl(()=>it.img,v=>it.img=v,1080),inp(it,"title","Título de la promo (opcional)",60),inp(it,"btn","Texto del botón (vacío = sin botón)",30),
           inp(it,"msg","Mensaje que se escribe en el chat (ej. Quiero la promo del 50%)",200),inp(it,"url","O un link en vez del chat (https://…)",300))})),
     sec("Plataformas",null,fText("Título de la sección","platforms_title"),
+      fCheck("Que las plataformas se muevan solas. La persona las frena tocándolas, las desliza con el dedo o el mouse, o usa el botón de pausa ⏸",cfg,"plat_auto"),
+      fSelect("Velocidad del movimiento (plataformas y juegos)",cfg,"auto_speed",[["slow","Lenta"],["mid","Media"],["fast","Rápida"]]),
       fList("platforms",{max:24,add:"+ Agregar plataforma",make:()=>({name:"",img:"",url:""}),
         row:it=>el("div",{class:"acc"},imgCtl(()=>it.img,v=>it.img=v,300),inp(it,"name","Nombre",30),inp(it,"url","Link al tocar la imagen (https://…)",300))})),
     sec("Juegos",null,fText("Título de la sección","games_title"),
+      fCheck("Que los juegos se muevan solos (igual que las plataformas)",cfg,"games_auto"),
       fList("games",{max:24,add:"+ Agregar juego",make:()=>({name:"",img:"",url:""}),
         row:it=>el("div",{class:"acc"},imgCtl(()=>it.img,v=>it.img=v,300),inp(it,"name","Nombre",30),inp(it,"url","Link al tocar la imagen (https://…)",300))})),
     sec("Cargar crédito (pantalla principal)","Muestra un botón en la página principal que abre un desplegable con los datos para transferir (los que cargás abajo en «Datos para transferir»), con botones para copiar, y un botón para enviar el comprobante: la imagen llega directo al chat. Si la persona todavía no puso su nombre de usuario, se lo pide antes de enviarla.",
       fCheck("Mostrar el botón en la pantalla principal",cfg,"topup_on"),
+      fCheck("Efecto de luz neón con movimiento alrededor del botón (llama más la atención)",cfg,"topup_neon"),
       fText("Texto del botón","topup_text"),fText("Texto del botón para enviar el comprobante","topup_proof"),
       fText("Aviso debajo de las cuentas","topup_note",{area:true,max:300})),
     sec("Datos para transferir","Se muestran dentro del chat, con botón para copiar. No aparecen en la página: solo los ve quien abre el chat. Revisá bien los números: un error manda la plata a otra cuenta.",
@@ -1115,7 +1119,7 @@ function collect(){
   d.fab_text=(d.fab_text||"").trim();
   d.chat_theme=d.chat_theme==="dark"?"dark":"light";
   for(const k of ["chat_title","chat_notice","status_online","status_offline","greeting","ask_name_text"])d[k]=(d[k]||"").trim();
-  d.ask_name=!!d.ask_name;d.pwa_on=!!d.pwa_on;d.topup_on=!!d.topup_on;d.ticker_on=!!d.ticker_on;for(const k of ["topup_text","topup_proof","topup_note","ticker_text"])d[k]=String(d[k]||"").trim();if(!d.topup_text)d.topup_text="Cargar crédito";if(!d.topup_proof)d.topup_proof="Enviar comprobante";d.push_on=!!d.push_on;d.pwa_text=String(d.pwa_text||"").trim().slice(0,30)||"📲 Instalar app";
+  d.ask_name=!!d.ask_name;d.pwa_on=!!d.pwa_on;d.topup_on=!!d.topup_on;d.topup_neon=!!d.topup_neon;d.plat_auto=!!d.plat_auto;d.games_auto=!!d.games_auto;d.auto_speed=["slow","mid","fast"].includes(d.auto_speed)?d.auto_speed:"mid";d.ticker_on=!!d.ticker_on;for(const k of ["topup_text","topup_proof","topup_note","ticker_text"])d[k]=String(d[k]||"").trim();if(!d.topup_text)d.topup_text="Cargar crédito";if(!d.topup_proof)d.topup_proof="Enviar comprobante";d.push_on=!!d.push_on;d.pwa_text=String(d.pwa_text||"").trim().slice(0,30)||"📲 Instalar app";
   for(const k of ["wheel_title","wheel_sub","wheel_spin","wheel_stop","wheel_msg","wheel_reply"])d[k]=String(d[k]||"").trim();
   d.wheel_mode=d.wheel_mode==="block"?"block":"first";
   d.wheel_on=!!d.wheel_on;d.wheel_once=!!d.wheel_once;d.wheel_odds=!!d.wheel_odds;d.wheel_only_link=!!d.wheel_only_link;d.wheel_skip=!!d.wheel_skip;d.wheel_skip_text=String(d.wheel_skip_text||"").trim().slice(0,30)||"Ya tengo cuenta";
