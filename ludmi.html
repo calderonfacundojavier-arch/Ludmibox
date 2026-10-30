@@ -180,10 +180,26 @@ footer{color:var(--mut);margin-top:34px;opacity:.8}
 .pcd img{width:100%;height:auto;display:block;background:#150626}
 .pcd .pb{padding:12px;display:grid;gap:10px}
 .pcd .pb b{font-size:15px;line-height:1.3}
-.pbtn{border:0;border-radius:12px;padding:12px;font:inherit;font-size:14px;font-weight:800;color:#fff;text-align:center;text-decoration:none;cursor:pointer;background:linear-gradient(180deg,#34d570,#16a34a);box-shadow:0 6px 16px #22c55e44}
+.prbtn{border:0;border-radius:12px;padding:12px;font:inherit;font-size:14px;font-weight:800;color:#fff;text-align:center;text-decoration:none;cursor:pointer;background:linear-gradient(180deg,#34d570,#16a34a);box-shadow:0 6px 16px #22c55e44}
 #wskip{background:none;border:0;color:inherit;opacity:.85;text-decoration:underline;margin-top:12px;cursor:pointer;font:inherit;font-size:13px}
+.m .bt a{color:inherit;text-decoration:underline;font-weight:600;word-break:break-all}
+.tu{margin:14px 0}
+.tub{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;border:2px solid #ffffff40;background:#ffffff14;color:#fff;border-radius:40px;padding:16px 22px;font:inherit;font-size:16px;font-weight:800;cursor:pointer;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.tub .chev{transition:transform .2s}.tub[aria-expanded=true] .chev{transform:rotate(180deg)}
+#tuBox{margin-top:10px;padding:12px;border:1px solid #ffffff2a;border-radius:16px;background:#ffffff10;text-align:left;--card:#ffffff12;--line:#ffffff30;--chip:#ffffff18;--agt:#fff;--acc:#16a34a;--mut:#ffffffb8}
+#tuBox .pc{margin-top:10px}
+#tuNote{display:block;margin-top:12px;font-size:12px;line-height:1.45;color:#ffffffb8}
+#tk{position:fixed;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;background:linear-gradient(90deg,#15803d,#22c55e);color:#fff;padding-top:env(safe-area-inset-top);height:calc(38px + env(safe-area-inset-top));box-shadow:0 2px 12px #0006}
+#tkB{flex:1;min-width:0;overflow:hidden;background:none;border:0;color:inherit;font:inherit;font-weight:700;font-size:13px;cursor:pointer;height:38px;white-space:nowrap;text-align:left}
+.tkm{display:inline-flex;animation:tkm 16s linear infinite}.tkm span{padding-right:56px}
+@keyframes tkm{to{transform:translateX(-50%)}}
+@media(prefers-reduced-motion:reduce){.tkm{animation:none}#tkT2{display:none}#tkB{text-overflow:ellipsis;padding-left:12px}}
+#tkX{background:none;border:0;color:#fff;font-size:16px;width:38px;height:38px;cursor:pointer;opacity:.85}
+#tkHint{position:fixed;top:calc(46px + env(safe-area-inset-top));left:12px;right:12px;z-index:30;margin:0;background:#111;color:#fff;border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.45;box-shadow:0 8px 30px #000a}
+body.hastk{padding-top:calc(38px + env(safe-area-inset-top))}
 </style></head>
 <body>
+<div id="tk" hidden><button type="button" id="tkB"><span class="tkm"><span id="tkT"></span><span id="tkT2" aria-hidden="true"></span></span></button><button type="button" id="tkX" aria-label="Cerrar aviso">✕</button></div><p id="tkHint" hidden></p>
 <div id="bg" hidden></div>
 <main class="wrap">
   <div class="avatar" id="av" aria-hidden="true">👑</div>
@@ -192,6 +208,10 @@ footer{color:var(--mut);margin-top:34px;opacity:.8}
   <div id="blocks">
     <div id="b-bonus"><div class="bonus"><small id="b1"></small><b id="b2"></b><small id="b3"></small></div></div>
     <div id="b-cta"><button class="cta" id="open"></button><div class="status" id="st"></div></div>
+    <div id="b-topup"><section class="tu" id="tu" hidden>
+      <button type="button" class="tub" id="tuBtn" aria-expanded="false" aria-controls="tuBox"><span id="tuT"></span><span class="chev" aria-hidden="true">▾</span></button>
+      <div id="tuBox" hidden><div id="tuBody"></div><small id="tuNote"></small><input id="tuFile" type="file" accept="image/jpeg,image/png,image/webp" hidden></div>
+    </section></div>
     <div id="b-wheel"><section class="wheel" id="wheel" hidden aria-label="Ruleta de bonos">
       <h2 id="wheelT"></h2><p id="wheelS"></p>
       <div class="wbox"><div class="wptr" aria-hidden="true"></div><canvas id="wcv" width="600" height="600" aria-hidden="true"></canvas></div>
@@ -241,12 +261,12 @@ const LSG={get(k){try{return localStorage.getItem(k)}catch{return null}},set(k,v
 let uid=null, ready=null, ONLINE=false, payShown=false, payLogged=false;
 
 /* ---------- contenido editable (se cambia desde el panel /admin) ---------- */
-const BLOCK_IDS=["bonus","cta","wheel","promos","platforms","games","features","faq","contacts"];
+const BLOCK_IDS=["bonus","cta","topup","wheel","promos","platforms","games","features","faq","contacts"];
 function normLayout(a){
   const out=[],ids=new Set();
   (Array.isArray(a)?a:[]).forEach(x=>{
     if(x&&typeof x==="object"&&BLOCK_IDS.includes(x.id)&&!ids.has(x.id)){ids.add(x.id);out.push({id:x.id,on:x.on!==false})}});
-  BLOCK_IDS.forEach(id=>{if(ids.has(id))return;{const af=id==="wheel"?"cta":id==="promos"?"wheel":null;if(af&&out.some(x=>x.id===af))out.splice(out.findIndex(x=>x.id===af)+1,0,{id,on:true});else out.push({id,on:true})}});
+  BLOCK_IDS.forEach(id=>{if(ids.has(id))return;{const af=id==="topup"?"cta":id==="wheel"?(out.some(x=>x.id==="topup")?"topup":"cta"):id==="promos"?"wheel":null;if(af&&out.some(x=>x.id===af))out.splice(out.findIndex(x=>x.id===af)+1,0,{id,on:true});else out.push({id,on:true})}});
   return out;
 }
 const DEF={
@@ -254,7 +274,7 @@ const DEF={
   bonus_top:"Hasta 50% de bono", bonus_big:"Hasta 50% de bono", bonus_bottom:"Consultá condiciones por el chat",
   cta:"Quiero mi bono ahora", status:"Caja asignada: Caja Ludmi · Atención por chat", bg_url:"",
   features:[{t:"Pagos rápidos",s:"Por transferencia"},{t:"Atención por chat",s:"Respondemos acá"},{t:"Retiros",s:"Consultá condiciones"}],
-  fab_on:true, fab_always:true, fab_text:"Chat", icon_fab:"", icon_attach:"", icon_mic:"", icon_send:"", icon_pay:"", instagram:"", instagram_icon:"", contacts:[], promos_title:"Promociones", promos:[], platforms_title:"Plataformas", platforms:[], games_title:"Juegos", games:[],
+  fab_on:true, fab_always:true, fab_text:"Chat", icon_fab:"", icon_attach:"", icon_mic:"", icon_send:"", icon_pay:"", instagram:"", instagram_icon:"", contacts:[], topup_on:true, topup_text:"Cargar crédito", topup_proof:"Enviar comprobante", topup_note:"Después de transferir, tocá «Enviar comprobante» y lo recibimos por el chat.", ticker_on:true, ticker_text:"📲 Descargá la app para chatear más rápido y sin perder mensajes", promos_title:"Promociones", promos:[], platforms_title:"Plataformas", platforms:[], games_title:"Juegos", games:[],
   footer:"Solo mayores de 18 años. El juego puede generar adicción: jugá con responsabilidad.",
   license:"Autorización: [COMPLETAR]", chat_title:"Chat con Caja Ludmi", greeting:"¡Hola! ¿En qué te puedo ayudar?",
   chat_notice:"Conectado. Escribinos y te respondemos.", chat_theme:"light",
@@ -316,6 +336,9 @@ var pwaEv=null,pwaReady=false,pwaReg=false;
 function pwaStandalone(){return matchMedia("(display-mode: standalone)").matches||navigator.standalone===true}
 function pwaIOS(){return /iphone|ipad|ipod/i.test(navigator.userAgent)&&!/crios|fxios/i.test(navigator.userAgent)}
 function pwaApply(){
+  pwaApply0();tkApply();
+}
+function pwaApply0(){
   if(!pwaReady)return;
   const b=$("pwaBtn"),on=!!CFG.pwa_on&&!PREVIEW;
   const l=document.querySelector('link[rel=manifest]');
@@ -325,7 +348,7 @@ function pwaApply(){
   b.hidden=pwaStandalone()||!(pwaEv||pwaIOS());
 }
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();pwaEv=e;pwaApply()});
-addEventListener("appinstalled",()=>{pwaEv=null;$("pwaBtn").hidden=true;$("pwaHint").hidden=true});
+addEventListener("appinstalled",()=>{pwaEv=null;pwaDone=true;$("pwaBtn").hidden=true;$("pwaHint").hidden=true;tkApply()});
 document.addEventListener("click",e=>{
   if(e.target!==$("pwaBtn"))return;
   if(pwaEv){pwaEv.prompt();pwaEv.userChoice.finally(()=>{pwaEv=null;pwaApply()});return}
@@ -358,10 +381,60 @@ document.addEventListener("click",async e=>{
     await pushSub();$("bell").hidden=true;pushNote("🔔 Listo: te avisamos cuando te respondan, aunque cierres la app.");
   }catch(err){console.error(err);pushNote("No pudimos activar los avisos en este dispositivo.")}
 });
+/* Cargar crédito en la pantalla principal: desplegable con los datos y envío de comprobante al chat */
+function topupApply(){
+  $("tu").hidden=!CFG.topup_on;
+  $("tuT").textContent=CFG.topup_text||"Cargar crédito";
+  $("tuNote").textContent=CFG.topup_note||"";
+}
+async function topupRender(){
+  const body=$("tuBody");
+  if(PREVIEW){body.textContent="Acá se muestran los datos para transferir y el botón para enviar el comprobante.";return}
+  body.textContent="Cargando…";
+  try{await init()}catch{}
+  if(!PAY||!PAY.accounts.length){
+    body.replaceChildren();const p=document.createElement("div");p.textContent="Pedinos los datos para transferir por el chat y te los pasamos enseguida.";
+    const b=document.createElement("button");b.type="button";b.className="pbtn go";b.textContent="Abrir chat";b.onclick=()=>$("open").click();body.append(p,b);return;
+  }
+  body.replaceChildren(payBox(PAY.intro,PAY.accounts,{label:CFG.topup_proof||"Enviar comprobante",fn:()=>$("tuFile").click()}));
+  payShown=true;
+}
+$("tuBtn").onclick=()=>{
+  const open=$("tuBox").hidden;$("tuBox").hidden=!open;$("tuBtn").setAttribute("aria-expanded",String(open));
+  if(open)topupRender();
+};
+$("tuBox").addEventListener("click",e=>{if(!PREVIEW&&e.target.closest&&e.target.closest(".pbtn"))logPay()});
+$("tuFile").onchange=async e=>{
+  const f=e.target.files[0];e.target.value="";if(!f||PREVIEW)return;
+  if(f.size>5*1024*1024)return alert("La imagen supera los 5 MB.");
+  $("chat").hidden=false;syncFab();
+  await init();await whenNamed();if(!uid)return;
+  await upload(f,"image",f.type);
+};
+/* cartel superior: invita a instalar la app (mismo mecanismo que el botón de abajo) */
+var tkClosed=false,pwaDone=false;
+try{tkClosed=!!sessionStorage.getItem("tk_closed")}catch{}
+function inAppBrowser(){return /instagram|fbav|fban|fb_iab|tiktok|musical_ly|snapchat|twitter/i.test(navigator.userAgent)}
+function tkApply(){
+  if(!pwaReady)return;
+  const show=!!CFG.ticker_on&&!tkClosed&&(PREVIEW||(!!CFG.pwa_on&&!pwaDone&&!pwaStandalone()&&(!!pwaEv||pwaIOS()||inAppBrowser())));
+  const t=String(CFG.ticker_text||"").trim()||"📲 Descargá la app";
+  $("tkT").textContent=t;$("tkT2").textContent=t;
+  $("tk").hidden=!show;document.body.classList.toggle("hastk",show);
+  if(!show)$("tkHint").hidden=true;
+}
+$("tkX").onclick=()=>{tkClosed=true;try{sessionStorage.setItem("tk_closed","1")}catch{}tkApply()};
+$("tkB").onclick=()=>{
+  if(PREVIEW)return;
+  if(pwaEv){pwaEv.prompt();pwaEv.userChoice.finally(()=>{pwaEv=null;pwaApply()});return}
+  const h=$("tkHint");
+  h.textContent=pwaIOS()?"En el iPhone: tocá el botón Compartir de Safari y elegí «Agregar a inicio».":inAppBrowser()?"Para instalar la app, tocá los tres puntos (⋯) y elegí «Abrir en el navegador». Ahí vas a poder descargarla.":"Abrí el menú del navegador y elegí «Instalar app» o «Agregar a pantalla de inicio».";
+  h.hidden=false;clearTimeout(h._t);h._t=setTimeout(()=>{h.hidden=true},8000);
+};
 function apply(c){
   CFG=c;
   txt("nm",c.name);txt("ttl",c.title);txt("b1",c.bonus_top);txt("b2",c.bonus_big);txt("b3",c.bonus_bottom);
-  pwaReady=true;pwaApply();
+  pwaReady=true;pwaApply();topupApply();
   $("open").textContent=c.cta;txt("st",c.status);txt("f1",c.footer);txt("f2",c.license);
   $("ctitle").textContent=c.chat_title;
   wheelApply();
@@ -411,7 +484,7 @@ function apply(c){
        if(btn){const link=safe(x.url);let e;
          if(link){e=document.createElement("a");e.href=link;e.target="_blank";e.rel="noopener noreferrer"}
          else{e=document.createElement("button");e.type="button";e.onclick=()=>{$("txt").value=String(x.msg||"").trim().slice(0,200)||("Quiero la promo: "+(title||"promo"));$("open").click()}}
-         e.className="pbtn";e.textContent=btn.slice(0,30);pb.append(e)}
+         e.className="prbtn";e.textContent=btn.slice(0,30);pb.append(e)}
        card.append(pb)}
      return card}));
    $("prm").hidden=!list.length}
@@ -494,7 +567,7 @@ function row(label,v){
   const a=document.createElement("span");a.textContent=label;
   const b=document.createElement("span");b.textContent=v;r.append(a,b);return r;
 }
-function payBox(intro,accounts){
+function payBox(intro,accounts,proof){
   const box=document.createElement("div");
   if(intro){const p=document.createElement("div");p.textContent=String(intro);box.append(p)}
   accounts.forEach(a=>{
@@ -508,8 +581,8 @@ function payBox(intro,accounts){
     if(a.alias)d.append(copyBtn("Copiar alias",String(a.alias)));
     box.append(d);
   });
-  const up=document.createElement("button");up.type="button";up.className="pbtn go";up.textContent="Subir comprobante";
-  up.onclick=()=>$("file").click();box.append(up);
+  const up=document.createElement("button");up.type="button";up.className="pbtn go";up.textContent=proof?proof.label:"Subir comprobante";
+  up.onclick=proof?proof.fn:()=>$("file").click();box.append(up);
   return box;
 }
 function showPay(){
@@ -559,9 +632,10 @@ async function quick(x){
 /* texto con enlaces http(s) clickeables (sin innerHTML) */
 function linkEl(t){
   const f=document.createDocumentFragment();let last=0;
-  for(const m of t.matchAll(/https?:\/\/[^\s<>"]+/g)){
-    f.append(t.slice(last,m.index));const u=safe(m[0]);
-    if(u){const a=document.createElement("a");a.href=u;a.target="_blank";a.rel="noopener noreferrer";a.textContent=m[0];f.append(a)}else f.append(m[0]);
+  for(const m of t.matchAll(/(?:https?:\/\/|www\.)[^\s<>"]+/g)){
+    f.append(t.slice(last,m.index));
+    const raw=m[0].replace(/[.,;:!?)\]]+$/,""),u=safe(/^www\./i.test(raw)?"https://"+raw:raw);
+    if(u){const a=document.createElement("a");a.href=u;a.target="_blank";a.rel="noopener noreferrer";a.textContent=raw;f.append(a);f.append(m[0].slice(raw.length))}else f.append(m[0]);
     last=m.index+m[0].length;
   }
   f.append(t.slice(last));const sp=document.createElement("span");sp.append(f);return sp;
@@ -579,7 +653,7 @@ function ding(){
 
 /* ---------- chat ---------- */
 function init(){
-  track("chat");
+  if(!$("chat").hidden)track("chat");
   return ready||(ready=(async()=>{
     let {data:{session}}=await sb.auth.getSession();
     if(!session){const r=await sb.auth.signInAnonymously(); if(r.error){console.error(r.error);alert("El chat no está disponible por ahora.\n\nDetalle técnico: "+r.error.message+(r.error.status?" (código "+r.error.status+")":""));ready=null;return}; session=r.data.session}
@@ -606,7 +680,7 @@ function init(){
 function bubble(m,el){
   const d=document.createElement("div"); d.className="m "+m.sender;
   if(m.id!=null)d.dataset.id=m.id;
-  if(el) d.appendChild(el); else{const s=document.createElement("span");s.className="bt";s.textContent=m.body;d.appendChild(s)}
+  if(el) d.appendChild(el); else if(m.sender==="agent"&&m.kind==="text"){const s=linkEl(String(m.body||""));s.className="bt";d.appendChild(s)} else{const s=document.createElement("span");s.className="bt";s.textContent=m.body;d.appendChild(s)}
   const t=document.createElement("time"); t.textContent=(m.edited_at?"editado · ":"")+new Date(m.created_at).toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"});
   if(m.sender==="visitor"&&m.id!=null){d.dataset.ts=new Date(m.created_at).getTime();const k=document.createElement("span");k.className="tk";t.append(k)}
   d.appendChild(t); $("msgs").appendChild(d); $("msgs").scrollTop=1e9; ticks(); return d;
@@ -616,7 +690,7 @@ function change(m){
   const d=document.querySelector('#msgs .m[data-id="'+m.id+'"]');if(!d)return;
   if(m.deleted_at){d.remove();return}
   const b=d.querySelector(".bt");
-  if(b&&m.kind==="text"){b.textContent=m.body;const t=d.querySelector("time");if(t&&!t.textContent.startsWith("editado"))t.textContent="editado · "+t.textContent}
+  if(b&&m.kind==="text"){if(m.sender==="agent")b.replaceChildren(linkEl(String(m.body||"")));else b.textContent=m.body;const t=d.querySelector("time");if(t&&!t.textContent.startsWith("editado"))t.textContent="editado · "+t.textContent}
 }
 /* ---------- ruleta de bonos ---------- */
 function wPrizes(){
