@@ -337,7 +337,7 @@ const DEF={
   bonus_top:"Hasta 50% de bono", bonus_big:"Hasta 50% de bono", bonus_bottom:"Consultá condiciones por el chat",
   cta:"Quiero mi bono ahora", status:"Caja asignada: Caja Ludmi · Atención por chat", bg_url:"",
   features:[{t:"Pagos rápidos",s:"Por transferencia"},{t:"Atención por chat",s:"Respondemos acá"},{t:"Retiros",s:"Consultá condiciones"}],
-  fab_on:true, fab_always:true, fab_text:"Chat", icon_fab:"", icon_attach:"", icon_mic:"", icon_send:"", icon_pay:"", instagram:"", instagram_icon:"", contacts:[], plat_auto:true, games_auto:true, auto_speed:"mid", topup_neon:true, topup_on:true, topup_text:"Cargar crédito", topup_proof:"Enviar comprobante", topup_note:"Después de transferir, tocá «Enviar comprobante» y lo recibimos por el chat.", ticker_on:true, ticker_text:"📲 Descargá la app para chatear más rápido y sin perder mensajes", promos_title:"Promociones", promos:[], pop_on:true, pop_title:"📲 Descargá la app", pop_text:"Chateá más rápido y recibí un aviso cuando te respondamos. Es gratis y no ocupa lugar.", pop_btn:"Descargar la app", pop_badge:"Caja Ludmi · Atención por chat", pop_delay:4, pop_freq:"session", stories_on:true, stories_secs:5, stories:[], platforms_title:"Plataformas", platforms:[], games_title:"Juegos", games:[],
+  fab_on:true, fab_always:true, fab_text:"Chat", icon_fab:"", icon_attach:"", icon_mic:"", icon_send:"", icon_pay:"", instagram:"", instagram_icon:"", contacts:[], plat_auto:true, games_auto:true, auto_speed:"mid", topup_neon:true, topup_on:true, topup_text:"Cargar crédito", topup_proof:"Enviar comprobante", topup_note:"Después de transferir, tocá «Enviar comprobante» y lo recibimos por el chat.", ticker_on:true, ticker_text:"📲 Descargá la app para chatear más rápido y sin perder mensajes", promos_title:"Promociones", promos:[], pop_on:true, pop_title:"📲 Descargá la app", pop_text:"Chateá más rápido y recibí un aviso cuando te respondamos. Es gratis y no ocupa lugar.", pop_btn:"Descargar la app", pop_badge:"Caja Ludmi · Atención por chat", pop_delay:2, pop_freq:"session", stories_on:true, stories_secs:5, stories:[], platforms_title:"Plataformas", platforms:[], games_title:"Juegos", games:[],
   footer:"Solo mayores de 18 años. El juego puede generar adicción: jugá con responsabilidad.",
   license:"Autorización: [COMPLETAR]", chat_title:"Chat con Caja Ludmi", greeting:"¡Hola! ¿En qué te puedo ayudar?",
   chat_notice:"Conectado. Escribinos y te respondemos.", chat_theme:"light",
@@ -641,9 +641,10 @@ document.addEventListener("visibilitychange",()=>{SV.last=performance.now()});
 document.addEventListener("keydown",e=>{if(!SV.open)return;if(e.key==="Escape")stClose();else if(e.key==="ArrowRight")stShow(SV.i+1);else if(e.key==="ArrowLeft")stShow(SV.i-1)});
 /* ---------- Pop-up para descargar la app ---------- */
 var popShown=false,popTried=0,popTimer=0,popUp=false,popT0=performance.now();
-function popEligible(){return !!CFG.pop_on&&(PREVIEW||(!!CFG.pwa_on&&!pwaDone&&!pwaStandalone()&&(!!pwaEv||pwaIOS()||inAppBrowser())))}
+var FORCEPOP=/[?&]popup(=|&|$)/.test(location.search);
+function popEligible(){return !!CFG.pop_on&&(PREVIEW||FORCEPOP||(!!CFG.pwa_on&&!pwaDone&&!pwaStandalone()))}
 function popSeen(){
-  const f=CFG.pop_freq;if(f==="always")return false;
+  const f=CFG.pop_freq;if(f==="always"||FORCEPOP)return false;
   try{if(f==="day"){return Date.now()-(+localStorage.getItem("pop_seen")||0)<864e5}return !!sessionStorage.getItem("pop_seen")}catch{return false}
 }
 function popMark(){try{if(CFG.pop_freq==="day")localStorage.setItem("pop_seen",String(Date.now()));else sessionStorage.setItem("pop_seen","1")}catch{}}
@@ -670,7 +671,7 @@ function popTry(){
 function popApply(){
   if(!CFG.pop_on){popClose();return}
   if(popUp)popFill();
-  if(!popShown&&!PREVIEW){clearTimeout(popTimer);popTried=0;popTimer=setTimeout(popTry,Math.max(0,Math.max(0,Math.min(60,Number(CFG.pop_delay)||0))*1000-(performance.now()-popT0)))}
+  if(!popShown&&!PREVIEW){clearTimeout(popTimer);popTried=0;popTimer=setTimeout(popTry,Math.max(0,(FORCEPOP?500:Math.max(0,Math.min(60,Number(CFG.pop_delay)||0))*1000)-(performance.now()-popT0)))}
 }
 $("popX").onclick=popClose;$("popN").onclick=popClose;
 $("pop").addEventListener("click",e=>{if(e.target===$("pop"))popClose()});
