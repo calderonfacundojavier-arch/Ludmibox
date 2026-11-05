@@ -759,7 +759,7 @@ const DEFL={
   bonus_top:"Hasta 50% de bono", bonus_big:"Hasta 50% de bono", bonus_bottom:"Consultá condiciones por el chat",
   cta:"Quiero mi bono ahora", status:"Caja asignada: Caja Ludmi · Atención por chat", bg_url:"",
   features:[{t:"Pagos rápidos",s:"Por transferencia"},{t:"Atención por chat",s:"Respondemos acá"},{t:"Retiros",s:"Consultá condiciones"}],
-  fab_on:true, fab_always:true, fab_text:"Chat", icon_fab:"", icon_attach:"", icon_mic:"", icon_send:"", icon_pay:"", instagram:"", instagram_icon:"", contacts:[], plat_auto:true, games_auto:true, auto_speed:"mid", topup_neon:true, topup_on:true, topup_text:"Cargar crédito", topup_proof:"Enviar comprobante", topup_note:"Después de transferir, tocá «Enviar comprobante» y lo recibimos por el chat.", ticker_on:true, ticker_text:"📲 Descargá la app para chatear más rápido y sin perder mensajes", promos_title:"Promociones", promos:[], platforms_title:"Plataformas", platforms:[], games_title:"Juegos", games:[],
+  fab_on:true, fab_always:true, fab_text:"Chat", icon_fab:"", icon_attach:"", icon_mic:"", icon_send:"", icon_pay:"", instagram:"", instagram_icon:"", contacts:[], plat_auto:true, games_auto:true, auto_speed:"mid", topup_neon:true, topup_on:true, topup_text:"Cargar crédito", topup_proof:"Enviar comprobante", topup_note:"Después de transferir, tocá «Enviar comprobante» y lo recibimos por el chat.", ticker_on:true, ticker_text:"📲 Descargá la app para chatear más rápido y sin perder mensajes", promos_title:"Promociones", promos:[], pop_on:true, pop_title:"📲 Descargá la app", pop_text:"Chateá más rápido y recibí un aviso cuando te respondamos. Es gratis y no ocupa lugar.", pop_btn:"Descargar la app", pop_badge:"Caja Ludmi · Atención por chat", pop_delay:4, pop_freq:"session", stories_on:true, stories_secs:5, stories:[], platforms_title:"Plataformas", platforms:[], games_title:"Juegos", games:[],
   footer:"Solo mayores de 18 años. El juego puede generar adicción: jugá con responsabilidad.",
   license:"Autorización: [COMPLETAR]", chat_title:"Chat con Caja Ludmi", greeting:"¡Hola! ¿En qué te puedo ayudar?",
   chat_notice:"Conectado. Escribinos y te respondemos.", chat_theme:"light",
@@ -844,6 +844,11 @@ function fCheck(label,obj,key){
   const c=el("input",{type:"checkbox",checked:!!obj[key]});
   c.onchange=()=>{obj[key]=c.checked;dirty=true};
   return el("label",{class:"ck"},c,label);
+}
+function fNum(label,key,min,max){
+  const i=el("input",{class:"fi",type:"number",min:String(min),max:String(max),step:"1",value:String(cfg[key]??min)});
+  i.oninput=()=>{cfg[key]=Math.max(min,Math.min(max,Math.round(+i.value||0)));dirty=true};
+  return el("div",{},el("label",{class:"fl"},label),i);
 }
 function fSelect(label,obj,key,opts){
   const sel=el("select",{class:"fi"});
@@ -962,6 +967,32 @@ function buildForm(){
           return el("div",{class:"acc"},sel,inp(it,"label","Texto del botón (ej. Escribinos)",40),u,
             el("label",{class:"fl"},"Ícono propio (opcional)"),imgCtl(()=>it.icon,v=>it.icon=v,96));
         }})),
+    sec("Pop-up de descarga","Una ventana que aparece sola unos segundos después de entrar y ofrece instalar la app. Solo se muestra donde se puede instalar (celulares con Chrome/Android, iPhone o desde Instagram), nunca si ya la instalaron. Incluye el cartel verde de atención por chat.",
+      fCheck("Mostrar el pop-up de descarga",cfg,"pop_on"),
+      fText("Título","pop_title",{max:60}),fText("Texto","pop_text",{area:true,max:200}),fText("Texto del botón","pop_btn",{max:30}),
+      fText("Cartel verde (ej. Caja Ludmi · Atención por chat)","pop_badge",{max:80}),
+      fNum("Segundos de espera antes de aparecer (0 a 60)","pop_delay",0,60),
+      fSelect("Cada cuánto se muestra",cfg,"pop_freq",[["session","Una vez por visita"],["day","Una vez por día"],["always","Cada vez que entran"]]),
+      el("button",{class:"sm",type:"button",textContent:"👁 Ver el pop-up en la vista previa",onclick:()=>pvSend({type:"preview-popup"})})),
+    sec("Estados","Como los estados de WhatsApp: al tocar el círculo del logo arriba de la landing se abren tus imágenes a pantalla completa, con barras de progreso, avance al tocar, pausa manteniendo apretado y cierre deslizando hacia abajo. El círculo se ve con color y un puntito verde cuando hay estados nuevos y se pone gris cuando ya los vieron. Tamaño ideal: vertical 1080×1920 (9:16). Cada estado puede tener un texto, un botón (abre el chat con un mensaje ya escrito, o un link) y vencer solo después de unas horas.",
+      fCheck("Activar los estados",cfg,"stories_on"),
+      fNum("Segundos que se ve cada estado (3 a 15)","stories_secs",3,15),
+      fList("stories",{max:15,add:"+ Agregar estado",make:()=>({img:"",text:"",btn:"",msg:"",url:"",hours:24,ts:Date.now()}),
+        row:it=>{
+          const hs=el("select",{class:"fi"});
+          [[0,"No vence"],[6,"Vence a las 6 horas"],[12,"Vence a las 12 horas"],[24,"Vence a las 24 horas"],[48,"Vence a las 48 horas"],[72,"Vence a las 72 horas"],[168,"Vence a los 7 días"]].forEach(([v,t])=>hs.append(el("option",{value:String(v),textContent:t})));
+          hs.value=String(it.hours||0);hs.onchange=()=>{it.hours=+hs.value;dirty=true};
+          const when=el("small",{class:"nt"});
+          const showWhen=()=>{when.textContent=it.ts?("Publicado: "+new Date(it.ts).toLocaleString("es-AR",{dateStyle:"short",timeStyle:"short"})+(it.hours?" · vence "+new Date(it.ts+it.hours*36e5).toLocaleString("es-AR",{dateStyle:"short",timeStyle:"short"}):"")):""};
+          hs.addEventListener("change",showWhen);showWhen();
+          const rp=el("button",{class:"sm",type:"button",textContent:"↻ Republicar ahora (vuelve a marcarse como nuevo)"});
+          rp.onclick=()=>{it.ts=Date.now();dirty=true;showWhen()};
+          return el("div",{class:"acc"},imgCtl(()=>it.img,v=>{it.img=v;if(v)it.ts=Date.now();showWhen()},1920),
+            inp(it,"text","Texto sobre la imagen (opcional)",160),inp(it,"btn","Texto del botón (vacío = sin botón)",30),
+            inp(it,"msg","Mensaje que se escribe en el chat (ej. Quiero el bono del estado)",200),inp(it,"url","O un link en vez del chat (https://…)",300),
+            hs,when,rp);
+        }}),
+      el("button",{class:"sm",type:"button",textContent:"👁 Ver los estados en la vista previa",onclick:()=>pvSend({type:"preview-stories"})})),
     sec("Promociones","Carrusel de imágenes que se desliza con el dedo. Tamaño ideal: cuadrada (1080×1080) o vertical (1080×1350). Si ponés un texto de botón, al tocarlo se abre el chat con el mensaje ya escrito (la persona solo lo envía); o poné un link para que abra una página.",
       fText("Título de la sección","promos_title"),
       fList("promos",{max:12,add:"+ Agregar promo",make:()=>({img:"",title:"",btn:"Quiero esta promo",msg:"",url:""}),
@@ -1036,6 +1067,7 @@ const IC={
  plataformas:'<path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>',
  contacto:'<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.58 2.81.7A2 2 0 0 1 22 16.92z"/>',
  chat:'<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>',
+ estados:'<circle cx="12" cy="12" r="9" stroke-dasharray="4 3"/><circle cx="12" cy="12" r="4.5"/>',
  promos:'<path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><path d="M7 7h.01"/>',
  ruleta:'<path d="M20 12v10H4V12M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>',
  retiros:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>'
@@ -1043,7 +1075,8 @@ const IC={
 const TABS=[
  ["perfil","Perfil",["Perfil","Textos principales","Beneficios","Pie de página"]],
  ["pagos","Pagos",["Cargar crédito (pantalla principal)","Datos para transferir"]],
- ["diseno","Diseño",["Orden de la página","Fondo","App instalable"]],
+ ["diseno","Diseño",["Orden de la página","Fondo","App instalable","Pop-up de descarga"]],
+ ["estados","Estados",["Estados"]],
  ["promos","Promos",["Promociones"]],
  ["plataformas","Plataformas",["Plataformas","Juegos"]],
  ["contacto","Contacto",["Instagram","Botones de contacto"]],
@@ -1156,6 +1189,18 @@ function collect(){
     out.push({type,label:lab,url:u,icon});
   }
   d.contacts=out;
+  d.pop_on=!!d.pop_on;d.stories_on=!!d.stories_on;
+  for(const k of ["pop_title","pop_text","pop_btn","pop_badge"])d[k]=String(d[k]||"").trim().slice(0,k==="pop_text"?200:80);
+  d.pop_delay=Math.max(0,Math.min(60,Math.round(+d.pop_delay||0)));d.pop_freq=["session","day","always"].includes(d.pop_freq)?d.pop_freq:"session";
+  d.stories_secs=Math.max(3,Math.min(15,Math.round(+d.stories_secs||5)));
+  {const list=[];
+    for(const it of d.stories){
+      if(!it.img)continue;
+      const raw=(it.url||"").trim(),u=cleanUrl(raw,true);
+      if(raw&&!u){say("El link de un estado no es válido. Tiene que empezar con https://");return null}
+      list.push({img:it.img,text:(it.text||"").trim().slice(0,160),btn:(it.btn||"").trim().slice(0,30),msg:(it.msg||"").trim().slice(0,200),url:u||"",hours:[0,6,12,24,48,72,168].includes(+it.hours)?+it.hours:0,ts:+it.ts>0?+it.ts:Date.now()});
+    }
+    d.stories=list}
   d.promos_title=String(d.promos_title||"").trim().slice(0,40);
   {const list=[];
     for(const it of d.promos){

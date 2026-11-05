@@ -208,6 +208,47 @@ body.hastk{padding-top:calc(38px + env(safe-area-inset-top))}
 @keyframes neonspin{to{--neon:360deg}}
 @keyframes neonpulse{50%{opacity:.95;transform:scale(1.03)}}
 @media(prefers-reduced-motion:reduce){.tub.neon,.tub.neon::after{animation:none}}
+
+/* estados tipo WhatsApp + pop-up de descarga */
+.avatar.st{cursor:pointer;-webkit-tap-highlight-color:transparent}
+.avatar.st:not(.seen){animation:avglow 2.2s ease-in-out infinite}
+@keyframes avglow{50%{box-shadow:0 10px 34px #d41cd877,0 0 28px 8px #ffd21f99}}
+.avatar.st.seen::before{background:#6f6a78;animation:none}
+.avatar .sdot{position:absolute;right:-1px;bottom:1px;width:22px;height:22px;border-radius:50%;background:#25d366;border:3px solid #09030f;z-index:2;box-shadow:0 0 10px #25d366}
+@keyframes avpulse{50%{transform:scale(1.05)}}
+#sv{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.92);display:grid;place-items:center}
+#sv[hidden]{display:none}
+.svf{position:relative;height:100dvh;width:min(100vw,calc(100dvh*9/16));background:#000;overflow:hidden;user-select:none;-webkit-user-select:none}
+@media(min-height:700px) and (min-width:700px){.svf{height:min(100dvh,900px);width:min(100vw,calc(min(100dvh,900px)*9/16));border-radius:16px}}
+#svi{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;-webkit-user-drag:none;pointer-events:none}
+.svt{position:absolute;left:0;right:0;top:0;padding:calc(10px + env(safe-area-inset-top)) 12px 28px;background:linear-gradient(#000a,transparent);z-index:3}
+#svbars{display:flex;gap:4px}
+#svbars span{flex:1;height:3px;border-radius:3px;background:#ffffff4d;overflow:hidden}
+#svbars i{display:block;height:100%;width:0;background:#fff}
+.svh{display:flex;align-items:center;gap:10px;margin-top:10px;color:#fff}
+#svav{width:38px;height:38px;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:linear-gradient(135deg,#ffb800,#a0198a);flex:none}
+#svav img{width:100%;height:100%;object-fit:cover}
+.svh b{font-size:14px}.svh small{font-size:12px;opacity:.8;flex:1}
+#svx{width:38px;height:38px;border-radius:50%;border:0;background:#0006;color:#fff;font-size:18px;cursor:pointer}
+.svz{position:absolute;top:70px;bottom:110px;z-index:2;touch-action:none}
+#svl{left:0;width:32%}#svr{right:0;width:68%}
+#svbot{position:absolute;left:0;right:0;bottom:0;padding:34px 16px calc(18px + env(safe-area-inset-bottom));background:linear-gradient(transparent,#000b);z-index:3;text-align:center;color:#fff}
+#svcap{margin:0 0 10px;font-size:16px;line-height:1.35;font-weight:600;text-shadow:0 1px 6px #000}
+#svbtn{border:0;border-radius:30px;padding:12px 26px;font:inherit;font-weight:800;font-size:14px;color:#fff;background:linear-gradient(180deg,#34d570,#16a34a);cursor:pointer;box-shadow:0 6px 20px #22c55e55}
+#pop{position:fixed;inset:0;z-index:45;display:grid;place-items:center;padding:18px;background:rgba(6,1,14,.78);-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px)}
+#pop[hidden]{display:none}
+.pmod{position:relative;width:min(380px,100%);padding:26px 22px 18px;border-radius:24px;text-align:center;color:#fff;background:linear-gradient(160deg,#2a0a45,#120322);border:1px solid #d41cd8aa;box-shadow:0 0 50px #d41cd866,0 20px 60px #000a;animation:popin .45s cubic-bezier(.2,1.4,.4,1)}
+@keyframes popin{from{transform:scale(.8) translateY(30px);opacity:0}}
+#popX{position:absolute;right:10px;top:10px;width:34px;height:34px;border-radius:50%;border:0;background:#ffffff1c;color:#fff;font-size:16px;cursor:pointer}
+#popI{width:84px;height:84px;margin:0 auto 10px;border-radius:50%;overflow:hidden;border:3px solid #d41cd8;box-shadow:0 0 24px #d41cd8aa;display:grid;place-items:center;font-size:34px;background:linear-gradient(135deg,#ffb800,#a0198a)}
+#popI img{width:100%;height:100%;object-fit:cover}
+#popT{margin:0 0 6px;font-size:21px;font-weight:900}
+#popP{margin:0 0 14px;font-size:14px;line-height:1.45;color:#e3d3f2}
+#popB{width:100%;border:0;border-radius:40px;padding:16px;font:inherit;font-size:16px;font-weight:900;text-transform:uppercase;letter-spacing:.03em;color:#fff;background:linear-gradient(180deg,#34d570,#16a34a);cursor:pointer;box-shadow:0 10px 28px #22c55e66,inset 0 1px 0 #ffffff55;animation:avpulse 1.8s ease-in-out infinite}
+#popS{margin:14px 0 4px}
+#popH{margin:10px 0 0;font-size:13px;line-height:1.4;color:#ffe9a8}
+#popN{margin-top:6px;border:0;background:none;color:#ffffffa6;font:inherit;font-size:13px;text-decoration:underline;cursor:pointer;padding:8px}
+@media(prefers-reduced-motion:reduce){.avatar.st:not(.seen),#popB,.pmod{animation:none}}
 </style></head>
 <body>
 <div id="tk" hidden><button type="button" id="tkB"><span class="tkm"><span id="tkT"></span><span id="tkT2" aria-hidden="true"></span></span></button><button type="button" id="tkX" aria-label="Cerrar aviso">✕</button></div><p id="tkHint" hidden></p>
@@ -243,6 +284,17 @@ body.hastk{padding-top:calc(38px + env(safe-area-inset-top))}
 </main>
 
 <div id="wov" hidden><div class="wmodal" role="dialog" aria-modal="true" aria-label="Ruleta de bonos"><button type="button" id="wx" aria-label="Cerrar">✕</button><div id="wslot"></div></div></div>
+
+<div id="sv" hidden role="dialog" aria-modal="true" aria-label="Estados"><div class="svf" id="svf">
+  <img id="svi" alt="">
+  <div class="svt"><div id="svbars"></div><div class="svh"><div id="svav"></div><b id="svnm"></b><small id="svtm"></small><button type="button" id="svx" aria-label="Cerrar">✕</button></div></div>
+  <div class="svz" id="svl"></div><div class="svz" id="svr"></div>
+  <div id="svbot" hidden><p id="svcap"></p><button type="button" id="svbtn" hidden></button></div>
+</div></div>
+<div id="pop" hidden><div class="pmod" role="dialog" aria-modal="true" aria-labelledby="popT"><button type="button" id="popX" aria-label="Cerrar">✕</button>
+  <div id="popI" aria-hidden="true">👑</div><h3 id="popT"></h3><p id="popP"></p>
+  <button type="button" id="popB"></button><p id="popH" hidden></p>
+  <div class="status" id="popS"></div><button type="button" id="popN">Ahora no</button></div></div>
 
 <button class="fab" id="fab" hidden aria-label="Abrir chat"><span id="icFab">💬</span><span id="fabT"></span></button>
 
@@ -285,7 +337,7 @@ const DEF={
   bonus_top:"Hasta 50% de bono", bonus_big:"Hasta 50% de bono", bonus_bottom:"Consultá condiciones por el chat",
   cta:"Quiero mi bono ahora", status:"Caja asignada: Caja Ludmi · Atención por chat", bg_url:"",
   features:[{t:"Pagos rápidos",s:"Por transferencia"},{t:"Atención por chat",s:"Respondemos acá"},{t:"Retiros",s:"Consultá condiciones"}],
-  fab_on:true, fab_always:true, fab_text:"Chat", icon_fab:"", icon_attach:"", icon_mic:"", icon_send:"", icon_pay:"", instagram:"", instagram_icon:"", contacts:[], plat_auto:true, games_auto:true, auto_speed:"mid", topup_neon:true, topup_on:true, topup_text:"Cargar crédito", topup_proof:"Enviar comprobante", topup_note:"Después de transferir, tocá «Enviar comprobante» y lo recibimos por el chat.", ticker_on:true, ticker_text:"📲 Descargá la app para chatear más rápido y sin perder mensajes", promos_title:"Promociones", promos:[], platforms_title:"Plataformas", platforms:[], games_title:"Juegos", games:[],
+  fab_on:true, fab_always:true, fab_text:"Chat", icon_fab:"", icon_attach:"", icon_mic:"", icon_send:"", icon_pay:"", instagram:"", instagram_icon:"", contacts:[], plat_auto:true, games_auto:true, auto_speed:"mid", topup_neon:true, topup_on:true, topup_text:"Cargar crédito", topup_proof:"Enviar comprobante", topup_note:"Después de transferir, tocá «Enviar comprobante» y lo recibimos por el chat.", ticker_on:true, ticker_text:"📲 Descargá la app para chatear más rápido y sin perder mensajes", promos_title:"Promociones", promos:[], pop_on:true, pop_title:"📲 Descargá la app", pop_text:"Chateá más rápido y recibí un aviso cuando te respondamos. Es gratis y no ocupa lugar.", pop_btn:"Descargar la app", pop_badge:"Caja Ludmi · Atención por chat", pop_delay:4, pop_freq:"session", stories_on:true, stories_secs:5, stories:[], platforms_title:"Plataformas", platforms:[], games_title:"Juegos", games:[],
   footer:"Solo mayores de 18 años. El juego puede generar adicción: jugá con responsabilidad.",
   license:"Autorización: [COMPLETAR]", chat_title:"Chat con Caja Ludmi", greeting:"¡Hola! ¿En qué te puedo ayudar?",
   chat_notice:"Conectado. Escribinos y te respondemos.", chat_theme:"light",
@@ -496,6 +548,141 @@ $("tkB").onclick=()=>{
   h.textContent=pwaIOS()?"En el iPhone: tocá el botón Compartir de Safari y elegí «Agregar a inicio».":inAppBrowser()?"Para instalar la app, tocá los tres puntos (⋯) y elegí «Abrir en el navegador». Ahí vas a poder descargarla.":"Abrí el menú del navegador y elegí «Instalar app» o «Agregar a pantalla de inicio».";
   h.hidden=false;clearTimeout(h._t);h._t=setTimeout(()=>{h.hidden=true},8000);
 };
+/* ---------- Estados (como los de WhatsApp): se tocan desde el círculo del logo ---------- */
+var STL=[],SV={i:0,el:0,dur:5000,paused:false,raf:0,last:0,open:false,ready:false};
+function stSig(){return STL.map(x=>x.img+"|"+(x.ts||0)).join(",")}
+function stSeen(){return LSG.get("st_seen")===stSig()}
+function stList(c){
+  const now=Date.now();
+  return (Array.isArray(c.stories)?c.stories:[]).filter(x=>x&&typeof x==="object"&&safe(x.img)&&!(x.hours>0&&x.ts>0&&now>x.ts+x.hours*36e5)).slice(0,15);
+}
+function stAgo(ts){if(!ts)return "";const m=Math.max(0,Math.round((Date.now()-ts)/6e4));return m<1?"ahora":m<60?"hace "+m+" min":m<1440?"hace "+Math.round(m/60)+" h":"hace "+Math.round(m/1440)+" d"}
+function storiesApply(){
+  const c=CFG,av=$("av");STL=c.stories_on?stList(c):[];
+  const on=STL.length>0;
+  av.classList.toggle("st",on);av.classList.toggle("seen",on&&stSeen());
+  av.querySelectorAll(".sdot").forEach(x=>x.remove());
+  if(on){
+    av.setAttribute("role","button");av.tabIndex=0;av.removeAttribute("aria-hidden");av.setAttribute("aria-label","Ver estados");
+    if(!stSeen()){const d=document.createElement("i");d.className="sdot";d.setAttribute("aria-hidden","true");av.append(d)}
+    const p=new Image();p.src=safe(STL[0].img);
+  }else{
+    av.removeAttribute("role");av.removeAttribute("tabindex");av.removeAttribute("aria-label");av.setAttribute("aria-hidden","true");
+    if(SV.open)stClose();
+  }
+}
+function stOpen(i){
+  if(!STL.length)return;
+  SV.open=true;$("sv").hidden=false;document.body.style.overflow="hidden";
+  LSG.set("st_seen",stSig());const a=$("av");a.classList.add("seen");a.querySelectorAll(".sdot").forEach(x=>x.remove());
+  $("svbars").replaceChildren(...STL.map(()=>{const b=document.createElement("span"),f=document.createElement("i");b.append(f);return b}));
+  const sa=$("svav");sa.replaceChildren();const im=mkImg(CFG.avatar_url,"");if(im)sa.append(im);else sa.textContent="👑";
+  $("svnm").textContent=CFG.name||"";
+  stShow(i||0);
+  try{$("svx").focus({preventScroll:true})}catch{}
+}
+function stShow(i){
+  if(i<0)i=0;
+  if(i>=STL.length){stClose();return}
+  SV.i=i;SV.el=0;SV.ready=false;SV.paused=false;
+  const x=STL[i],img=$("svi");
+  [...$("svbars").children].forEach((b,k)=>b.firstChild.style.width=k<i?"100%":"0");
+  $("svtm").textContent=stAgo(x.ts);
+  const cap=String(x.text||"").trim().slice(0,160),bt=String(x.btn||"").trim().slice(0,30);
+  $("svcap").textContent=cap;$("svcap").hidden=!cap;
+  const b=$("svbtn");b.hidden=!bt;b.textContent=bt;
+  $("svbot").hidden=!cap&&!bt;
+  img.onload=()=>{if(SV.i===i){SV.ready=true;SV.last=performance.now()}};
+  img.onerror=()=>{if(SV.i===i)stShow(i+1)};
+  img.alt=cap;img.src=safe(x.img);
+  SV.dur=Math.max(3,Math.min(15,Number(CFG.stories_secs)||5))*1000;
+  const nx=STL[i+1];if(nx){const p=new Image();p.src=safe(nx.img)}
+  cancelAnimationFrame(SV.raf);SV.last=performance.now();SV.raf=requestAnimationFrame(stTick);
+}
+function stTick(ts){
+  if(!SV.open)return;
+  if(SV.ready&&!SV.paused&&!document.hidden){
+    SV.el+=Math.min(100,Math.max(0,ts-SV.last));
+    const f=$("svbars").children[SV.i];if(f)f.firstChild.style.width=Math.min(100,SV.el/SV.dur*100)+"%";
+    if(SV.el>=SV.dur){stShow(SV.i+1);return}
+  }
+  SV.last=ts;SV.raf=requestAnimationFrame(stTick);
+}
+function stClose(){
+  SV.open=false;cancelAnimationFrame(SV.raf);$("sv").hidden=true;document.body.style.overflow="";$("svi").removeAttribute("src");
+}
+function stZone(z,dir){
+  let t=0,held=false,sy=0;
+  z.addEventListener("pointerdown",e=>{held=false;sy=e.clientY;clearTimeout(t);t=setTimeout(()=>{held=true;SV.paused=true},220)});
+  z.addEventListener("pointerup",e=>{
+    clearTimeout(t);
+    if(held){held=false;SV.paused=false;SV.last=performance.now();return}
+    if(e.clientY-sy>90){stClose();return}
+    stShow(SV.i+dir);
+  });
+  const cancel=()=>{clearTimeout(t);if(held){held=false;SV.paused=false;SV.last=performance.now()}};
+  z.addEventListener("pointercancel",cancel);z.addEventListener("pointerleave",cancel);
+  z.addEventListener("contextmenu",e=>e.preventDefault());
+}
+stZone($("svl"),-1);stZone($("svr"),1);
+$("svx").onclick=stClose;
+$("sv").addEventListener("click",e=>{if(e.target===$("sv"))stClose()});
+$("svbtn").onclick=()=>{
+  const x=STL[SV.i];if(!x)return;
+  const link=safe(x.url);
+  if(link){window.open(link,"_blank","noopener");return}
+  stClose();
+  $("txt").value=String(x.msg||"").trim().slice(0,200)||("Quiero consultar: "+(String(x.text||"").trim().slice(0,60)||"el estado"));
+  $("open").click();
+};
+$("av").addEventListener("click",()=>{if(STL.length)stOpen(0)});
+$("av").addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&STL.length){e.preventDefault();stOpen(0)}});
+document.addEventListener("visibilitychange",()=>{SV.last=performance.now()});
+document.addEventListener("keydown",e=>{if(!SV.open)return;if(e.key==="Escape")stClose();else if(e.key==="ArrowRight")stShow(SV.i+1);else if(e.key==="ArrowLeft")stShow(SV.i-1)});
+/* ---------- Pop-up para descargar la app ---------- */
+var popShown=false,popTried=0,popTimer=0,popUp=false,popT0=performance.now();
+function popEligible(){return !!CFG.pop_on&&(PREVIEW||(!!CFG.pwa_on&&!pwaDone&&!pwaStandalone()&&(!!pwaEv||pwaIOS()||inAppBrowser())))}
+function popSeen(){
+  const f=CFG.pop_freq;if(f==="always")return false;
+  try{if(f==="day"){return Date.now()-(+localStorage.getItem("pop_seen")||0)<864e5}return !!sessionStorage.getItem("pop_seen")}catch{return false}
+}
+function popMark(){try{if(CFG.pop_freq==="day")localStorage.setItem("pop_seen",String(Date.now()));else sessionStorage.setItem("pop_seen","1")}catch{}}
+function popFill(){
+  const c=CFG;
+  $("popT").textContent=c.pop_title||"";$("popT").hidden=!c.pop_title;
+  $("popP").textContent=c.pop_text||"";$("popP").hidden=!c.pop_text;
+  $("popB").textContent=c.pop_btn||"Descargar la app";
+  $("popS").textContent=c.pop_badge||"";$("popS").hidden=!c.pop_badge;
+  const i=$("popI"),im=mkImg(c.avatar_url,"");i.replaceChildren();if(im)i.append(im);else i.textContent="👑";
+}
+function popOpen(){
+  popFill();$("popH").hidden=true;$("pop").hidden=false;popUp=true;popShown=true;popMark();
+  try{$("popB").focus({preventScroll:true})}catch{}
+}
+function popClose(){$("pop").hidden=true;popUp=false}
+function popTry(){
+  if(PREVIEW||popUp||!CFG.pop_on)return;
+  if(popSeen())return;
+  const busy=!$("chat").hidden||!$("wov").hidden||!$("sv").hidden;
+  if(!popEligible()||busy){if(++popTried<8)popTimer=setTimeout(popTry,2500);return}
+  popOpen();
+}
+function popApply(){
+  if(!CFG.pop_on){popClose();return}
+  if(popUp)popFill();
+  if(!popShown&&!PREVIEW){clearTimeout(popTimer);popTried=0;popTimer=setTimeout(popTry,Math.max(0,Math.max(0,Math.min(60,Number(CFG.pop_delay)||0))*1000-(performance.now()-popT0)))}
+}
+$("popX").onclick=popClose;$("popN").onclick=popClose;
+$("pop").addEventListener("click",e=>{if(e.target===$("pop"))popClose()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&popUp)popClose()});
+addEventListener("appinstalled",popClose);
+$("popB").onclick=()=>{
+  if(PREVIEW)return;
+  if(pwaEv){pwaEv.prompt();pwaEv.userChoice.finally(()=>{pwaEv=null;pwaApply()});popClose();return}
+  const h=$("popH");
+  h.textContent=pwaIOS()?"En el iPhone: tocá el botón Compartir de Safari y elegí «Agregar a inicio».":inAppBrowser()?"Para instalar la app, tocá los tres puntos (⋯) y elegí «Abrir en el navegador». Ahí vas a poder descargarla.":"Abrí el menú del navegador y elegí «Instalar app» o «Agregar a pantalla de inicio».";
+  h.hidden=false;
+};
 function apply(c){
   CFG=c;
   txt("nm",c.name);txt("ttl",c.title);txt("b1",c.bonus_top);txt("b2",c.bonus_big);txt("b3",c.bonus_bottom);
@@ -509,6 +696,7 @@ function apply(c){
   renderStatus();renderQuick();
   const av=$("av"),ai=mkImg(c.avatar_url,c.name);av.replaceChildren();
   if(ai)av.append(ai);else av.textContent="👑";
+  storiesApply();popApply();
   [["icAttach",c.icon_attach,"📎"],["icMic",c.icon_mic,"🎤"],["icSend",c.icon_send,"➤"],["icPay",c.icon_pay,"💳"]].forEach(([id,u,emo])=>{
     const sp=$(id),im=mkImg(u,"");sp.replaceChildren();if(im)sp.append(im);else sp.textContent=emo});
   $("fabT").textContent=c.fab_text;
@@ -591,6 +779,8 @@ if(PREVIEW){
   addEventListener("message",e=>{
     if(e.origin!==location.origin||e.source!==window.parent||!e.data)return;
     if(e.data.type==="preview-cfg"&&e.data.cfg&&typeof e.data.cfg==="object"){apply(merge(e.data.cfg));if(!$("chat").hidden)previewChat()}
+    if(e.data.type==="preview-stories"){if(SV.open)stClose();else stOpen(0)}
+    if(e.data.type==="preview-popup"){if(popUp)popClose();else popOpen()}
     if(e.data.type==="preview-chat"){if(e.data.open){$("chat").hidden=false;previewChat()}else $("chat").hidden=true;syncFab()}
   });
 }
