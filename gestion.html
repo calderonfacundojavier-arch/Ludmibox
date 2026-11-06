@@ -229,42 +229,62 @@ VIEWS.dash=async function(){
     <div class="card kpi"><div class="l">Retiros hoy</div><div class="v neg">${fm(m.retiros)}</div></div>
     <div class="card kpi"><div class="l">Gastos hoy</div><div class="v">${fm(m.gastos)}</div></div>
     <div class="card kpi"><div class="l">Neto del día</div><div class="v">${fm(N(m.ingresos)-N(m.retiros)-N(m.gastos))}</div></div></div>`}
-  const mv=await q(sb.from("g_movements").select("*").order("ts",{ascending:false}).limit(10));
+  const bal=()=>`<h3>Billeteras</h3>${actW().map(w=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #1a2a25"><span><span class="pill" style="background:${esc(w.color)};border-color:${esc(w.color)}">&nbsp;</span> ${esc(w.name)}</span><b>${fm(w.balance)}</b></div>`).join("")||'<p class="mut">Sin billeteras.</p>'}
+    <h3 style="margin-top:14px">Fichas (stock)</h3>${actC().map(c=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #1a2a25"><span>${esc(c.name)}</span><b>${fn(c.balance)}</b></div>`).join("")||'<p class="mut">Sin fichas.</p>'}`;
   $("view").innerHTML=k+`<div class="grid g2"><div class="card"><h2>Nuevo movimiento</h2><div id="dForm">${movFields()}</div>
-    <button class="btn full" id="dGo">Registrar</button></div>
-  <div class="card"><h3>Billeteras</h3>${actW().map(w=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #1a2a25"><span><span class="pill" style="background:${esc(w.color)};border-color:${esc(w.color)}">&nbsp;</span> ${esc(w.name)}</span><b>${fm(w.balance)}</b></div>`).join("")||'<p class="mut">Sin billeteras.</p>'}
-    <h3 style="margin-top:14px">Fichas (stock)</h3>${actC().map(c=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #1a2a25"><span>${esc(c.name)}</span><b>${fn(c.balance)}</b></div>`).join("")||'<p class="mut">Sin fichas.</p>'}</div></div>
-  <div class="card" style="margin-top:12px"><h3>Últimos movimientos</h3>${movTable(mv,false)}</div>`;
-  const get=movWire($("dForm"));
+    <button class="btn full" id="dGo">Registrar</button></div><div class="card" id="dBal">${bal()}</div></div>
+  <div class="card" style="margin-top:12px"><h2>Buscar movimientos</h2><div id="dS"></div></div>`;
+  let get=movWire($("dForm"));
+  const load=movSearch($("dS"),{from:today(),onChange:async()=>{$("dBal").innerHTML=bal()}});
   $("dGo").onclick=()=>run($("dGo"),async()=>{const v=get(),e=chk(v);if(e){toast(e,true);return}
-    await saveMov(v);toast("Registrado ✓");await go("dash")});
+    await saveMov(v);toast("Registrado ✓");await loadRef();$("dBal").innerHTML=bal();$("dForm").innerHTML=movFields();get=movWire($("dForm"));await load()});
+  await load();
 };
 
 /* ---------- tabla de movimientos ---------- */
 function canEditMov(){return isAdm()||S.cfg.op_can_edit}
 function movTable(rows,acts){
-  if(!rows.length)return'<p class="mut">No hay movimientos.</p>';
+  if(!rows.length)return'<p class="mut">No hay movimientos con esos filtros.</p>';
+  const cols=acts?10:9;
   return `<div class="tw"><table><tr><th>Fecha</th><th>Usuario</th><th>Tipo</th><th>Monto</th><th>Bono</th><th>Fichas</th><th>Ficha</th><th>Billetera</th><th>Cajero</th>${acts?"<th></th>":""}</tr>`+
-  rows.map(m=>`<tr><td>${fdt(m.ts)}</td><td>${esc(m.user_name)}${m.edited?' <span class="pill">editado</span>':""}</td><td class="${m.kind==="carga"?"pos":"neg"}">${KIND[m.kind]}</td><td>${fm(m.amount)}</td><td>${m.bonus>0?fm(m.bonus):"—"}</td><td>${fn(m.chips)}</td><td>${esc(cName(m.chip_id))}</td><td>${esc(wName(m.wallet_id))}</td><td>${esc(m.cajero_name)}</td>
-  ${acts?`<td class="acts">${canEditMov()?`<button class="btn g s" data-e="${m.id}">Editar</button><button class="btn d s" data-x="${m.id}">Anular</button>`:""}</td>`:""}</tr>`).join("")+"</table></div>";
+  rows.map(m=>{const v=m.voided;return `<tr${v?' style="opacity:.55"':""}><td>${fdt(m.ts)}</td><td${v?' style="text-decoration:line-through"':""}>${esc(m.user_name)}${m.edited?' <span class="pill">editado</span>':""}${v?' <span class="pill" style="color:var(--r);border-color:var(--r)">ANULADA</span>':""}</td><td class="${m.kind==="carga"?"pos":"neg"}">${KIND[m.kind]}</td><td>${fm(m.amount)}</td><td>${m.bonus>0?fm(m.bonus):"—"}</td><td>${fn(m.chips)}</td><td>${esc(cName(m.chip_id))}</td><td>${esc(wName(m.wallet_id))}</td><td>${esc(m.cajero_name)}</td>
+  ${acts?`<td class="acts">${v?"":`${canEditMov()?`<button class="btn g s" data-e="${m.id}">Editar</button>`:""}<button class="btn d s" data-x="${m.id}">Anular</button>`}</td>`:""}</tr>`+
+  (v?`<tr style="opacity:.8"><td colspan="${cols}" class="mut" style="padding-top:0">↳ Anulada por <b>${esc(m.voided_by||"?")}</b> el ${fdt(m.voided_at)} · Motivo: <i>${esc(m.void_reason||"")}</i></td></tr>`:"")}).join("")+"</table></div>";
+}
+/* buscador reutilizable (Dashboard y Movimientos) */
+function movSearch(root,o){
+  const t=today();
+  root.innerHTML=`<div class="row"><div><label>Usuario</label><input id="fU" placeholder="buscar usuario…" autocomplete="off"></div><div><label>Tipo</label><select id="fK"><option value="">Cargas y retiros</option><option value="carga">Solo cargas</option><option value="retiro">Solo retiros</option></select></div>
+  <div><label>Desde</label><input type="date" id="fD" value="${o.from||t}"></div><div><label>Hasta</label><input type="date" id="fH" value="${t}"></div></div>
+  <div class="row"><div><label>Monto desde ($)</label><input id="fA" type="number" min="0" step="0.01" inputmode="decimal"></div><div><label>Monto hasta ($)</label><input id="fB" type="number" min="0" step="0.01" inputmode="decimal"></div>
+  <div><label>Cajero</label><input id="fC" placeholder="nombre" autocomplete="off"></div><button class="btn" id="fS">Buscar</button></div>
+  <div class="sw" style="margin-top:8px"><input type="checkbox" id="fV"><label style="margin:0">Mostrar también las anuladas</label></div>
+  ${isAdm()?"":`<p class="sub" style="margin:8px 0 0">Ves los movimientos de los últimos ${S.cfg.op_history_days} día(s).</p>`}<div id="fL" style="margin-top:12px"></div>`;
+  const g=id=>root.querySelector("#"+id);
+  const load=async()=>{
+    let r=sb.from("g_movements").select("*").gte("ts",dayISO(g("fD").value||t)).lt("ts",dayISO(addDays(g("fH").value||t,1))).order("ts",{ascending:false}).limit(500);
+    if(!g("fV").checked)r=r.eq("voided",false);
+    if(g("fU").value.trim())r=r.ilike("user_name","%"+g("fU").value.trim()+"%");
+    if(g("fK").value)r=r.eq("kind",g("fK").value);
+    if(g("fC").value.trim())r=r.ilike("cajero_name","%"+g("fC").value.trim()+"%");
+    if(g("fA").value!=="")r=r.gte("amount",N(g("fA").value));
+    if(g("fB").value!=="")r=r.lte("amount",N(g("fB").value));
+    const rows=await q(r);const live=rows.filter(x=>!x.voided);
+    const c=live.filter(x=>x.kind==="carga"),re=live.filter(x=>x.kind==="retiro");
+    const info=`<p class="sub">${rows.length} resultado(s)${rows.length>=500?" (mostrando los primeros 500)":""}`+
+      (isAdm()?` · ${c.length} cargas: <b class="pos">${fm(c.reduce((a,x)=>a+N(x.amount),0))}</b> · ${re.length} retiros: <b class="neg">${fm(re.reduce((a,x)=>a+N(x.amount),0))}</b>`:"")+"</p>";
+    g("fL").innerHTML=info+movTable(rows,true);
+    g("fL").onclick=ev=>{const e=ev.target.closest("[data-e]"),x=ev.target.closest("[data-x]");
+      if(e)editMov(rows.find(m=>m.id===e.dataset.e),async()=>{await load();if(o.onChange)await o.onChange()});
+      if(x)voidMov(rows.find(m=>m.id===x.dataset.x),async()=>{await load();if(o.onChange)await o.onChange()})}};
+  g("fS").onclick=()=>run(g("fS"),load);
+  root.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.tagName==="INPUT"&&e.target.type!=="checkbox")run(null,load)});
+  g("fV").onchange=()=>run(null,load);
+  return load;
 }
 VIEWS.mov=async function(){
-  const t=today();
-  $("view").innerHTML=`<div class="card"><div class="row"><div><label>Desde</label><input type="date" id="fD" value="${isAdm()?addDays(t,-6):t}"></div><div><label>Hasta</label><input type="date" id="fH" value="${t}"></div>
-  <div><label>Usuario</label><input id="fU" placeholder="buscar…"></div><div><label>Tipo</label><select id="fK"><option value="">Todos</option><option value="carga">Cargas</option><option value="retiro">Retiros</option></select></div>
-  <div><label>Cajero</label><input id="fC" placeholder="nombre"></div><button class="btn" id="fB">Buscar</button></div>
-  ${isAdm()?"":`<p class="sub" style="margin:8px 0 0">Ves los movimientos de los últimos ${S.cfg.op_history_days} día(s).</p>`}</div><div class="card" style="margin-top:12px" id="mList"></div>`;
-  const load=async()=>{let r=sb.from("g_movements").select("*").gte("ts",dayISO($("fD").value)).lt("ts",dayISO(addDays($("fH").value,1))).order("ts",{ascending:false}).limit(500);
-    if($("fU").value.trim())r=r.ilike("user_name","%"+$("fU").value.trim()+"%");
-    if($("fK").value)r=r.eq("kind",$("fK").value);
-    if($("fC").value.trim())r=r.ilike("cajero_name","%"+$("fC").value.trim()+"%");
-    const rows=await q(r);
-    let tot="";if(isAdm()){const c=rows.filter(x=>x.kind==="carga"),re=rows.filter(x=>x.kind==="retiro");
-      tot=`<p class="sub">${c.length} cargas: <b class="pos">${fm(c.reduce((a,x)=>a+N(x.amount),0))}</b> · ${re.length} retiros: <b class="neg">${fm(re.reduce((a,x)=>a+N(x.amount),0))}</b></p>`}
-    $("mList").innerHTML=tot+movTable(rows,true);
-    $("mList").onclick=ev=>{const e=ev.target.closest("[data-e]"),x=ev.target.closest("[data-x]");
-      if(e)editMov(rows.find(m=>m.id===e.dataset.e),load);if(x)delMov(rows.find(m=>m.id===x.dataset.x),load)}};
-  $("fB").onclick=()=>run($("fB"),load);await load();
+  $("view").innerHTML='<div class="card"><div id="mS"></div></div>';
+  const load=movSearch($("mS"),{from:isAdm()?addDays(today(),-6):today()});await load();
 };
 function editMov(m,after){
   const d=modal(`<h2>Editar ${KIND[m.kind].toLowerCase()}</h2>${movFields(m)}<div class="row" style="margin-top:12px"><button class="btn g" id="eC">Cancelar</button><button class="btn" id="eS">Guardar</button></div>`);
@@ -273,12 +293,15 @@ function editMov(m,after){
     await rpc("g_edit_movement",{p_shift:sid(),p_id:m.id,p_user:v.user,p_amount:v.amount,p_bonus_type:v.bt,p_bonus_value:v.kind==="carga"?v.bv:0,p_chip:v.chip,p_wallet:v.wallet,p_ad:v.kind==="carga"?v.ad:null});
     d.remove();toast("Guardado ✓");await loadRef();await after()});
 }
-function delMov(m,after){
-  const d=modal(`<h2>¿Anular este movimiento?</h2><p>${KIND[m.kind]} de <b>${fm(m.amount)}</b> · ${esc(m.user_name)}<br><span class="mut">Se devuelven el saldo de la billetera y las fichas.</span></p><div class="row"><button class="btn g" id="xC">No</button><button class="btn d" id="xS">Sí, anular</button></div>`);
-  d.querySelector("#xC").onclick=()=>d.remove();
-  d.querySelector("#xS").onclick=()=>run(d.querySelector("#xS"),async()=>{await rpc("g_delete_movement",{p_shift:sid(),p_id:m.id});d.remove();toast("Anulado ✓");await loadRef();await after()});
+function voidMov(m,after){
+  const d=modal(`<h2>Anular ${KIND[m.kind].toLowerCase()}</h2><p>${KIND[m.kind]} de <b>${fm(m.amount)}</b> · ${esc(m.user_name)} · ${fdt(m.ts)}<br><span class="mut">Se devuelven el saldo de la billetera y las fichas. Queda registrada como anulada.</span></p>
+  <label>Motivo de la anulación (obligatorio)</label><textarea id="vR" rows="3" maxlength="300" placeholder="Ej: me equivoqué de usuario / monto mal cargado"></textarea>
+  <div class="err" id="vE"></div><div class="row" style="margin-top:8px"><button class="btn g" id="vC">Cancelar</button><button class="btn d" id="vS">Anular</button></div>`);
+  d.querySelector("#vC").onclick=()=>d.remove();
+  d.querySelector("#vS").onclick=()=>run(d.querySelector("#vS"),async()=>{const r=d.querySelector("#vR").value.trim();
+    if(r.length<5){d.querySelector("#vE").textContent="Escribí el motivo (mínimo 5 letras).";return}
+    await rpc("g_void_movement",{p_shift:sid(),p_id:m.id,p_reason:r});d.remove();toast("Anulada ✓");await loadRef();await after()});
 }
-
 /* ---------- Billeteras y fichas (libro) ---------- */
 async function ledger(kind,item){
   const tb=kind==="w"?"g_wallet_tx":"g_chip_tx",col=kind==="w"?"wallet_id":"chip_id";
@@ -401,7 +424,7 @@ VIEWS.pub=async function(){
   if(!isAdm()){
     const L=await rpc("g_ads_list");
     $("view").innerHTML=`<div class="row" style="margin-bottom:12px;align-items:center"><div><h2 style="margin:0">Publicidad</h2><span class="mut">Cuando entra un mensaje de una campaña, tocá +1.</span></div><button class="btn" id="oN">+ Nueva campaña</button></div>
-    <div class="card">`+(L.map(a=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 0;border-bottom:1px solid #1a2a25"><span><b>${esc(a.name)}</b> <span class="pill">${esc(a.status)}</span> <span class="mut">${fn(a.msgs)} mensajes</span></span>
+    <div class="card">`+(L.map(a=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 0;border-bottom:1px solid #1a2a25"><span><b>${esc(a.name)}</b> <span class="pill">${esc(a.status)}</span> <span class="mut">${fn(a.msgs)} mensajes · ${fn(a.loads)} cargas</span></span>
       <span class="acts">${a.status==="activa"?`<button class="btn s" data-m="${a.id}">+1 mensaje</button><button class="btn g s" data-st="pausada" data-id="${a.id}">Pausar</button><button class="btn g s" data-st="finalizada" data-id="${a.id}">Finalizar</button>`:`<button class="btn g s" data-st="activa" data-id="${a.id}">Reactivar</button>`}</span></div>`).join("")||'<p class="mut">Todavía no hay campañas. Creá la primera.</p>')+"</div>";
     $("oN").onclick=()=>{const d=modal(`<h2>Nueva campaña</h2><label>Nombre</label><input id="oNm" maxlength="60" placeholder="Ej: Facebook noviembre"><div class="row" style="margin-top:12px"><button class="btn g" id="oX">Cancelar</button><button class="btn" id="oS">Crear</button></div>`);
       d.querySelector("#oX").onclick=()=>d.remove();
@@ -416,9 +439,9 @@ VIEWS.pub=async function(){
   const load=async()=>{const t=today(),p=$("pP").value;let f=dayISO(t),to=dayISO(addDays(t,1));
     if(p==="7")f=dayISO(addDays(t,-6));if(p==="mes")f=dayISO(t.slice(0,8)+"01");
     const rows=await rpc("g_ads_stats",{p_from:f,p_to:to,p_total:p==="total",p_status:$("pS").value||null});
-    $("pL").innerHTML=`<div class="tw"><table><tr><th>Campaña</th><th>Estado</th><th>Inversión</th><th>Mensajes</th><th>Cargas</th><th>Ingresos</th><th>$/msj</th><th>$/carga</th><th>ROI</th><th></th></tr>`+
+    $("pL").innerHTML=`<div class="tw"><table><tr><th>Campaña</th><th>Estado</th><th>Inversión</th><th>Mensajes</th><th>Cargas</th><th>Ingresos</th><th>Conversión</th><th>$/msj</th><th>$/carga</th><th>ROI</th><th></th></tr>`+
     rows.map(a=>{const inv=N(a.inversion),roi=inv>0?(N(a.income)-inv)/inv*100:null;
-      return`<tr><td><b>${esc(a.name)}</b><br><span class="mut">${esc(a.start_date)}</span></td><td><span class="pill">${esc(a.status)}</span></td><td>${fm(inv)}</td><td>${fn(a.msgs)}</td><td>${fn(a.loads)}</td><td>${fm(a.income)}</td><td>${N(a.msgs)>0?fm(inv/N(a.msgs)):"—"}</td><td>${N(a.loads)>0?fm(inv/N(a.loads)):"—"}</td><td class="${roi==null?"":roi>=0?"pos":"neg"}">${roi==null?"—":fn(roi)+"%"}</td>
+      return`<tr><td><b>${esc(a.name)}</b><br><span class="mut">${esc(a.start_date)}</span></td><td><span class="pill">${esc(a.status)}</span></td><td>${fm(inv)}</td><td>${fn(a.msgs)}</td><td>${fn(a.loads)}</td><td>${fm(a.income)}</td><td>${N(a.msgs)>0?fn(N(a.loads)/N(a.msgs)*100)+"%":"—"}</td><td>${N(a.msgs)>0?fm(inv/N(a.msgs)):"—"}</td><td>${N(a.loads)>0?fm(inv/N(a.loads)):"—"}</td><td class="${roi==null?"":roi>=0?"pos":"neg"}">${roi==null?"—":fn(roi)+"%"}</td>
       <td class="acts"><button class="btn g s" data-pm="${a.id}">+ msj</button><button class="btn g s" data-pc="${a.id}">+ costo</button><button class="btn g s" data-pa="${a.id}">Ajustar</button><button class="btn g s" data-ps="${a.id}">Estado</button></td></tr>`}).join("")+"</table></div>"+(rows.length?"":'<p class="mut">No hay campañas.</p>');
     $("pL").onclick=ev=>{const m=ev.target.closest("[data-pm]"),c=ev.target.closest("[data-pc]"),a=ev.target.closest("[data-pa]"),s=ev.target.closest("[data-ps]");
       const find=id=>rows.find(x=>x.id===id);
