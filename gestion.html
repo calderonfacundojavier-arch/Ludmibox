@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="es"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#0b1210">
+<title>Gestión · Caja Ludmi</title>
+<style>
+:root{--bg:#0b1210;--p:#121c19;--p2:#182521;--b:#243630;--t:#e8f3ee;--m:#8aa79b;--a:#00e676;--a2:#00b85a;--r:#ff5252;--y:#ffca28;--bl:#4dabf7}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--t);font:15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+.hide{display:none!important}
+#login,#shift{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
+.card{background:var(--p);border:1px solid var(--b);border-radius:14px;padding:16px}
+.box{width:100%;max-width:380px}
+h1{font-size:20px;margin:0 0 4px}h2{font-size:17px;margin:0 0 10px}h3{font-size:14px;margin:0 0 8px;color:var(--m);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.sub{color:var(--m);font-size:13px;margin:0 0 14px}
+label{display:block;font-size:12px;color:var(--m);margin:10px 0 4px}
+input,select,textarea{width:100%;background:var(--bg);border:1px solid var(--b);border-radius:9px;padding:10px 11px;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--a)}
+.btn{background:var(--a);color:#032;border:0;border-radius:9px;padding:10px 14px;font-weight:700;cursor:pointer}
+.btn:disabled{opacity:.5;cursor:default}.btn.s{padding:6px 10px;font-size:13px}
+.btn.g{background:var(--p2);color:var(--t);border:1px solid var(--b)}.btn.d{background:var(--r);color:#fff}
+.full{width:100%;margin-top:14px}
+.err{color:var(--r);font-size:13px;min-height:18px;margin-top:8px}
+.lnk{background:none;border:0;color:var(--a);cursor:pointer;padding:6px 0;font-size:13px}
+header{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--b);position:sticky;top:0;background:var(--bg);z-index:5;flex-wrap:wrap}
+header .br{font-weight:800;color:var(--a)}header .sp{flex:1}
+.badge{font-size:11px;padding:3px 8px;border-radius:99px;border:1px solid var(--b);color:var(--m)}
+.badge.adm{color:var(--y);border-color:var(--y)}
+nav{display:flex;gap:4px;overflow-x:auto;padding:8px 10px;border-bottom:1px solid var(--b);scrollbar-width:none}
+nav button{white-space:nowrap;background:none;border:0;color:var(--m);padding:8px 12px;border-radius:9px;cursor:pointer;font-weight:600}
+nav button.on{background:var(--p2);color:var(--a)}
+main{padding:14px;max-width:1100px;margin:0 auto}
+.grid{display:grid;gap:12px}.g2{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}.g4{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.kpi .v{font-size:22px;font-weight:800}.kpi .l{font-size:12px;color:var(--m)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start}.row>*{flex:1;min-width:110px}.row>.btn{flex:0 0 auto;align-self:flex-end}.mfB .row{flex-wrap:nowrap;align-items:center}.mfB .row select{flex:0 0 74px;min-width:0}.mfB .row input{min-width:0}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;color:var(--m);font-weight:600;padding:7px 6px;border-bottom:1px solid var(--b);white-space:nowrap}
+td{padding:7px 6px;border-bottom:1px solid #1a2a25;vertical-align:top}
+.tw{overflow-x:auto}
+.pos{color:var(--a)}.neg{color:var(--r)}.mut{color:var(--m)}
+.pill{display:inline-block;font-size:11px;padding:2px 7px;border-radius:99px;background:var(--p2);border:1px solid var(--b)}
+.wc{border-left:5px solid var(--a)}
+.wc .bal{font-size:24px;font-weight:800;margin:4px 0 8px}
+.acts{display:flex;gap:6px;flex-wrap:wrap}
+.bar{height:8px;background:var(--p2);border-radius:9px;overflow:hidden;margin-top:4px}.bar i{display:block;height:100%;background:var(--a)}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--p2);border:1px solid var(--a);padding:10px 16px;border-radius:10px;z-index:99;max-width:90vw}
+#toast.bad{border-color:var(--r)}
+.ov{position:fixed;inset:0;background:#000b;display:flex;align-items:flex-start;justify-content:center;padding:20px 12px;overflow:auto;z-index:50}
+.ov .card{width:100%;max-width:520px;margin:auto}.ov .card.wide{max-width:760px}
+.sw{display:flex;align-items:center;gap:8px}.sw input{width:auto}
+.prev{background:var(--p2);border-radius:9px;padding:9px 11px;margin-top:10px;font-size:13px}
+</style></head><body>
+
+<div id="login" class="hide"><div class="card box">
+  <h1>Gestión · Caja Ludmi</h1><p class="sub">Ingresá con tu usuario.</p>
+  <form id="lf"><label>Usuario (mail)</label><input id="le" type="email" autocomplete="username" required>
+  <label>Contraseña</label><input id="lp" type="password" autocomplete="current-password" required>
+  <div class="err" id="lerr"></div><button class="btn full" id="lb">Ingresar</button></form>
+</div></div>
+
+<div id="shift" class="hide"><div class="card box">
+  <h1>¿Quién está en el turno?</h1><p class="sub">Elegí tu nombre e ingresá tu contraseña.</p>
+  <div id="sPick"><label>Cajero</label><select id="sSel"></select>
+    <label>Contraseña</label><input id="sPin" type="password" autocomplete="off">
+    <div class="err" id="sErr"></div>
+    <button class="btn full" id="sGo">Iniciar turno</button>
+    <button class="lnk" id="sNew">Soy nuevo · Crear usuario</button></div>
+  <div id="sCreate" class="hide"><label>Nombre o apodo</label><input id="cName" maxlength="30" autocomplete="off">
+    <label>Contraseña (mín. 4)</label><input id="cPin" type="password" autocomplete="new-password">
+    <label>Repetir contraseña</label><input id="cPin2" type="password" autocomplete="new-password">
+    <div class="err" id="cErr"></div>
+    <button class="btn full" id="cGo">Crear y empezar turno</button>
+    <button class="lnk" id="cBack">← Volver</button></div>
+  <button class="lnk" id="sOut" style="margin-top:8px">Salir de la cuenta</button>
+</div></div>
+
+<div id="app" class="hide">
+  <header><span class="br">💰 Gestión</span><span class="badge" id="hRole"></span><span id="hCaj" class="mut"></span><span class="sp"></span>
+    <button class="btn g s hide" id="hShift">Cambiar turno</button><button class="btn g s" id="hOut">Salir</button></header>
+  <nav id="nav"></nav><main id="view"></main>
+</div>
+<div id="toast" class="hide"></div>
+<div id="ovs"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const SUPABASE_URL="https://otlrgjezfuwlxqigqpfz.supabase.co", SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90bHJnamV6ZnV3bHhxaWdxcGZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5NjY5MDEsImV4cCI6MjEwNjU0MjkwMX0.j_eQn8LafoxQ8WeT4OlBrfFTDvZIV8tO4pGylbGKu7k";
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{storageKey:"gestion-auth"}});
+const S={role:null,shift:null,cfg:{op_can_edit:false,op_history_days:2},wallets:[],chips:[],ads:[],cajeros:[],tab:"dash"};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const N=v=>Number(v)||0;
+const fm=n=>"$"+N(n).toLocaleString("es-AR",{minimumFractionDigits:0,maximumFractionDigits:2});
+const fn=n=>N(n).toLocaleString("es-AR",{maximumFractionDigits:2});
+const TZ="America/Argentina/Buenos_Aires";
+const fdt=t=>t?new Date(t).toLocaleString("es-AR",{timeZone:TZ,day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"";
+const today=()=>new Date().toLocaleDateString("en-CA",{timeZone:TZ});
+const dayISO=d=>new Date(d+"T00:00:00-03:00").toISOString();
+const addDays=(d,n)=>{const x=new Date(d+"T12:00:00Z");x.setUTCDate(x.getUTCDate()+n);return x.toISOString().slice(0,10)};
+const isAdm=()=>S.role==="admin";
+const sid=()=>S.shift?S.shift.id:null;
+let tt;function toast(m,bad){const t=$("toast");t.textContent=m;t.className=bad?"bad":"";clearTimeout(tt);tt=setTimeout(()=>t.className="hide",bad?5000:2600)}
+async function q(p){const r=await p;if(r.error)throw new Error(r.error.message||String(r.error));return r.data}
+const rpc=(n,a)=>q(sb.rpc(n,a||{}));
+async function run(btn,fn){if(btn)btn.disabled=true;try{return await fn()}catch(e){toast(e.message||"Error",true)}finally{if(btn)btn.disabled=false}}
+function modal(html,wide){const d=document.createElement("div");d.className="ov";d.innerHTML='<div class="card'+(wide?" wide":"")+'">'+html+"</div>";
+  d.addEventListener("mousedown",e=>{if(e.target===d)d.remove()});$("ovs").appendChild(d);return d}
+const opts=(arr,sel,f)=>arr.map(x=>`<option value="${esc(x.id)}"${x.id===sel?" selected":""}>${esc(f?f(x):x.name)}</option>`).join("");
+const KIND={carga:"Carga",retiro:"Retiro","ajuste+":"Ajuste +","ajuste-":"Ajuste −",gasto:"Gasto",sueldo:"Sueldo",transf_in:"Transf. recibida",transf_out:"Transf. enviada",inicial:"Saldo inicial",compra:"Compra"};
+
+/* ---------- sesión ---------- */
+async function boot(){
+  const {data}=await sb.auth.getSession();
+  if(!data||!data.session){show("login");return}
+  await init();
+}
+function show(w){["login","shift","app"].forEach(x=>$(x).classList.toggle("hide",x!==w))}
+$("lf").onsubmit=async e=>{e.preventDefault();$("lerr").textContent="";const b=$("lb");b.disabled=true;
+  const {error}=await sb.auth.signInWithPassword({email:$("le").value.trim(),password:$("lp").value});
+  b.disabled=false;if(error){$("lerr").textContent="Usuario o contraseña incorrectos.";return}
+  $("lp").value="";await init()};
+async function logout(){try{if(S.shift)await sb.rpc("g_end_shift",{p_shift:S.shift.id})}catch(e){}
+  S.shift=null;try{sessionStorage.removeItem("g_shift")}catch(e){}await sb.auth.signOut();S.role=null;show("login")}
+$("hOut").onclick=logout;$("sOut").onclick=logout;
+async function init(){
+  let who;try{who=await rpc("g_whoami")}catch(e){who=null}
+  if(!who||!who.role){await sb.auth.signOut();show("login");$("lerr").textContent="Este usuario no tiene acceso a Gestión.";return}
+  S.role=who.role;S.cfg={op_can_edit:!!who.op_can_edit,op_history_days:who.op_history_days||2};
+  if(!isAdm()){
+    let sh=null;try{sh=JSON.parse(sessionStorage.getItem("g_shift")||"null")}catch(e){}
+    if(sh&&sh.id){S.shift=sh}else{await showShift();return}
+  }
+  await enterApp();
+}
+async function showShift(){
+  show("shift");$("sPick").classList.remove("hide");$("sCreate").classList.add("hide");$("sErr").textContent="";$("sPin").value="";
+  try{const l=await rpc("g_cajero_choices");$("sSel").innerHTML=l.length?opts(l):'<option value="">(no hay cajeros: creá tu usuario)</option>'}catch(e){$("sErr").textContent=e.message}
+}
+$("sNew").onclick=()=>{$("sPick").classList.add("hide");$("sCreate").classList.remove("hide");$("cErr").textContent=""};
+$("cBack").onclick=()=>{$("sCreate").classList.add("hide");$("sPick").classList.remove("hide")};
+async function startShift(id,pin,errEl,btn){
+  btn.disabled=true;
+  try{const r=await rpc("g_start_shift",{p_cajero:id,p_pin:pin});
+    if(!r.ok){errEl.textContent=r.error;return false}
+    S.shift={id:r.shift_id,name:r.name};try{sessionStorage.setItem("g_shift",JSON.stringify(S.shift))}catch(e){}
+    await enterApp();return true}
+  catch(e){errEl.textContent=e.message;return false}finally{btn.disabled=false}
+}
+$("sGo").onclick=()=>{$("sErr").textContent="";if(!$("sSel").value){$("sErr").textContent="Elegí tu nombre.";return}startShift($("sSel").value,$("sPin").value,$("sErr"),$("sGo"))};
+$("sPin").onkeydown=e=>{if(e.key==="Enter")$("sGo").click()};
+$("cGo").onclick=async()=>{const e=$("cErr");e.textContent="";const n=$("cName").value.trim(),p=$("cPin").value;
+  if(n.length<2){e.textContent="Escribí tu nombre o apodo.";return}
+  if(p.length<4){e.textContent="La contraseña debe tener al menos 4 caracteres.";return}
+  if(p!==$("cPin2").value){e.textContent="Las contraseñas no coinciden.";return}
+  $("cGo").disabled=true;
+  try{const id=await rpc("g_register_cajero",{p_name:n,p_pin:p});
+    $("cName").value=$("cPin").value=$("cPin2").value="";
+    await startShift(id,p,e,$("cGo"))}catch(x){e.textContent=x.message}finally{$("cGo").disabled=false}};
+$("hShift").onclick=async()=>{try{if(S.shift)await sb.rpc("g_end_shift",{p_shift:S.shift.id})}catch(e){}
+  S.shift=null;try{sessionStorage.removeItem("g_shift")}catch(e){}await showShift()};
+
+/* ---------- app ---------- */
+const TABS_OP=[["dash","Dashboard"],["bill","Billeteras"],["fich","Fichas"],["mov","Movimientos"],["gas","Gastos"],["pub","Publicidad"]];
+const TABS_AD=[["dash","Dashboard"],["bill","Billeteras"],["fich","Fichas"],["mov","Movimientos"],["caj","Cajeros"],["pub","Publicidad"],["gas","Gastos"],["met","Métricas"],["cfg","Ajustes"]];
+async function enterApp(){
+  show("app");$("hRole").textContent=isAdm()?"ADMIN":"OPERADOR";$("hRole").className="badge"+(isAdm()?" adm":"");
+  $("hCaj").textContent=isAdm()?"":"Turno: "+S.shift.name;$("hShift").classList.toggle("hide",isAdm());
+  const T=isAdm()?TABS_AD:TABS_OP;$("nav").innerHTML=T.map(t=>`<button data-t="${t[0]}">${t[1]}</button>`).join("");
+  $("nav").onclick=e=>{const b=e.target.closest("button");if(b)go(b.dataset.t)};
+  await go("dash");
+}
+async function loadRef(){
+  const [w,c,a,cj]=await Promise.all([q(sb.from("g_wallets").select("*").order("name")),q(sb.from("g_chips").select("*").order("name")),rpc("g_ads_active"),rpc("g_cajeros_list")]);
+  S.wallets=w;S.chips=c;S.ads=a;S.cajeros=cj;
+}
+const VIEWS={};
+async function go(t){
+  S.tab=t;[...$("nav").children].forEach(b=>b.classList.toggle("on",b.dataset.t===t));
+  $("view").onclick=null;$("view").innerHTML='<p class="mut">Cargando…</p>';
+  try{await loadRef();await VIEWS[t]()}catch(e){
+    if(/turno|Primero iniciá/i.test(e.message)&&!isAdm()){toast(e.message,true);S.shift=null;await showShift();return}
+    $("view").innerHTML='<p class="neg">'+esc(e.message)+"</p>"}
+}
+const actW=()=>S.wallets.filter(w=>!w.archived), actC=()=>S.chips.filter(c=>!c.archived);
+const wName=id=>(S.wallets.find(w=>w.id===id)||{}).name||"—", cName=id=>(S.chips.find(c=>c.id===id)||{}).name||"—";
+
+/* ---------- formulario de movimiento ---------- */
+function movFields(m){
+  m=m||{};const kind=m.kind||"carga";
+  return `<div class="row"><div><label>Usuario del jugador</label><input id="mfU" maxlength="40" autocomplete="off" value="${esc(m.user_name||"")}"></div>
+  <div><label>Tipo</label><select id="mfK" ${m.id?"disabled":""}><option value="carga"${kind==="carga"?" selected":""}>Carga</option><option value="retiro"${kind==="retiro"?" selected":""}>Retiro</option></select></div></div>
+  <div class="row"><div><label>Monto ($)</label><input id="mfA" type="number" step="0.01" min="0" inputmode="decimal" value="${m.amount||""}"></div>
+  <div class="mfB"><label>Bono</label><div class="row"><select id="mfBT" style="max-width:70px"><option value="%"${m.bonus_type!=="$"?" selected":""}>%</option><option value="$"${m.bonus_type==="$"?" selected":""}>$</option></select><input id="mfBV" type="number" step="0.01" min="0" inputmode="decimal" value="${m.bonus_value||""}" placeholder="0"></div></div></div>
+  <div class="row"><div><label>Ficha</label><select id="mfC">${opts(actC(),m.chip_id)}</select></div>
+  <div><label>Billetera</label><select id="mfW">${opts(actW(),m.wallet_id,w=>w.name+" ("+fm(w.balance)+")")}</select></div></div>
+  <div class="mfB"><label>Publicidad (opcional)</label><select id="mfAd"><option value="">— ninguna —</option>${opts(S.ads,m.ad_id)}</select></div>
+  <div class="prev" id="mfP"></div>`;
+}
+function movWire(root){
+  const g=id=>root.querySelector("#"+id);
+  const upd=()=>{const k=g("mfK").value,a=N(g("mfA").value),bv=N(g("mfBV").value),bt=g("mfBT").value;
+    root.querySelectorAll(".mfB").forEach(x=>x.classList.toggle("hide",k==="retiro"));
+    const bo=k==="carga"?(bt==="%"?Math.round(a*bv)/100:bv):0;
+    const w=S.wallets.find(x=>x.id===g("mfW").value),c=S.chips.find(x=>x.id===g("mfC").value);
+    g("mfP").innerHTML=k==="carga"?`Fichas a acreditar: <b>${fn(a+bo)}</b> ${bo?`(incluye bono ${fm(bo)})`:""}<br><span class="mut">Entra ${fm(a)} a ${esc(w?w.name:"—")} · salen ${fn(a+bo)} de ${esc(c?c.name:"—")}</span>`
+      :`Se descuentan ${fm(a)} de ${esc(w?w.name:"—")} y vuelven ${fn(a)} fichas a ${esc(c?c.name:"—")}`};
+  root.addEventListener("input",upd);root.addEventListener("change",upd);upd();
+  return ()=>({kind:g("mfK").value,user:g("mfU").value.trim(),amount:N(g("mfA").value),bt:g("mfBT").value,bv:N(g("mfBV").value),chip:g("mfC").value,wallet:g("mfW").value,ad:g("mfAd").value||null});
+}
+function chk(v){if(!v.user)return"Escribí el usuario del jugador.";if(!(v.amount>0))return"El monto tiene que ser mayor a 0.";if(!v.chip)return"Elegí una ficha.";if(!v.wallet)return"Elegí una billetera.";return""}
+async function saveMov(v){await rpc("g_add_movement",{p_shift:sid(),p_user:v.user,p_kind:v.kind,p_amount:v.amount,p_bonus_type:v.bt,p_bonus_value:v.kind==="carga"?v.bv:0,p_chip:v.chip,p_wallet:v.wallet,p_ad:v.kind==="carga"?v.ad:null})}
+
+/* ---------- Dashboard ---------- */
+VIEWS.dash=async function(){
+  let k="";
+  if(isAdm()){const t=today(),m=await rpc("g_metrics",{p_from:dayISO(t),p_to:dayISO(addDays(t,1))});
+    k=`<div class="grid g4" style="margin-bottom:12px"><div class="card kpi"><div class="l">Cargas hoy</div><div class="v pos">${fm(m.ingresos)}</div></div>
+    <div class="card kpi"><div class="l">Retiros hoy</div><div class="v neg">${fm(m.retiros)}</div></div>
+    <div class="card kpi"><div class="l">Gastos hoy</div><div class="v">${fm(m.gastos)}</div></div>
+    <div class="card kpi"><div class="l">Neto del día</div><div class="v">${fm(N(m.ingresos)-N(m.retiros)-N(m.gastos))}</div></div></div>`}
+  const mv=await q(sb.from("g_movements").select("*").order("ts",{ascending:false}).limit(10));
+  $("view").innerHTML=k+`<div class="grid g2"><div class="card"><h2>Nuevo movimiento</h2><div id="dForm">${movFields()}</div>
+    <button class="btn full" id="dGo">Registrar</button></div>
+  <div class="card"><h3>Billeteras</h3>${actW().map(w=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #1a2a25"><span><span class="pill" style="background:${esc(w.color)};border-color:${esc(w.color)}">&nbsp;</span> ${esc(w.name)}</span><b>${fm(w.balance)}</b></div>`).join("")||'<p class="mut">Sin billeteras.</p>'}
+    <h3 style="margin-top:14px">Fichas (stock)</h3>${actC().map(c=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #1a2a25"><span>${esc(c.name)}</span><b>${fn(c.balance)}</b></div>`).join("")||'<p class="mut">Sin fichas.</p>'}</div></div>
+  <div class="card" style="margin-top:12px"><h3>Últimos movimientos</h3>${movTable(mv,false)}</div>`;
+  const get=movWire($("dForm"));
+  $("dGo").onclick=()=>run($("dGo"),async()=>{const v=get(),e=chk(v);if(e){toast(e,true);return}
+    await saveMov(v);toast("Registrado ✓");await go("dash")});
+};
+
+/* ---------- tabla de movimientos ---------- */
+function canEditMov(){return isAdm()||S.cfg.op_can_edit}
+function movTable(rows,acts){
+  if(!rows.length)return'<p class="mut">No hay movimientos.</p>';
+  return `<div class="tw"><table><tr><th>Fecha</th><th>Usuario</th><th>Tipo</th><th>Monto</th><th>Bono</th><th>Fichas</th><th>Ficha</th><th>Billetera</th><th>Cajero</th>${acts?"<th></th>":""}</tr>`+
+  rows.map(m=>`<tr><td>${fdt(m.ts)}</td><td>${esc(m.user_name)}${m.edited?' <span class="pill">editado</span>':""}</td><td class="${m.kind==="carga"?"pos":"neg"}">${KIND[m.kind]}</td><td>${fm(m.amount)}</td><td>${m.bonus>0?fm(m.bonus):"—"}</td><td>${fn(m.chips)}</td><td>${esc(cName(m.chip_id))}</td><td>${esc(wName(m.wallet_id))}</td><td>${esc(m.cajero_name)}</td>
+  ${acts?`<td class="acts">${canEditMov()?`<button class="btn g s" data-e="${m.id}">Editar</button><button class="btn d s" data-x="${m.id}">Anular</button>`:""}</td>`:""}</tr>`).join("")+"</table></div>";
+}
+VIEWS.mov=async function(){
+  const t=today();
+  $("view").innerHTML=`<div class="card"><div class="row"><div><label>Desde</label><input type="date" id="fD" value="${isAdm()?addDays(t,-6):t}"></div><div><label>Hasta</label><input type="date" id="fH" value="${t}"></div>
+  <div><label>Usuario</label><input id="fU" placeholder="buscar…"></div><div><label>Tipo</label><select id="fK"><option value="">Todos</option><option value="carga">Cargas</option><option value="retiro">Retiros</option></select></div>
+  <div><label>Cajero</label><input id="fC" placeholder="nombre"></div><button class="btn" id="fB">Buscar</button></div>
+  ${isAdm()?"":`<p class="sub" style="margin:8px 0 0">Ves los movimientos de los últimos ${S.cfg.op_history_days} día(s).</p>`}</div><div class="card" style="margin-top:12px" id="mList"></div>`;
+  const load=async()=>{let r=sb.from("g_movements").select("*").gte("ts",dayISO($("fD").value)).lt("ts",dayISO(addDays($("fH").value,1))).order("ts",{ascending:false}).limit(500);
+    if($("fU").value.trim())r=r.ilike("user_name","%"+$("fU").value.trim()+"%");
+    if($("fK").value)r=r.eq("kind",$("fK").value);
+    if($("fC").value.trim())r=r.ilike("cajero_name","%"+$("fC").value.trim()+"%");
+    const rows=await q(r);
+    let tot="";if(isAdm()){const c=rows.filter(x=>x.kind==="carga"),re=rows.filter(x=>x.kind==="retiro");
+      tot=`<p class="sub">${c.length} cargas: <b class="pos">${fm(c.reduce((a,x)=>a+N(x.amount),0))}</b> · ${re.length} retiros: <b class="neg">${fm(re.reduce((a,x)=>a+N(x.amount),0))}</b></p>`}
+    $("mList").innerHTML=tot+movTable(rows,true);
+    $("mList").onclick=ev=>{const e=ev.target.closest("[data-e]"),x=ev.target.closest("[data-x]");
+      if(e)editMov(rows.find(m=>m.id===e.dataset.e),load);if(x)delMov(rows.find(m=>m.id===x.dataset.x),load)}};
+  $("fB").onclick=()=>run($("fB"),load);await load();
+};
+function editMov(m,after){
+  const d=modal(`<h2>Editar ${KIND[m.kind].toLowerCase()}</h2>${movFields(m)}<div class="row" style="margin-top:12px"><button class="btn g" id="eC">Cancelar</button><button class="btn" id="eS">Guardar</button></div>`);
+  const get=movWire(d);d.querySelector("#eC").onclick=()=>d.remove();
+  d.querySelector("#eS").onclick=()=>run(d.querySelector("#eS"),async()=>{const v=get(),e=chk(v);if(e){toast(e,true);return}
+    await rpc("g_edit_movement",{p_shift:sid(),p_id:m.id,p_user:v.user,p_amount:v.amount,p_bonus_type:v.bt,p_bonus_value:v.kind==="carga"?v.bv:0,p_chip:v.chip,p_wallet:v.wallet,p_ad:v.kind==="carga"?v.ad:null});
+    d.remove();toast("Guardado ✓");await loadRef();await after()});
+}
+function delMov(m,after){
+  const d=modal(`<h2>¿Anular este movimiento?</h2><p>${KIND[m.kind]} de <b>${fm(m.amount)}</b> · ${esc(m.user_name)}<br><span class="mut">Se devuelven el saldo de la billetera y las fichas.</span></p><div class="row"><button class="btn g" id="xC">No</button><button class="btn d" id="xS">Sí, anular</button></div>`);
+  d.querySelector("#xC").onclick=()=>d.remove();
+  d.querySelector("#xS").onclick=()=>run(d.querySelector("#xS"),async()=>{await rpc("g_delete_movement",{p_shift:sid(),p_id:m.id});d.remove();toast("Anulado ✓");await loadRef();await after()});
+}
+
+/* ---------- Billeteras y fichas (libro) ---------- */
+async function ledger(kind,item){
+  const tb=kind==="w"?"g_wallet_tx":"g_chip_tx",col=kind==="w"?"wallet_id":"chip_id";
+  const rows=await q(sb.from(tb).select("*").eq(col,item.id).order("ts",{ascending:false}).limit(200));
+  modal(`<h2>${esc(item.name)} · movimientos</h2><div class="tw"><table><tr><th>Fecha</th><th>Tipo</th><th>Importe</th><th>Detalle</th><th>Cajero</th></tr>`+
+    (rows.map(r=>`<tr><td>${fdt(r.ts)}</td><td>${KIND[r.kind]||r.kind}</td><td class="${N(r.amount)>=0?"pos":"neg"}">${N(r.amount)>=0?"+":""}${kind==="w"?fm(r.amount):fn(r.amount)}</td><td>${esc(r.descr)}</td><td>${esc(r.cajero)}</td></tr>`).join("")||'<tr><td colspan="5" class="mut">Sin movimientos en el período visible.</td></tr>')+
+    '</table></div><button class="btn g full" onclick="this.closest(\'.ov\').remove()">Cerrar</button>',true);
+}
+VIEWS.bill=async function(){
+  const tot=actW().reduce((a,w)=>a+N(w.balance),0);
+  $("view").innerHTML=`<div class="row" style="margin-bottom:12px;align-items:center"><div><h2 style="margin:0">Billeteras</h2><span class="mut">Total: <b>${fm(tot)}</b></span></div>
+  ${isAdm()?'<button class="btn g" id="bT">Transferir</button><button class="btn" id="bN">+ Nueva billetera</button>':""}</div>
+  <div class="grid g2">${S.wallets.map(w=>`<div class="card wc" style="border-left-color:${esc(w.color)};${w.archived?"opacity:.5":""}"><b>${esc(w.name)}</b> <span class="mut">${esc(w.owner)}</span>${w.archived?' <span class="pill">archivada</span>':""}
+    <div class="bal">${fm(w.balance)}</div><div class="acts"><button class="btn g s" data-l="${w.id}">Ver movimientos</button>
+    ${isAdm()?`<button class="btn g s" data-a="${w.id}">Ajustar</button><button class="btn g s" data-ed="${w.id}">Editar</button>`:""}</div></div>`).join("")||'<p class="mut">Todavía no hay billeteras.</p>'}</div>`;
+  $("view").onclick=ev=>{const l=ev.target.closest("[data-l]"),a=ev.target.closest("[data-a]"),e=ev.target.closest("[data-ed]");
+    if(l)run(null,()=>ledger("w",S.wallets.find(w=>w.id===l.dataset.l)));
+    if(a)adjust("w",S.wallets.find(w=>w.id===a.dataset.a));if(e)editItem("w",S.wallets.find(w=>w.id===e.dataset.ed))};
+  if(isAdm()){$("bN").onclick=newWallet;$("bT").onclick=transfer}
+};
+VIEWS.fich=async function(){
+  $("view").innerHTML=`<div class="row" style="margin-bottom:12px;align-items:center"><div><h2 style="margin:0">Fichas</h2><span class="mut">Stock por plataforma</span></div>
+  ${isAdm()?'<button class="btn" id="cN">+ Nueva ficha</button>':""}</div>
+  <div class="grid g2">${S.chips.map(c=>`<div class="card wc" style="${c.archived?"opacity:.5":""}"><b>${esc(c.name)}</b>${c.archived?' <span class="pill">archivada</span>':""}
+    <div class="bal">${fn(c.balance)}</div><div class="acts"><button class="btn g s" data-l="${c.id}">Ver movimientos</button>
+    ${isAdm()?`<button class="btn g s" data-a="${c.id}">Ajustar / Comprar</button><button class="btn g s" data-ed="${c.id}">Editar</button>`:""}</div></div>`).join("")||'<p class="mut">Todavía no hay fichas.</p>'}</div>`;
+  $("view").onclick=ev=>{const l=ev.target.closest("[data-l]"),a=ev.target.closest("[data-a]"),e=ev.target.closest("[data-ed]");
+    if(l)run(null,()=>ledger("c",S.chips.find(c=>c.id===l.dataset.l)));
+    if(a)adjust("c",S.chips.find(c=>c.id===a.dataset.a));if(e)editItem("c",S.chips.find(c=>c.id===e.dataset.ed))};
+  if(isAdm())$("cN").onclick=newChip;
+};
+function newWallet(){const d=modal(`<h2>Nueva billetera</h2><label>Nombre</label><input id="nN" maxlength="40"><label>Titular (opcional)</label><input id="nO" maxlength="40"><label>Color</label><input id="nC" type="color" value="#00e676" style="height:42px;padding:3px"><label>Saldo inicial ($)</label><input id="nI" type="number" step="0.01" value="0">
+  <div class="row" style="margin-top:12px"><button class="btn g" id="nX">Cancelar</button><button class="btn" id="nS">Crear</button></div>`);
+  d.querySelector("#nX").onclick=()=>d.remove();
+  d.querySelector("#nS").onclick=()=>run(d.querySelector("#nS"),async()=>{await rpc("g_create_wallet",{p_name:d.querySelector("#nN").value,p_owner:d.querySelector("#nO").value,p_color:d.querySelector("#nC").value,p_initial:N(d.querySelector("#nI").value)});d.remove();toast("Billetera creada ✓");go("bill")})}
+function newChip(){const d=modal(`<h2>Nueva ficha</h2><label>Nombre (plataforma)</label><input id="nN" maxlength="40"><label>Stock inicial</label><input id="nI" type="number" step="0.01" value="0">
+  <div class="row" style="margin-top:12px"><button class="btn g" id="nX">Cancelar</button><button class="btn" id="nS">Crear</button></div>`);
+  d.querySelector("#nX").onclick=()=>d.remove();
+  d.querySelector("#nS").onclick=()=>run(d.querySelector("#nS"),async()=>{await rpc("g_create_chip",{p_name:d.querySelector("#nN").value,p_initial:N(d.querySelector("#nI").value)});d.remove();toast("Ficha creada ✓");go("fich")})}
+function adjust(kind,it){
+  const isW=kind==="w";
+  const d=modal(`<h2>Ajustar ${esc(it.name)}</h2><p class="mut">Actual: <b>${isW?fm(it.balance):fn(it.balance)}</b></p><label>Tipo</label><select id="aK"><option value="ajuste+">Sumar (ajuste +)</option><option value="ajuste-">Restar (ajuste −)</option>${isW?"":'<option value="compra">Compra de fichas</option>'}</select>
+  <label>${isW?"Monto ($)":"Cantidad"}</label><input id="aA" type="number" step="0.01" min="0"><label>Motivo</label><input id="aD" maxlength="200">
+  <div class="row" style="margin-top:12px"><button class="btn g" id="aX">Cancelar</button><button class="btn" id="aS">Aplicar</button></div>`);
+  d.querySelector("#aX").onclick=()=>d.remove();
+  d.querySelector("#aS").onclick=()=>run(d.querySelector("#aS"),async()=>{const a={p_kind:d.querySelector("#aK").value,p_amount:N(d.querySelector("#aA").value),p_descr:d.querySelector("#aD").value};
+    if(isW)await rpc("g_wallet_adjust",{p_wallet:it.id,...a});else await rpc("g_chip_adjust",{p_chip:it.id,...a});
+    d.remove();toast("Aplicado ✓");go(isW?"bill":"fich")});
+}
+function editItem(kind,it){
+  const isW=kind==="w";
+  const d=modal(`<h2>Editar ${esc(it.name)}</h2><label>Nombre</label><input id="eN" maxlength="40" value="${esc(it.name)}">${isW?`<label>Titular</label><input id="eO" maxlength="40" value="${esc(it.owner)}"><label>Color</label><input id="eC" type="color" value="${esc(it.color)}" style="height:42px;padding:3px">`:""}
+  <div class="sw" style="margin-top:12px"><input type="checkbox" id="eA"${it.archived?" checked":""}><label style="margin:0">Archivada (no aparece al cargar)</label></div>
+  <div class="row" style="margin-top:12px"><button class="btn g" id="eX">Cancelar</button><button class="btn" id="eS">Guardar</button></div>`);
+  d.querySelector("#eX").onclick=()=>d.remove();
+  d.querySelector("#eS").onclick=()=>run(d.querySelector("#eS"),async()=>{const nm=d.querySelector("#eN").value.trim();if(!nm){toast("Escribí un nombre",true);return}
+    const p={name:nm,archived:d.querySelector("#eA").checked};if(isW){p.owner=d.querySelector("#eO").value;p.color=d.querySelector("#eC").value}
+    await q(sb.from(isW?"g_wallets":"g_chips").update(p).eq("id",it.id));d.remove();toast("Guardado ✓");go(isW?"bill":"fich")});
+}
+function transfer(){
+  const d=modal(`<h2>Transferir entre billeteras</h2><label>Desde</label><select id="tF">${opts(actW(),null,w=>w.name+" ("+fm(w.balance)+")")}</select><label>Hacia</label><select id="tT">${opts(actW(),null,w=>w.name)}</select>
+  <label>Monto ($)</label><input id="tA" type="number" step="0.01" min="0"><label>Detalle</label><input id="tD" maxlength="150">
+  <div class="row" style="margin-top:12px"><button class="btn g" id="tX">Cancelar</button><button class="btn" id="tS">Transferir</button></div>`);
+  if(actW().length>1)d.querySelector("#tT").selectedIndex=1;
+  d.querySelector("#tX").onclick=()=>d.remove();
+  d.querySelector("#tS").onclick=()=>run(d.querySelector("#tS"),async()=>{await rpc("g_wallet_transfer",{p_from:d.querySelector("#tF").value,p_to:d.querySelector("#tT").value,p_amount:N(d.querySelector("#tA").value),p_descr:d.querySelector("#tD").value});d.remove();toast("Transferido ✓");go("bill")});
+}
+
+/* ---------- Gastos de oficina ---------- */
+VIEWS.gas=async function(){
+  const t=today();
+  const cats=(await q(sb.from("g_expense_cats").select("*").order("name"))).filter(c=>!c.is_salary);
+  S.cats=cats;
+  $("view").innerHTML=`<div class="grid g2"><div class="card"><h2>Nuevo gasto</h2>
+  <label>Categoría</label><select id="gC">${opts(cats.filter(c=>c.active))}</select>
+  <div class="row"><div><label>Monto ($)</label><input id="gA" type="number" step="0.01" min="0" inputmode="decimal"></div><div><label>Billetera</label><select id="gW">${opts(actW(),null,w=>w.name+" ("+fm(w.balance)+")")}</select></div></div>
+  <label>Descripción</label><input id="gD" maxlength="300"><label>Responsable</label><input id="gR" maxlength="60" value="${esc(isAdm()?"":S.shift.name)}">
+  <label>Comprobante (opcional)</label><input id="gF" type="file" accept="image/*,application/pdf">
+  <button class="btn full" id="gS">Registrar gasto</button></div>
+  ${isAdm()?`<div class="card"><h2>Categorías</h2>${cats.map(c=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a2a25"><span${c.active?"":' class="mut"'}>${esc(c.name)}</span><button class="btn g s" data-ct="${c.id}">${c.active?"Desactivar":"Activar"}</button></div>`).join("")}
+  <div class="row" style="margin-top:10px"><input id="gNC" placeholder="Nueva categoría" maxlength="40"><button class="btn s" id="gAC">Agregar</button></div></div>`:""}</div>
+  <div class="card" style="margin-top:12px"><div class="row"><div><label>Desde</label><input type="date" id="xD" value="${addDays(t,-29)}"></div><div><label>Hasta</label><input type="date" id="xH" value="${t}"></div><button class="btn" id="xB">Ver</button></div><div id="xL" style="margin-top:10px"></div></div>`;
+  $("gS").onclick=()=>run($("gS"),async()=>{
+    const f=$("gF").files[0];let path=null;
+    if(f){if(f.size>8e6){toast("El archivo pesa más de 8 MB",true);return}
+      path=Date.now()+"-"+Math.random().toString(36).slice(2,8)+"-"+f.name.replace(/[^\w.\-]/g,"_").slice(-40);
+      const r=await sb.storage.from("g-docs").upload(path,f);if(r.error)throw new Error("No se pudo subir el comprobante: "+r.error.message)}
+    await rpc("g_add_expense",{p_shift:sid(),p_cat:$("gC").value,p_amount:N($("gA").value),p_wallet:$("gW").value,p_descr:$("gD").value,p_responsible:$("gR").value,p_doc:path});
+    toast("Gasto registrado ✓");go("gas")});
+  if(isAdm()){
+    $("view").querySelectorAll("[data-ct]").forEach(b=>b.onclick=()=>run(b,async()=>{const c=cats.find(x=>x.id===b.dataset.ct);await q(sb.from("g_expense_cats").update({active:!c.active}).eq("id",c.id));go("gas")}));
+    $("gAC").onclick=()=>run($("gAC"),async()=>{const n=$("gNC").value.trim();if(!n)return;await q(sb.from("g_expense_cats").insert({name:n}));go("gas")});
+  }
+  const load=async()=>{const rows=await q(sb.from("g_expenses").select("*").gte("ts",dayISO($("xD").value)).lt("ts",dayISO(addDays($("xH").value,1))).order("ts",{ascending:false}).limit(300));
+    const tot=rows.reduce((a,x)=>a+N(x.amount),0);
+    $("xL").innerHTML=`<p class="sub">${rows.length} gastos · <b>${fm(tot)}</b></p><div class="tw"><table><tr><th>Fecha</th><th>Categoría</th><th>Monto</th><th>Billetera</th><th>Descripción</th><th>Resp.</th><th></th></tr>`+
+    rows.map(e=>`<tr><td>${fdt(e.ts)}</td><td>${esc(e.cat_name)}${e.adm_only?' <span class="pill">sueldo</span>':""}</td><td>${fm(e.amount)}</td><td>${esc(wName(e.wallet_id))}</td><td>${esc(e.descr)}</td><td>${esc(e.responsible)}</td>
+    <td class="acts">${e.doc_path&&isAdm()?`<button class="btn g s" data-d="${esc(e.doc_path)}">📎</button>`:e.doc_path?"📎":""}${canEditMov()&&!e.adm_only?`<button class="btn g s" data-ge="${e.id}">Editar</button><button class="btn d s" data-gx="${e.id}">Borrar</button>`:""}${isAdm()&&e.adm_only?`<button class="btn d s" data-gx="${e.id}">Anular</button>`:""}</td></tr>`).join("")+"</table></div>";
+    $("xL").onclick=ev=>{const dd=ev.target.closest("[data-d]"),ge=ev.target.closest("[data-ge]"),gx=ev.target.closest("[data-gx]");
+      if(dd)run(null,async()=>{const r=await sb.storage.from("g-docs").createSignedUrl(dd.dataset.d,120);if(r.error)throw new Error(r.error.message);window.open(r.data.signedUrl,"_blank")});
+      if(ge)editExp(rows.find(x=>x.id===ge.dataset.ge),load);if(gx)delExp(rows.find(x=>x.id===gx.dataset.gx),load)}};
+  $("xB").onclick=()=>run($("xB"),load);await load();
+};
+function editExp(e,after){
+  const d=modal(`<h2>Editar gasto</h2><label>Categoría</label><select id="yC">${opts(S.cats.filter(c=>c.active||c.id===e.cat_id),e.cat_id)}</select>
+  <div class="row"><div><label>Monto</label><input id="yA" type="number" step="0.01" value="${e.amount}"></div><div><label>Billetera</label><select id="yW">${opts(actW(),e.wallet_id)}</select></div></div>
+  <label>Descripción</label><input id="yD" maxlength="300" value="${esc(e.descr)}"><label>Responsable</label><input id="yR" maxlength="60" value="${esc(e.responsible)}">
+  <div class="row" style="margin-top:12px"><button class="btn g" id="yX">Cancelar</button><button class="btn" id="yS">Guardar</button></div>`);
+  d.querySelector("#yX").onclick=()=>d.remove();
+  d.querySelector("#yS").onclick=()=>run(d.querySelector("#yS"),async()=>{await rpc("g_update_expense",{p_shift:sid(),p_id:e.id,p_cat:d.querySelector("#yC").value,p_amount:N(d.querySelector("#yA").value),p_wallet:d.querySelector("#yW").value,p_descr:d.querySelector("#yD").value,p_responsible:d.querySelector("#yR").value});d.remove();toast("Guardado ✓");await loadRef();await after()});
+}
+function delExp(e,after){
+  const d=modal(`<h2>¿Borrar este gasto?</h2><p>${esc(e.cat_name)} · <b>${fm(e.amount)}</b><br><span class="mut">Se devuelve el dinero a la billetera.</span></p><div class="row"><button class="btn g" id="zC">No</button><button class="btn d" id="zS">Sí, borrar</button></div>`);
+  d.querySelector("#zC").onclick=()=>d.remove();
+  d.querySelector("#zS").onclick=()=>run(d.querySelector("#zS"),async()=>{await rpc("g_delete_expense",{p_shift:sid(),p_id:e.id});d.remove();toast("Borrado ✓");await loadRef();await after()});
+}
+
+/* ---------- Publicidad ---------- */
+VIEWS.pub=async function(){
+  if(!isAdm()){
+    $("view").innerHTML=`<div class="card"><h2>Campañas activas</h2><p class="sub">Cuando entra un mensaje de una campaña, tocá +1.</p>`+
+    (S.ads.map(a=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #1a2a25"><b>${esc(a.name)}</b><button class="btn s" data-m="${a.id}">+1 mensaje</button></div>`).join("")||'<p class="mut">No hay campañas activas.</p>')+"</div>";
+    $("view").onclick=ev=>{const b=ev.target.closest("[data-m]");if(b)run(b,async()=>{await rpc("g_ad_add_msg",{p_shift:sid(),p_ad:b.dataset.m,p_qty:1});toast("+1 mensaje ✓")})};
+    return;
+  }
+  $("view").innerHTML=`<div class="row" style="margin-bottom:12px;align-items:flex-end"><div><label>Período</label><select id="pP"><option value="total">Total histórico</option><option value="hoy">Hoy</option><option value="7">Últimos 7 días</option><option value="mes">Este mes</option></select></div>
+  <div><label>Estado</label><select id="pS"><option value="">Todas (menos archivadas)</option><option value="activa">Activas</option><option value="pausada">Pausadas</option><option value="finalizada">Finalizadas</option><option value="archivada">Archivadas</option></select></div><button class="btn" id="pN">+ Nueva campaña</button></div><div class="card" id="pL"></div>`;
+  const load=async()=>{const t=today(),p=$("pP").value;let f=dayISO(t),to=dayISO(addDays(t,1));
+    if(p==="7")f=dayISO(addDays(t,-6));if(p==="mes")f=dayISO(t.slice(0,8)+"01");
+    const rows=await rpc("g_ads_stats",{p_from:f,p_to:to,p_total:p==="total",p_status:$("pS").value||null});
+    $("pL").innerHTML=`<div class="tw"><table><tr><th>Campaña</th><th>Estado</th><th>Inversión</th><th>Mensajes</th><th>Cargas</th><th>Ingresos</th><th>$/msj</th><th>$/carga</th><th>ROI</th><th></th></tr>`+
+    rows.map(a=>{const inv=N(a.inversion),roi=inv>0?(N(a.income)-inv)/inv*100:null;
+      return`<tr><td><b>${esc(a.name)}</b><br><span class="mut">${esc(a.start_date)}</span></td><td><span class="pill">${esc(a.status)}</span></td><td>${fm(inv)}</td><td>${fn(a.msgs)}</td><td>${fn(a.loads)}</td><td>${fm(a.income)}</td><td>${N(a.msgs)>0?fm(inv/N(a.msgs)):"—"}</td><td>${N(a.loads)>0?fm(inv/N(a.loads)):"—"}</td><td class="${roi==null?"":roi>=0?"pos":"neg"}">${roi==null?"—":fn(roi)+"%"}</td>
+      <td class="acts"><button class="btn g s" data-pm="${a.id}">+ msj</button><button class="btn g s" data-pc="${a.id}">+ costo</button><button class="btn g s" data-pa="${a.id}">Ajustar</button><button class="btn g s" data-ps="${a.id}">Estado</button></td></tr>`}).join("")+"</table></div>"+(rows.length?"":'<p class="mut">No hay campañas.</p>');
+    $("pL").onclick=ev=>{const m=ev.target.closest("[data-pm]"),c=ev.target.closest("[data-pc]"),a=ev.target.closest("[data-pa]"),s=ev.target.closest("[data-ps]");
+      const find=id=>rows.find(x=>x.id===id);
+      if(m)adMsg(find(m.dataset.pm),load);if(c)adCost(find(c.dataset.pc),load);if(a)adAdj(find(a.dataset.pa),load);if(s)adStatus(find(s.dataset.ps),load)}};
+  $("pP").onchange=$("pS").onchange=()=>run(null,load);
+  $("pN").onclick=()=>adNew(load);await load();
+};
+function adNew(after){
+  const d=modal(`<h2>Nueva campaña</h2><label>Nombre</label><input id="nN" maxlength="60"><div class="row"><div><label>Inversión ($)</label><input id="nI" type="number" step="0.01" min="0" value="0"></div><div><label>Inicio</label><input id="nF" type="date" value="${today()}"></div></div>
+  <p class="sub" style="margin-top:12px">Si ya venía corriendo, cargá lo acumulado hasta hoy (opcional):</p><div class="row"><div><label>Mensajes</label><input id="nM" type="number" min="0" value="0"></div><div><label>Cargas</label><input id="nL" type="number" min="0" value="0"></div><div><label>Ingresos ($)</label><input id="nR" type="number" min="0" value="0"></div></div>
+  <div class="row" style="margin-top:12px"><button class="btn g" id="nX">Cancelar</button><button class="btn" id="nS">Crear</button></div>`);
+  d.querySelector("#nX").onclick=()=>d.remove();
+  d.querySelector("#nS").onclick=()=>run(d.querySelector("#nS"),async()=>{const n=d.querySelector("#nN").value.trim();if(!n){toast("Escribí un nombre",true);return}
+    await q(sb.from("g_ads").insert({name:n,invest:N(d.querySelector("#nI").value),start_date:d.querySelector("#nF").value,init_msgs:Math.round(N(d.querySelector("#nM").value)),init_loads:Math.round(N(d.querySelector("#nL").value)),init_income:N(d.querySelector("#nR").value)}));
+    d.remove();toast("Campaña creada ✓");await after()});
+}
+function adMsg(a,after){const d=modal(`<h2>Mensajes · ${esc(a.name)}</h2><label>Cantidad</label><input id="qN" type="number" min="1" max="1000" value="1"><div class="row" style="margin-top:12px"><button class="btn g" id="qX">Cancelar</button><button class="btn" id="qS">Sumar</button></div>`);
+  d.querySelector("#qX").onclick=()=>d.remove();d.querySelector("#qS").onclick=()=>run(d.querySelector("#qS"),async()=>{await rpc("g_ad_add_msg",{p_shift:sid(),p_ad:a.id,p_qty:Math.round(N(d.querySelector("#qN").value))});d.remove();toast("Sumado ✓");await after()})}
+function adCost(a,after){const d=modal(`<h2>Costo extra · ${esc(a.name)}</h2><label>Monto ($)</label><input id="qN" type="number" step="0.01" min="0"><label>Nota</label><input id="qT" maxlength="100"><div class="row" style="margin-top:12px"><button class="btn g" id="qX">Cancelar</button><button class="btn" id="qS">Agregar</button></div>`);
+  d.querySelector("#qX").onclick=()=>d.remove();d.querySelector("#qS").onclick=()=>run(d.querySelector("#qS"),async()=>{const v=N(d.querySelector("#qN").value);if(!(v>0)){toast("Monto inválido",true);return}
+    await q(sb.from("g_ad_costs").insert({ad_id:a.id,amount:v,note:d.querySelector("#qT").value}));d.remove();toast("Agregado ✓");await after()})}
+function adAdj(a,after){const d=modal(`<h2>Ajuste manual · ${esc(a.name)}</h2><p class="sub">Para corregir números. Acepta valores negativos.</p><label>Campo</label><select id="qF"><option value="msgs">Mensajes</option><option value="loads">Cargas</option><option value="income">Ingresos ($)</option></select><label>Cantidad (+/−)</label><input id="qN" type="number" step="0.01"><label>Nota</label><input id="qT" maxlength="100"><div class="row" style="margin-top:12px"><button class="btn g" id="qX">Cancelar</button><button class="btn" id="qS">Aplicar</button></div>`);
+  d.querySelector("#qX").onclick=()=>d.remove();d.querySelector("#qS").onclick=()=>run(d.querySelector("#qS"),async()=>{const v=N(d.querySelector("#qN").value);if(!v){toast("Cantidad inválida",true);return}
+    await q(sb.from("g_ad_adjust").insert({ad_id:a.id,field:d.querySelector("#qF").value,delta:v,note:d.querySelector("#qT").value}));d.remove();toast("Aplicado ✓");await after()})}
+function adStatus(a,after){const d=modal(`<h2>Estado · ${esc(a.name)}</h2><select id="qF">${["activa","pausada","finalizada","archivada"].map(s=>`<option${s===a.status?" selected":""}>${s}</option>`).join("")}</select><div class="row" style="margin-top:12px"><button class="btn g" id="qX">Cancelar</button><button class="btn" id="qS">Guardar</button></div>`);
+  d.querySelector("#qX").onclick=()=>d.remove();d.querySelector("#qS").onclick=()=>run(d.querySelector("#qS"),async()=>{const s=d.querySelector("#qF").value;
+    await q(sb.from("g_ads").update({status:s,end_date:s==="finalizada"?today():null}).eq("id",a.id));d.remove();toast("Guardado ✓");await after()})}
+
+/* ---------- Cajeros y sueldos (solo admin) ---------- */
+VIEWS.caj=async function(){
+  const per=S.per||today().slice(0,7);S.per=per;
+  const [sal,pay]=await Promise.all([q(sb.from("g_salaries").select("*")),q(sb.from("g_salary_payments").select("*").eq("period",per).order("ts",{ascending:false}))]);
+  const sm={};sal.forEach(s=>sm[s.cajero_id]=N(s.monthly));const pm={};pay.forEach(p=>pm[p.cajero_id]=(pm[p.cajero_id]||0)+N(p.amount));
+  const totSal=S.cajeros.filter(c=>c.active).reduce((a,c)=>a+(sm[c.id]||0),0),totPay=pay.reduce((a,p)=>a+N(p.amount),0);
+  $("view").innerHTML=`<div class="row" style="margin-bottom:12px;align-items:flex-end"><div><label>Mes</label><input type="month" id="cM" value="${per}"></div>
+  <div class="card kpi"><div class="l">Sueldos del mes</div><div class="v">${fm(totSal)}</div></div><div class="card kpi"><div class="l">Pagado</div><div class="v pos">${fm(totPay)}</div></div></div>
+  <div class="card"><div class="tw"><table><tr><th>Cajero</th><th>Estado</th><th>Cargas</th><th>Sueldo mensual</th><th>Pagado (${per})</th><th>Pendiente</th><th></th></tr>`+
+  S.cajeros.map(c=>{const s=sm[c.id]||0,p=pm[c.id]||0;return`<tr><td><b>${esc(c.name)}</b></td><td>${c.active?"Activo":'<span class="mut">Inactivo</span>'}</td><td>${c.cargas}</td>
+    <td><input type="number" step="0.01" min="0" value="${s}" data-s="${c.id}" style="width:120px"></td><td>${fm(p)}</td><td class="${s-p>0?"neg":"pos"}">${fm(Math.max(s-p,0))}</td>
+    <td class="acts"><button class="btn s" data-pay="${c.id}">Pagar</button><button class="btn g s" data-pin="${c.id}">Clave</button><button class="btn g s" data-act="${c.id}">${c.active?"Desactivar":"Activar"}</button></td></tr>`}).join("")+`</table></div>
+  ${S.cajeros.length?"":'<p class="mut">Todavía no hay cajeros. Se crean desde la pantalla de turno ("Crear usuario").</p>'}</div>
+  <div class="card" style="margin-top:12px"><h3>Pagos de ${per}</h3>${pay.map(p=>`<div style="padding:5px 0;border-bottom:1px solid #1a2a25">${fdt(p.ts)} · ${esc((S.cajeros.find(c=>c.id===p.cajero_id)||{}).name)} · <b>${fm(p.amount)}</b> · ${esc(wName(p.wallet_id))} <span class="mut">${esc(p.note)}</span> <button class="btn d s" data-px="${p.expense_id}">Anular</button></div>`).join("")||'<p class="mut">Sin pagos este mes.</p>'}</div>`;
+  $("cM").onchange=()=>{S.per=$("cM").value||per;go("caj")};
+  $("view").querySelectorAll("[data-s]").forEach(i=>i.onchange=()=>run(null,async()=>{await q(sb.from("g_salaries").upsert({cajero_id:i.dataset.s,monthly:N(i.value)},{onConflict:"cajero_id"}));toast("Sueldo guardado ✓");go("caj")}));
+  $("view").onclick=ev=>{const p=ev.target.closest("[data-pay]"),k=ev.target.closest("[data-pin]"),a=ev.target.closest("[data-act]"),x=ev.target.closest("[data-px]");
+    if(p){const c=S.cajeros.find(z=>z.id===p.dataset.pay);paySal(c,Math.max((sm[c.id]||0)-(pm[c.id]||0),0),per)}
+    if(k)resetPin(S.cajeros.find(z=>z.id===k.dataset.pin));
+    if(a)run(a,async()=>{const c=S.cajeros.find(z=>z.id===a.dataset.act);await q(sb.from("g_cajeros").update({active:!c.active}).eq("id",c.id));go("caj")});
+    if(x)run(x,async()=>{await rpc("g_delete_expense",{p_shift:null,p_id:x.dataset.px});toast("Pago anulado ✓");go("caj")})};
+};
+function paySal(c,def,per){const d=modal(`<h2>Pagar sueldo · ${esc(c.name)}</h2><div class="row"><div><label>Monto ($)</label><input id="sA" type="number" step="0.01" value="${def||""}"></div><div><label>Período</label><input id="sP" type="month" value="${per}"></div></div>
+  <label>Billetera</label><select id="sW">${opts(actW(),null,w=>w.name+" ("+fm(w.balance)+")")}</select><label>Nota</label><input id="sN" maxlength="150">
+  <div class="row" style="margin-top:12px"><button class="btn g" id="sX">Cancelar</button><button class="btn" id="sS">Pagar</button></div>`);
+  d.querySelector("#sX").onclick=()=>d.remove();
+  d.querySelector("#sS").onclick=()=>run(d.querySelector("#sS"),async()=>{await rpc("g_pay_salary",{p_cajero:c.id,p_amount:N(d.querySelector("#sA").value),p_wallet:d.querySelector("#sW").value,p_period:d.querySelector("#sP").value,p_note:d.querySelector("#sN").value});d.remove();toast("Sueldo pagado ✓");go("caj")})}
+function resetPin(c){const d=modal(`<h2>Nueva clave · ${esc(c.name)}</h2><input id="kP" type="text" autocomplete="off" placeholder="Mín. 4 caracteres"><div class="row" style="margin-top:12px"><button class="btn g" id="kX">Cancelar</button><button class="btn" id="kS">Guardar</button></div>`);
+  d.querySelector("#kX").onclick=()=>d.remove();
+  d.querySelector("#kS").onclick=()=>run(d.querySelector("#kS"),async()=>{await rpc("g_reset_pin",{p_cajero:c.id,p_pin:d.querySelector("#kP").value});d.remove();toast("Clave cambiada ✓")})}
+
+/* ---------- Métricas (solo admin) ---------- */
+VIEWS.met=async function(){
+  const t=today();
+  $("view").innerHTML=`<div class="card"><div class="row"><div><label>Período</label><select id="mP"><option value="hoy">Hoy</option><option value="ayer">Ayer</option><option value="7" selected>Últimos 7 días</option><option value="mes">Este mes</option><option value="mant">Mes anterior</option><option value="x">Personalizado</option></select></div>
+  <div><label>Desde</label><input type="date" id="mD" value="${addDays(t,-6)}"></div><div><label>Hasta</label><input type="date" id="mH" value="${t}"></div><button class="btn" id="mB">Ver</button></div></div><div id="mR" style="margin-top:12px"></div>`;
+  $("mP").onchange=()=>{const p=$("mP").value;let d=t,h=t;
+    if(p==="ayer"){d=h=addDays(t,-1)}else if(p==="7")d=addDays(t,-6);else if(p==="mes")d=t.slice(0,8)+"01";
+    else if(p==="mant"){const f=t.slice(0,8)+"01";h=addDays(f,-1);d=h.slice(0,8)+"01"}else if(p==="x")return;
+    $("mD").value=d;$("mH").value=h;run(null,load)};
+  const load=async()=>{const m=await rpc("g_metrics",{p_from:dayISO($("mD").value),p_to:dayISO(addDays($("mH").value,1))});
+    const neto=N(m.ingresos)-N(m.retiros)-N(m.gastos)-N(m.inversion);const mx=Math.max(1,...(m.gastos_cat||[]).map(x=>N(x.total)));
+    $("mR").innerHTML=`<div class="grid g4"><div class="card kpi"><div class="l">Cargas</div><div class="v pos">${fm(m.ingresos)}</div></div><div class="card kpi"><div class="l">Retiros</div><div class="v neg">${fm(m.retiros)}</div></div>
+    <div class="card kpi"><div class="l">Gastos oficina (incl. sueldos)</div><div class="v">${fm(m.gastos)}</div></div><div class="card kpi"><div class="l">Inversión publicidad</div><div class="v">${fm(m.inversion)}</div></div>
+    <div class="card kpi"><div class="l">Bonos entregados</div><div class="v">${fm(m.bonos)}</div><div class="l">${m.con_bono} con bono · ${m.sin_bono} sin bono</div></div>
+    <div class="card kpi"><div class="l">Resultado</div><div class="v ${neto>=0?"pos":"neg"}">${fm(neto)}</div><div class="l">cargas − retiros − gastos − publicidad</div></div></div>
+    <div class="grid g2" style="margin-top:12px"><div class="card"><h3>Gastos por categoría</h3>${(m.gastos_cat||[]).map(x=>`<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between"><span>${esc(x.cat)}</span><b>${fm(x.total)}</b></div><div class="bar"><i style="width:${N(x.total)/mx*100}%"></i></div></div>`).join("")||'<p class="mut">Sin gastos.</p>'}</div>
+    <div class="card"><h3>Por cajero</h3><div class="tw"><table><tr><th>Cajero</th><th>Cargas</th><th>Monto</th><th>Retiros</th></tr>${(m.cajeros||[]).map(x=>`<tr><td>${esc(x.name)}</td><td>${x.cargas_n}</td><td class="pos">${fm(x.cargas)}</td><td class="neg">${fm(x.retiros)}</td></tr>`).join("")||'<tr><td colspan="4" class="mut">Sin datos.</td></tr>'}</table></div></div></div>
+    <div class="card" style="margin-top:12px"><h3>Billeteras</h3><div class="tw"><table><tr><th>Billetera</th><th>Entradas</th><th>Salidas</th><th>Saldo actual</th></tr>${(m.billeteras||[]).map(x=>`<tr><td>${esc(x.name)}</td><td class="pos">${fm(x.entradas)}</td><td class="neg">${fm(x.salidas)}</td><td><b>${fm(x.saldo)}</b></td></tr>`).join("")}</table></div></div>`};
+  $("mB").onclick=()=>run($("mB"),load);await load();
+};
+
+/* ---------- Ajustes y auditoría (solo admin) ---------- */
+VIEWS.cfg=async function(){
+  const au=await q(sb.from("g_audit").select("*").order("ts",{ascending:false}).limit(100));
+  $("view").innerHTML=`<div class="card"><h2>Permisos del operador</h2>
+  <div class="sw"><input type="checkbox" id="cE"${S.cfg.op_can_edit?" checked":""}><label style="margin:0">Puede editar / anular movimientos y gastos</label></div>
+  <label>Días de historial que ve el operador (1 = solo hoy)</label><input type="number" id="cD" min="1" max="31" value="${S.cfg.op_history_days}" style="max-width:120px">
+  <p class="sub" style="margin-top:10px">El operador nunca ve métricas, sueldos, auditoría ni los números de publicidad.</p><button class="btn" id="cS">Guardar</button></div>
+  <div class="card" style="margin-top:12px"><h2>Auditoría (últimas 100)</h2><div class="tw"><table><tr><th>Fecha</th><th>Quién</th><th>Acción</th><th>Detalle</th></tr>${au.map(a=>`<tr><td>${fdt(a.ts)}</td><td>${esc(a.actor)}</td><td>${esc(a.action)}</td><td class="mut" style="max-width:420px;word-break:break-word">${esc(JSON.stringify(a.detail).slice(0,220))}</td></tr>`).join("")||'<tr><td colspan="4" class="mut">Sin registros.</td></tr>'}</table></div></div>`;
+  $("cS").onclick=()=>run($("cS"),async()=>{const n=Math.min(31,Math.max(1,Math.round(N($("cD").value)||2)));
+    await q(sb.from("g_settings").upsert([{key:"op_can_edit",value:$("cE").checked},{key:"op_history_days",value:n}],{onConflict:"key"}));
+    S.cfg={op_can_edit:$("cE").checked,op_history_days:n};toast("Guardado ✓")});
+};
+
+boot();
+</script></body></html>
