@@ -48,6 +48,7 @@ td{padding:7px 6px;border-bottom:1px solid #1a2a25;vertical-align:top}
 .ov{position:fixed;inset:0;background:#000b;display:flex;align-items:flex-start;justify-content:center;padding:20px 12px;overflow:auto;z-index:50}
 .ov .card{width:100%;max-width:520px;margin:auto}.ov .card.wide{max-width:760px}
 .sw{display:flex;align-items:center;gap:8px}.sw input{width:auto}
+.nb{background:var(--r);color:#fff;border-radius:99px;font-size:11px;padding:1px 6px;margin-left:5px}
 .prev{background:var(--p2);border-radius:9px;padding:9px 11px;margin-top:10px;font-size:13px}
 </style></head><body>
 
@@ -119,7 +120,7 @@ $("lf").onsubmit=async e=>{e.preventDefault();$("lerr").textContent="";const b=$
   const {error}=await sb.auth.signInWithPassword({email:$("le").value.trim(),password:$("lp").value});
   b.disabled=false;if(error){$("lerr").textContent="Usuario o contraseña incorrectos.";return}
   $("lp").value="";await init()};
-async function logout(){try{if(S.shift)await sb.rpc("g_end_shift",{p_shift:S.shift.id})}catch(e){}
+async function logout(){clearInterval(repT);try{if(S.shift)await sb.rpc("g_end_shift",{p_shift:S.shift.id})}catch(e){}
   S.shift=null;try{sessionStorage.removeItem("g_shift")}catch(e){}await sb.auth.signOut();S.role=null;show("login")}
 $("hOut").onclick=logout;$("sOut").onclick=logout;
 async function init(){
@@ -161,13 +162,23 @@ $("hShift").onclick=async()=>{try{if(S.shift)await sb.rpc("g_end_shift",{p_shift
 
 /* ---------- app ---------- */
 const TABS_OP=[["dash","Dashboard"],["bill","Billeteras"],["fich","Fichas"],["mov","Movimientos"],["gas","Gastos"],["pub","Publicidad"]];
-const TABS_AD=[["dash","Dashboard"],["bill","Billeteras"],["fich","Fichas"],["mov","Movimientos"],["caj","Cajeros"],["pub","Publicidad"],["gas","Gastos"],["met","Métricas"],["cfg","Ajustes"]];
+const TABS_AD=[["dash","Dashboard"],["bill","Billeteras"],["fich","Fichas"],["mov","Movimientos"],["rep","Reportes"],["caj","Cajeros"],["pub","Publicidad"],["gas","Gastos"],["met","Métricas"],["cfg","Ajustes"]];
 async function enterApp(){
   show("app");$("hRole").textContent=isAdm()?"ADMIN":"OPERADOR";$("hRole").className="badge"+(isAdm()?" adm":"");
   $("hCaj").textContent=isAdm()?"":"Turno: "+S.shift.name;$("hShift").classList.toggle("hide",isAdm());
   const T=isAdm()?TABS_AD:TABS_OP;$("nav").innerHTML=T.map(t=>`<button data-t="${t[0]}">${t[1]}</button>`).join("");
   $("nav").onclick=e=>{const b=e.target.closest("button");if(b)go(b.dataset.t)};
+  if(isAdm())startRepPoll();
   await go("dash");
+}
+let repT=null,repLast=-1;
+function startRepPoll(){clearInterval(repT);repLast=-1;repCheck();repT=setInterval(repCheck,45000)}
+async function repCheck(){
+  if(!isAdm()||$("app").classList.contains("hide"))return;
+  try{const n=await rpc("g_reports_unseen");const b=document.querySelector('#nav button[data-t=rep]');
+    if(b)b.innerHTML="Reportes"+(n>0?`<span class="nb">${n}</span>`:"");
+    if(repLast>=0&&n>repLast)toast("📋 Nuevo reporte de turno");
+    repLast=n;if(S.tab==="rep"&&n>0&&!S.repBusy)VIEWS.rep()}catch(e){}
 }
 async function loadRef(){
   const [w,c,a,cj]=await Promise.all([q(sb.from("g_wallets").select("*").order("name")),q(sb.from("g_chips").select("*").order("name")),rpc("g_ads_active"),rpc("g_cajeros_list")]);
@@ -479,6 +490,33 @@ VIEWS.met=async function(){
     <div class="card"><h3>Por cajero</h3><div class="tw"><table><tr><th>Cajero</th><th>Cargas</th><th>Monto</th><th>Retiros</th></tr>${(m.cajeros||[]).map(x=>`<tr><td>${esc(x.name)}</td><td>${x.cargas_n}</td><td class="pos">${fm(x.cargas)}</td><td class="neg">${fm(x.retiros)}</td></tr>`).join("")||'<tr><td colspan="4" class="mut">Sin datos.</td></tr>'}</table></div></div></div>
     <div class="card" style="margin-top:12px"><h3>Billeteras</h3><div class="tw"><table><tr><th>Billetera</th><th>Entradas</th><th>Salidas</th><th>Saldo actual</th></tr>${(m.billeteras||[]).map(x=>`<tr><td>${esc(x.name)}</td><td class="pos">${fm(x.entradas)}</td><td class="neg">${fm(x.salidas)}</td><td><b>${fm(x.saldo)}</b></td></tr>`).join("")}</table></div></div>`};
   $("mB").onclick=()=>run($("mB"),load);await load();
+};
+
+
+/* ---------- Reportes de turno (solo admin) ---------- */
+VIEWS.rep=async function(){
+  S.repBusy=true;
+  const rows=await q(sb.from("g_shift_reports").select("*").order("ended_at",{ascending:false}).limit(60));
+  const wa=(()=>{try{return localStorage.getItem("g_wa")||""}catch(e){return""}})();
+  const txt=r=>{const d=r.data||{};return `*Reporte de turno · ${r.cajero_name}*\n${fdt(r.started_at)} → ${fdt(r.ended_at)}\n\n`+
+    `Cargas: ${d.cargas_n} · ${fm(d.cargas)}\nRetiros: ${d.retiros_n} · ${fm(d.retiros)}\nBonos: ${fm(d.bonos)}\nGastos: ${d.gastos_n} · ${fm(d.gastos)}\n\n`+
+    `*Fichas*\n`+(d.por_ficha||[]).map(f=>`${f.name}: entregadas ${fn(f.entregadas)}, devueltas ${fn(f.devueltas)}, stock ${fn(f.stock)}`).join("\n")+
+    `\n\n*Billeteras*\n`+(d.billeteras||[]).map(w=>`${w.name}: ${fm(w.saldo)}`).join("\n")};
+  $("view").innerHTML=`<div class="row" style="margin-bottom:12px;align-items:center"><div><h2 style="margin:0">Reportes de turno</h2><span class="mut">Se genera uno cada vez que un cajero cierra su turno.</span></div>
+  <button class="btn g" id="rA">Marcar todos como leídos</button></div>
+  <div class="card" style="margin-bottom:12px"><label style="margin-top:0">Número de WhatsApp para reenviar (con código de país, sin +) — opcional</label><input id="rW" placeholder="5491122334455" value="${esc(wa)}" inputmode="numeric"></div>`+
+  (rows.map(r=>{const d=r.data||{};return `<div class="card" style="margin-bottom:10px;${r.seen?"":"border-color:var(--a)"}">
+    <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>${esc(r.cajero_name)} ${r.seen?"":'<span class="pill" style="color:var(--a)">nuevo</span>'}</b><span class="mut">${fdt(r.started_at)} → ${fdt(r.ended_at)}</span></div>
+    <div class="grid g4" style="margin:10px 0"><div><div class="mut">Cargas (${d.cargas_n})</div><b class="pos">${fm(d.cargas)}</b></div><div><div class="mut">Retiros (${d.retiros_n})</div><b class="neg">${fm(d.retiros)}</b></div><div><div class="mut">Bonos</div><b>${fm(d.bonos)}</b></div><div><div class="mut">Gastos (${d.gastos_n})</div><b>${fm(d.gastos)}</b></div></div>
+    <div class="tw"><table><tr><th>Ficha</th><th>Entregadas</th><th>Devueltas</th><th>Stock al cierre</th></tr>${(d.por_ficha||[]).map(f=>`<tr><td>${esc(f.name)}</td><td>${fn(f.entregadas)}</td><td>${fn(f.devueltas)}</td><td>${fn(f.stock)}</td></tr>`).join("")||'<tr><td colspan="4" class="mut">Sin movimientos de fichas.</td></tr>'}</table></div>
+    <p class="sub" style="margin:8px 0">Billeteras al cierre: ${(d.billeteras||[]).map(w=>`${esc(w.name)} <b>${fm(w.saldo)}</b>`).join(" · ")||"—"}</p>
+    <div class="acts"><button class="btn g s" data-wa="${r.id}">Enviar por WhatsApp</button></div></div>`}).join("")||'<div class="card"><p class="mut">Todavía no hay reportes. Aparecen cuando un cajero cierra su turno con actividad.</p></div>');
+  $("rW").onchange=()=>{try{localStorage.setItem("g_wa",$("rW").value.replace(/\D/g,""))}catch(e){}};
+  $("rA").onclick=()=>run($("rA"),async()=>{await rpc("g_reports_mark_seen");repLast=0;toast("Listo ✓");await VIEWS.rep();repCheck()});
+  $("view").onclick=ev=>{const b=ev.target.closest("[data-wa]");if(!b)return;const r=rows.find(x=>x.id===b.dataset.wa),n=$("rW").value.replace(/\D/g,"");
+    window.open("https://wa.me/"+n+"?text="+encodeURIComponent(txt(r)),"_blank")};
+  S.repBusy=false;
+  if(rows.some(r=>!r.seen)){await rpc("g_reports_mark_seen");repLast=0;const bb=document.querySelector('#nav button[data-t=rep]');if(bb)bb.textContent="Reportes"}
 };
 
 /* ---------- Ajustes y auditoría (solo admin) ---------- */
