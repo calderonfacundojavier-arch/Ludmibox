@@ -95,6 +95,7 @@ const fm=n=>"$"+N(n).toLocaleString("es-AR",{minimumFractionDigits:0,maximumFrac
 const fn=n=>N(n).toLocaleString("es-AR",{maximumFractionDigits:2});
 const TZ="America/Argentina/Buenos_Aires";
 const fdt=t=>t?new Date(t).toLocaleString("es-AR",{timeZone:TZ,day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"";
+const fdt2=t=>t?new Date(t).toLocaleString("es-AR",{timeZone:TZ,day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}):"";
 const today=()=>new Date().toLocaleDateString("en-CA",{timeZone:TZ});
 const dayISO=d=>new Date(d+"T00:00:00-03:00").toISOString();
 const addDays=(d,n)=>{const x=new Date(d+"T12:00:00Z");x.setUTCDate(x.getUTCDate()+n);return x.toISOString().slice(0,10)};
@@ -231,9 +232,11 @@ VIEWS.dash=async function(){
     <div class="card kpi"><div class="l">Neto del día</div><div class="v">${fm(N(m.ingresos)-N(m.retiros)-N(m.gastos))}</div></div></div>`}
   const bal=()=>`<h3>Billeteras</h3>${actW().map(w=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #1a2a25"><span><span class="pill" style="background:${esc(w.color)};border-color:${esc(w.color)}">&nbsp;</span> ${esc(w.name)}</span><b>${fm(w.balance)}</b></div>`).join("")||'<p class="mut">Sin billeteras.</p>'}
     <h3 style="margin-top:14px">Fichas (stock)</h3>${actC().map(c=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #1a2a25"><span>${esc(c.name)}</span><b>${fn(c.balance)}</b></div>`).join("")||'<p class="mut">Sin fichas.</p>'}`;
-  $("view").innerHTML=k+`<div class="grid g2"><div class="card"><h2>Nuevo movimiento</h2><div id="dForm">${movFields()}</div>
+  const qm=()=>`<h3>📩 Mensaje entrante</h3><div class="acts">${S.ads.map(a=>`<button class="btn" data-qm="${a.id}">+1 ${esc(a.name)} <span style="opacity:.7">(${fn(a.msgs)})</span></button>`).join("")||'<span class="mut">No hay campañas activas. Creá una en Publicidad.</span>'}</div>`;
+  $("view").innerHTML=k+`<div class="card" id="dQM" style="margin-bottom:12px">${qm()}</div><div class="grid g2"><div class="card"><h2>Nuevo movimiento</h2><div id="dForm">${movFields()}</div>
     <button class="btn full" id="dGo">Registrar</button></div><div class="card" id="dBal">${bal()}</div></div>
   <div class="card" style="margin-top:12px"><h2>Buscar movimientos</h2><div id="dS"></div></div>`;
+  $("dQM").onclick=ev=>{const b=ev.target.closest("[data-qm]");if(!b)return;run(b,async()=>{await rpc("g_ad_add_msg",{p_shift:sid(),p_ad:b.dataset.qm,p_qty:1});S.ads=await rpc("g_ads_active");$("dQM").innerHTML=qm();toast("+1 mensaje ✓")})};
   let get=movWire($("dForm"));
   const load=movSearch($("dS"),{from:today(),onChange:async()=>{$("dBal").innerHTML=bal()}});
   $("dGo").onclick=()=>run($("dGo"),async()=>{const v=get(),e=chk(v);if(e){toast(e,true);return}
@@ -442,9 +445,10 @@ VIEWS.pub=async function(){
     $("pL").innerHTML=`<div class="tw"><table><tr><th>Campaña</th><th>Estado</th><th>Inversión</th><th>Mensajes</th><th>Cargas</th><th>Ingresos</th><th>Conversión</th><th>$/msj</th><th>$/carga</th><th>ROI</th><th></th></tr>`+
     rows.map(a=>{const inv=N(a.inversion),roi=inv>0?(N(a.income)-inv)/inv*100:null;
       return`<tr><td><b>${esc(a.name)}</b><br><span class="mut">${esc(a.start_date)}</span></td><td><span class="pill">${esc(a.status)}</span></td><td>${fm(inv)}</td><td>${fn(a.msgs)}</td><td>${fn(a.loads)}</td><td>${fm(a.income)}</td><td>${N(a.msgs)>0?fn(N(a.loads)/N(a.msgs)*100)+"%":"—"}</td><td>${N(a.msgs)>0?fm(inv/N(a.msgs)):"—"}</td><td>${N(a.loads)>0?fm(inv/N(a.loads)):"—"}</td><td class="${roi==null?"":roi>=0?"pos":"neg"}">${roi==null?"—":fn(roi)+"%"}</td>
-      <td class="acts"><button class="btn g s" data-pm="${a.id}">+ msj</button><button class="btn g s" data-pc="${a.id}">+ costo</button><button class="btn g s" data-pa="${a.id}">Ajustar</button><button class="btn g s" data-ps="${a.id}">Estado</button></td></tr>`}).join("")+"</table></div>"+(rows.length?"":'<p class="mut">No hay campañas.</p>');
-    $("pL").onclick=ev=>{const m=ev.target.closest("[data-pm]"),c=ev.target.closest("[data-pc]"),a=ev.target.closest("[data-pa]"),s=ev.target.closest("[data-ps]");
+      <td class="acts"><button class="btn s" data-p1="${a.id}">+1 mensaje</button><button class="btn g s" data-pm="${a.id}">+ varios</button><button class="btn g s" data-pc="${a.id}">+ costo</button><button class="btn g s" data-pa="${a.id}">Ajustar</button><button class="btn g s" data-ps="${a.id}">Estado</button></td></tr>`}).join("")+"</table></div>"+(rows.length?"":'<p class="mut">No hay campañas.</p>');
+    $("pL").onclick=ev=>{const o1=ev.target.closest("[data-p1]"),m=ev.target.closest("[data-pm]"),c=ev.target.closest("[data-pc]"),a=ev.target.closest("[data-pa]"),s=ev.target.closest("[data-ps]");
       const find=id=>rows.find(x=>x.id===id);
+      if(o1)run(o1,async()=>{await rpc("g_ad_add_msg",{p_shift:null,p_ad:o1.dataset.p1,p_qty:1});toast("+1 mensaje ✓");await load()});
       if(m)adMsg(find(m.dataset.pm),load);if(c)adCost(find(c.dataset.pc),load);if(a)adAdj(find(a.dataset.pa),load);if(s)adStatus(find(s.dataset.ps),load)}};
   $("pP").onchange=$("pS").onchange=()=>run(null,load);
   $("pN").onclick=()=>adNew(load);await load();
@@ -480,23 +484,41 @@ VIEWS.caj=async function(){
   <div class="card kpi"><div class="l">Sueldos del mes</div><div class="v">${fm(totSal)}</div></div><div class="card kpi"><div class="l">Pagado</div><div class="v pos">${fm(totPay)}</div></div></div>
   <div class="card"><div class="tw"><table><tr><th>Cajero</th><th>Estado</th><th>Cargas</th><th>Sueldo mensual</th><th>Pagado (${per})</th><th>Pendiente</th><th></th></tr>`+
   S.cajeros.map(c=>{const s=sm[c.id]||0,p=pm[c.id]||0;return`<tr><td><b>${esc(c.name)}</b></td><td>${c.active?"Activo":'<span class="mut">Inactivo</span>'}</td><td>${c.cargas}</td>
-    <td><input type="number" step="0.01" min="0" value="${s}" data-s="${c.id}" style="width:120px"></td><td>${fm(p)}</td><td class="${s-p>0?"neg":"pos"}">${fm(Math.max(s-p,0))}</td>
-    <td class="acts"><button class="btn s" data-pay="${c.id}">Pagar</button><button class="btn g s" data-pin="${c.id}">Clave</button><button class="btn g s" data-act="${c.id}">${c.active?"Desactivar":"Activar"}</button></td></tr>`}).join("")+`</table></div>
+    <td><input type="number" step="0.01" min="0" value="${s}" data-s="${c.id}" style="width:120px"></td><td>${fm(p)}<div class="bar"><i style="width:${s>0?Math.min(100,p/s*100):0}%"></i></div></td><td class="${s-p>0?"neg":"pos"}">${fm(Math.max(s-p,0))}${p>s&&s>0?`<div class="mut">adelantó ${fm(p-s)} de más</div>`:""}</td>
+    <td class="acts"><button class="btn s" data-pay="${c.id}">Registrar pago</button><button class="btn g s" data-det="${c.id}">Detalle</button><button class="btn g s" data-pin="${c.id}">Clave</button><button class="btn g s" data-act="${c.id}">${c.active?"Desactivar":"Activar"}</button></td></tr>`}).join("")+`</table></div>
   ${S.cajeros.length?"":'<p class="mut">Todavía no hay cajeros. Se crean desde la pantalla de turno ("Crear usuario").</p>'}</div>
-  <div class="card" style="margin-top:12px"><h3>Pagos de ${per}</h3>${pay.map(p=>`<div style="padding:5px 0;border-bottom:1px solid #1a2a25">${fdt(p.ts)} · ${esc((S.cajeros.find(c=>c.id===p.cajero_id)||{}).name)} · <b>${fm(p.amount)}</b> · ${esc(wName(p.wallet_id))} <span class="mut">${esc(p.note)}</span> <button class="btn d s" data-px="${p.expense_id}">Anular</button></div>`).join("")||'<p class="mut">Sin pagos este mes.</p>'}</div>`;
+  <div class="card" style="margin-top:12px"><h3>Pagos registrados en ${per}</h3>${pay.map(p=>`<div style="padding:5px 0;border-bottom:1px solid #1a2a25">${fdt2(p.ts)} · ${esc((S.cajeros.find(c=>c.id===p.cajero_id)||{}).name)} · <b>${fm(p.amount)}</b> · ${esc(wName(p.wallet_id))} <span class="mut">${esc(p.note)}</span> <button class="btn d s" data-px="${p.expense_id}">Anular</button></div>`).join("")||'<p class="mut">Sin pagos este mes.</p>'}</div>`;
   $("cM").onchange=()=>{S.per=$("cM").value||per;go("caj")};
   $("view").querySelectorAll("[data-s]").forEach(i=>i.onchange=()=>run(null,async()=>{await q(sb.from("g_salaries").upsert({cajero_id:i.dataset.s,monthly:N(i.value)},{onConflict:"cajero_id"}));toast("Sueldo guardado ✓");go("caj")}));
-  $("view").onclick=ev=>{const p=ev.target.closest("[data-pay]"),k=ev.target.closest("[data-pin]"),a=ev.target.closest("[data-act]"),x=ev.target.closest("[data-px]");
-    if(p){const c=S.cajeros.find(z=>z.id===p.dataset.pay);paySal(c,Math.max((sm[c.id]||0)-(pm[c.id]||0),0),per)}
+  $("view").onclick=ev=>{const dt=ev.target.closest("[data-det]"),p=ev.target.closest("[data-pay]"),k=ev.target.closest("[data-pin]"),a=ev.target.closest("[data-act]"),x=ev.target.closest("[data-px]");
+    if(dt){const c=S.cajeros.find(z=>z.id===dt.dataset.det);salDetail(c,sm[c.id]||0,pay.filter(z=>z.cajero_id===c.id),per)}
+    if(p){const c=S.cajeros.find(z=>z.id===p.dataset.pay);paySal(c,Math.max((sm[c.id]||0)-(pm[c.id]||0),0),per,sm[c.id]||0,pm[c.id]||0)}
     if(k)resetPin(S.cajeros.find(z=>z.id===k.dataset.pin));
     if(a)run(a,async()=>{const c=S.cajeros.find(z=>z.id===a.dataset.act);await q(sb.from("g_cajeros").update({active:!c.active}).eq("id",c.id));go("caj")});
     if(x)run(x,async()=>{await rpc("g_delete_expense",{p_shift:null,p_id:x.dataset.px});toast("Pago anulado ✓");go("caj")})};
 };
-function paySal(c,def,per){const d=modal(`<h2>Pagar sueldo · ${esc(c.name)}</h2><div class="row"><div><label>Monto ($)</label><input id="sA" type="number" step="0.01" value="${def||""}"></div><div><label>Período</label><input id="sP" type="month" value="${per}"></div></div>
-  <label>Billetera</label><select id="sW">${opts(actW(),null,w=>w.name+" ("+fm(w.balance)+")")}</select><label>Nota</label><input id="sN" maxlength="150">
-  <div class="row" style="margin-top:12px"><button class="btn g" id="sX">Cancelar</button><button class="btn" id="sS">Pagar</button></div>`);
+function paySal(c,def,per,sal,paid){const d=modal(`<h2>Registrar pago · ${esc(c.name)}</h2>
+  <p class="sub">Sueldo mensual <b>${fm(sal)}</b> · ya cobró <b>${fm(paid)}</b> · pendiente <b>${fm(Math.max(sal-paid,0))}</b></p>
+  <div class="row"><div><label>Monto transferido ($)</label><input id="sA" type="number" step="0.01" min="0" inputmode="decimal" value="${def||""}"></div><div><label>Período</label><input id="sP" type="month" value="${per}"></div></div>
+  <label>Billetera de la que sale</label><select id="sW">${opts(actW(),null,w=>w.name+" ("+fm(w.balance)+")")}</select><label>Nota (ej: adelanto)</label><input id="sN" maxlength="150">
+  <div class="prev" id="sQ"></div>
+  <div class="row" style="margin-top:12px"><button class="btn g" id="sX">Cancelar</button><button class="btn" id="sS">Registrar pago</button></div>`);
+  const upd=()=>{const a=N(d.querySelector("#sA").value),r=sal-paid-a;d.querySelector("#sQ").innerHTML=r>=0?`Después de este pago le quedan <b>${fm(r)}</b> por cobrar.`:`Este pago excede el sueldo en <b class="neg">${fm(-r)}</b> (queda como adelanto de más).`};
+  d.addEventListener("input",upd);upd();
   d.querySelector("#sX").onclick=()=>d.remove();
-  d.querySelector("#sS").onclick=()=>run(d.querySelector("#sS"),async()=>{await rpc("g_pay_salary",{p_cajero:c.id,p_amount:N(d.querySelector("#sA").value),p_wallet:d.querySelector("#sW").value,p_period:d.querySelector("#sP").value,p_note:d.querySelector("#sN").value});d.remove();toast("Sueldo pagado ✓");go("caj")})}
+  d.querySelector("#sS").onclick=()=>run(d.querySelector("#sS"),async()=>{await rpc("g_pay_salary",{p_cajero:c.id,p_amount:N(d.querySelector("#sA").value),p_wallet:d.querySelector("#sW").value,p_period:d.querySelector("#sP").value,p_note:d.querySelector("#sN").value});d.remove();toast("Pago registrado ✓");go("caj")})}
+function salDetail(c,sal,rows,per){
+  const asc=[...rows].sort((x,y)=>new Date(x.ts)-new Date(y.ts));let acc=0;
+  const tot=asc.reduce((a,x)=>a+N(x.amount),0);
+  const d=modal(`<h2>${esc(c.name)} · ${per}</h2><div class="grid g4" style="margin-bottom:10px"><div><div class="mut">Sueldo mensual</div><b>${fm(sal)}</b></div><div><div class="mut">Cobrado</div><b class="pos">${fm(tot)}</b></div><div><div class="mut">Pendiente</div><b class="${sal-tot>0?"neg":"pos"}">${fm(Math.max(sal-tot,0))}</b></div></div>
+  <div class="bar"><i style="width:${sal>0?Math.min(100,tot/sal*100):0}%"></i></div>
+  <div class="tw" style="margin-top:12px"><table><tr><th>Fecha y hora</th><th>Monto</th><th>Billetera</th><th>Nota</th><th>Pendiente después</th><th></th></tr>`+
+  (asc.map(x=>{acc+=N(x.amount);return `<tr><td>${fdt2(x.ts)}</td><td><b>${fm(x.amount)}</b></td><td>${esc(wName(x.wallet_id))}</td><td>${esc(x.note)}</td><td>${fm(Math.max(sal-acc,0))}</td><td><button class="btn d s" data-px="${x.expense_id}">Anular</button></td></tr>`}).join("")||'<tr><td colspan="6" class="mut">Todavía no hay pagos este mes.</td></tr>')+
+  `</table></div><div class="row" style="margin-top:12px"><button class="btn g" id="dX">Cerrar</button><button class="btn" id="dP">Registrar pago</button></div>`,true);
+  d.querySelector("#dX").onclick=()=>d.remove();
+  d.querySelector("#dP").onclick=()=>{d.remove();paySal(c,Math.max(sal-tot,0),per,sal,tot)};
+  d.onclick=ev=>{const x=ev.target.closest("[data-px]");if(x)run(x,async()=>{await rpc("g_delete_expense",{p_shift:null,p_id:x.dataset.px});d.remove();toast("Pago anulado ✓");go("caj")})};
+}
 function resetPin(c){const d=modal(`<h2>Nueva clave · ${esc(c.name)}</h2><input id="kP" type="text" autocomplete="off" placeholder="Mín. 4 caracteres"><div class="row" style="margin-top:12px"><button class="btn g" id="kX">Cancelar</button><button class="btn" id="kS">Guardar</button></div>`);
   d.querySelector("#kX").onclick=()=>d.remove();
   d.querySelector("#kS").onclick=()=>run(d.querySelector("#kS"),async()=>{await rpc("g_reset_pin",{p_cajero:c.id,p_pin:d.querySelector("#kP").value});d.remove();toast("Clave cambiada ✓")})}
