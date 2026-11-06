@@ -399,9 +399,16 @@ function delExp(e,after){
 /* ---------- Publicidad ---------- */
 VIEWS.pub=async function(){
   if(!isAdm()){
-    $("view").innerHTML=`<div class="card"><h2>Campañas activas</h2><p class="sub">Cuando entra un mensaje de una campaña, tocá +1.</p>`+
-    (S.ads.map(a=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #1a2a25"><b>${esc(a.name)}</b><button class="btn s" data-m="${a.id}">+1 mensaje</button></div>`).join("")||'<p class="mut">No hay campañas activas.</p>')+"</div>";
-    $("view").onclick=ev=>{const b=ev.target.closest("[data-m]");if(b)run(b,async()=>{await rpc("g_ad_add_msg",{p_shift:sid(),p_ad:b.dataset.m,p_qty:1});toast("+1 mensaje ✓")})};
+    const L=await rpc("g_ads_list");
+    $("view").innerHTML=`<div class="row" style="margin-bottom:12px;align-items:center"><div><h2 style="margin:0">Publicidad</h2><span class="mut">Cuando entra un mensaje de una campaña, tocá +1.</span></div><button class="btn" id="oN">+ Nueva campaña</button></div>
+    <div class="card">`+(L.map(a=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 0;border-bottom:1px solid #1a2a25"><span><b>${esc(a.name)}</b> <span class="pill">${esc(a.status)}</span> <span class="mut">${fn(a.msgs)} mensajes</span></span>
+      <span class="acts">${a.status==="activa"?`<button class="btn s" data-m="${a.id}">+1 mensaje</button><button class="btn g s" data-st="pausada" data-id="${a.id}">Pausar</button><button class="btn g s" data-st="finalizada" data-id="${a.id}">Finalizar</button>`:`<button class="btn g s" data-st="activa" data-id="${a.id}">Reactivar</button>`}</span></div>`).join("")||'<p class="mut">Todavía no hay campañas. Creá la primera.</p>')+"</div>";
+    $("oN").onclick=()=>{const d=modal(`<h2>Nueva campaña</h2><label>Nombre</label><input id="oNm" maxlength="60" placeholder="Ej: Facebook noviembre"><div class="row" style="margin-top:12px"><button class="btn g" id="oX">Cancelar</button><button class="btn" id="oS">Crear</button></div>`);
+      d.querySelector("#oX").onclick=()=>d.remove();
+      d.querySelector("#oS").onclick=()=>run(d.querySelector("#oS"),async()=>{await rpc("g_ad_create",{p_shift:sid(),p_name:d.querySelector("#oNm").value});d.remove();toast("Campaña creada ✓");go("pub")})};
+    $("view").onclick=ev=>{const b=ev.target.closest("[data-m]"),s=ev.target.closest("[data-st]");
+      if(b)run(b,async()=>{await rpc("g_ad_add_msg",{p_shift:sid(),p_ad:b.dataset.m,p_qty:1});toast("+1 mensaje ✓");go("pub")});
+      if(s)run(s,async()=>{await rpc("g_ad_set_status",{p_shift:sid(),p_ad:s.dataset.id,p_status:s.dataset.st});toast("Listo ✓");go("pub")})};
     return;
   }
   $("view").innerHTML=`<div class="row" style="margin-bottom:12px;align-items:flex-end"><div><label>Período</label><select id="pP"><option value="total">Total histórico</option><option value="hoy">Hoy</option><option value="7">Últimos 7 días</option><option value="mes">Este mes</option></select></div>
