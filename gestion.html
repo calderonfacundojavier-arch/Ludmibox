@@ -3,8 +3,10 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#0b1210">
 <title>Gestión · Caja Ludmi</title>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem("g_theme")||"dark"}catch(e){document.documentElement.dataset.theme="dark"}</script>
 <style>
-:root{--bg:#0b1210;--p:#121c19;--p2:#182521;--b:#243630;--t:#e8f3ee;--m:#8aa79b;--a:#00e676;--a2:#00b85a;--r:#ff5252;--y:#ffca28;--bl:#4dabf7}
+:root{--bg:#0b1210;--p:#121c19;--p2:#182521;--b:#243630;--b2:var(--b2);--t:#e8f3ee;--m:#8aa79b;--a:#00e676;--a2:#00b85a;--r:#ff5252;--y:#ffca28;--bl:#4dabf7;--on:#032;color-scheme:dark}
+:root[data-theme=light]{--bg:#eef3f1;--p:#ffffff;--p2:#e6eeea;--b:#cfdcd6;--b2:#e3ece8;--t:#13211b;--m:#586f65;--a:#00a152;--a2:#007c3e;--r:#d32f2f;--y:#a87400;--bl:#1971c2;--on:#fff;color-scheme:light}
 *{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--t);font:15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
 button,input,select,textarea{font:inherit;color:inherit}
 .hide{display:none!important}
@@ -16,26 +18,47 @@ h1{font-size:20px;margin:0 0 4px}h2{font-size:17px;margin:0 0 10px}h3{font-size:
 label{display:block;font-size:12px;color:var(--m);margin:10px 0 4px}
 input,select,textarea{width:100%;background:var(--bg);border:1px solid var(--b);border-radius:9px;padding:10px 11px;outline:none}
 input:focus,select:focus,textarea:focus{border-color:var(--a)}
-.btn{background:var(--a);color:#032;border:0;border-radius:9px;padding:10px 14px;font-weight:700;cursor:pointer}
+.btn{background:var(--a);color:var(--on);border:0;border-radius:9px;padding:10px 14px;font-weight:700;cursor:pointer}
 .btn:disabled{opacity:.5;cursor:default}.btn.s{padding:6px 10px;font-size:13px}
 .btn.g{background:var(--p2);color:var(--t);border:1px solid var(--b)}.btn.d{background:var(--r);color:#fff}
 .full{width:100%;margin-top:14px}
 .err{color:var(--r);font-size:13px;min-height:18px;margin-top:8px}
 .lnk{background:none;border:0;color:var(--a);cursor:pointer;padding:6px 0;font-size:13px}
-header{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--b);position:sticky;top:0;background:var(--bg);z-index:5;flex-wrap:wrap}
-header .br{font-weight:800;color:var(--a)}header .sp{flex:1}
 .badge{font-size:11px;padding:3px 8px;border-radius:99px;border:1px solid var(--b);color:var(--m)}
 .badge.adm{color:var(--y);border-color:var(--y)}
-nav{display:flex;gap:4px;overflow-x:auto;padding:8px 10px;border-bottom:1px solid var(--b);scrollbar-width:none}
-nav button{white-space:nowrap;background:none;border:0;color:var(--m);padding:8px 12px;border-radius:9px;cursor:pointer;font-weight:600}
-nav button.on{background:var(--p2);color:var(--a)}
-main{padding:14px;max-width:1100px;margin:0 auto}
+#app{display:flex;min-height:100vh}
+#side{flex:0 0 232px;width:232px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;background:var(--p);border-right:1px solid var(--b);padding:14px 10px;z-index:40}
+.brand{display:flex;align-items:center;gap:10px;padding:2px 6px 12px;border-bottom:1px solid var(--b)}
+.brand img{width:46px;height:46px;border-radius:50%;border:2px solid var(--a);object-fit:cover}
+.brand b{display:block;font-size:16px;line-height:1.1}.brand small{color:var(--m);font-size:12px}
+nav{display:flex;flex-direction:column;gap:3px;overflow-y:auto;flex:1;padding:10px 0}
+nav button{display:flex;align-items:center;gap:10px;text-align:left;background:none;border:0;color:var(--m);padding:10px 12px;border-radius:10px;cursor:pointer;font-weight:600;width:100%}
+nav button::before{content:attr(data-ic);width:22px;text-align:center;font-size:16px}
+nav button:hover{background:var(--p2)}
+nav button.on{background:var(--p2);color:var(--a);box-shadow:inset 3px 0 0 var(--a)}
+.sfoot{border-top:1px solid var(--b);padding-top:10px;display:flex;flex-direction:column;gap:7px}
+.sfoot .who{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
+.sfoot .btn{width:100%}
+#topbar{display:none}#scrim{display:none}
+main{padding:16px;max-width:1100px;margin:0 auto;flex:1;min-width:0;width:100%}
+html[data-theme=light] input,html[data-theme=light] select,html[data-theme=light] textarea{background:#fff}
+.lg{width:92px;height:92px;border-radius:50%;border:3px solid var(--a);display:block;margin:0 auto 10px;object-fit:cover}
+.thf{position:fixed;top:10px;right:10px;z-index:60;width:auto!important}
+@media(max-width:820px){
+  #app{display:block}
+  #topbar{display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:30;background:var(--p);border-bottom:1px solid var(--b);padding:8px 12px}
+  #topbar img{width:34px;height:34px;border-radius:50%;border:2px solid var(--a)}#topbar b{flex:1}
+  #side{position:fixed;left:0;top:0;bottom:0;transform:translateX(-102%);transition:transform .2s;box-shadow:4px 0 24px #0008}
+  #side.open{transform:none}
+  #scrim.on{display:block;position:fixed;inset:0;background:#0008;z-index:35}
+  main{padding:12px}
+}
 .grid{display:grid;gap:12px}.g2{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}.g4{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
 .kpi .v{font-size:22px;font-weight:800}.kpi .l{font-size:12px;color:var(--m)}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start}.row>*{flex:1;min-width:110px}.row>.btn{flex:0 0 auto;align-self:flex-end}.mfB .row{flex-wrap:nowrap;align-items:center}.mfB .row select{flex:0 0 74px;min-width:0}.mfB .row input{min-width:0}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th{text-align:left;color:var(--m);font-weight:600;padding:7px 6px;border-bottom:1px solid var(--b);white-space:nowrap}
-td{padding:7px 6px;border-bottom:1px solid #1a2a25;vertical-align:top}
+td{padding:7px 6px;border-bottom:1px solid var(--b2);vertical-align:top}
 .tw{overflow-x:auto}
 .pos{color:var(--a)}.neg{color:var(--r)}.mut{color:var(--m)}
 .pill{display:inline-block;font-size:11px;padding:2px 7px;border-radius:99px;background:var(--p2);border:1px solid var(--b)}
@@ -53,14 +76,16 @@ td{padding:7px 6px;border-bottom:1px solid #1a2a25;vertical-align:top}
 </style></head><body>
 
 <div id="login" class="hide"><div class="card box">
-  <h1>Gestión · Caja Ludmi</h1><p class="sub">Ingresá con tu usuario.</p>
+  <img class="lg" src="/icon-192.png" alt="Caja Ludmi">
+  <h1 style="text-align:center">Caja Ludmi</h1><p class="sub" style="text-align:center">Gestión · Ingresá con tu usuario.</p>
   <form id="lf"><label>Usuario (mail)</label><input id="le" type="email" autocomplete="username" required>
   <label>Contraseña</label><input id="lp" type="password" autocomplete="current-password" required>
   <div class="err" id="lerr"></div><button class="btn full" id="lb">Ingresar</button></form>
 </div></div>
 
 <div id="shift" class="hide"><div class="card box">
-  <h1>¿Quién está en el turno?</h1><p class="sub">Elegí tu nombre e ingresá tu contraseña.</p>
+  <img class="lg" src="/icon-192.png" alt="Caja Ludmi">
+  <h1 style="text-align:center">¿Quién está en el turno?</h1><p class="sub">Elegí tu nombre e ingresá tu contraseña.</p>
   <div id="sPick"><label>Cajero</label><select id="sSel"></select>
     <label>Contraseña</label><input id="sPin" type="password" autocomplete="off">
     <div class="err" id="sErr"></div>
@@ -76,10 +101,17 @@ td{padding:7px 6px;border-bottom:1px solid #1a2a25;vertical-align:top}
 </div></div>
 
 <div id="app" class="hide">
-  <header><span class="br">💰 Gestión</span><span class="badge" id="hRole"></span><span id="hCaj" class="mut"></span><span class="sp"></span>
-    <button class="btn g s hide" id="hShift">Cambiar turno</button><button class="btn g s" id="hOut">Salir</button></header>
-  <nav id="nav"></nav><main id="view"></main>
+  <div id="topbar"><button class="btn g s" id="burger" aria-label="Menú">☰</button><img src="/icon-192.png" alt=""><b>Caja Ludmi</b><button class="btn g s thb" data-th></button></div>
+  <aside id="side">
+    <div class="brand"><img src="/icon-192.png" alt="Caja Ludmi"><div><b>Caja Ludmi</b><small>Sistema de gestión</small></div></div>
+    <nav id="nav"></nav>
+    <div class="sfoot"><div class="who"><span class="badge" id="hRole"></span><span id="hCaj" class="mut"></span></div>
+      <button class="btn g s thb" data-th></button><button class="btn g s hide" id="hShift">Cambiar turno</button><button class="btn g s" id="hOut">Salir</button></div>
+  </aside>
+  <div id="scrim"></div>
+  <main id="view"></main>
 </div>
+<button class="btn g s thb thf" data-th id="thF"></button>
 <div id="toast" class="hide"></div>
 <div id="ovs"></div>
 
@@ -116,7 +148,15 @@ async function boot(){
   if(!data||!data.session){show("login");return}
   await init();
 }
-function show(w){["login","shift","app"].forEach(x=>$(x).classList.toggle("hide",x!==w))}
+function show(w){["login","shift","app"].forEach(x=>$(x).classList.toggle("hide",x!==w));$("thF").classList.toggle("hide",w==="app")}
+function setTheme(t){document.documentElement.dataset.theme=t;try{localStorage.setItem("g_theme",t)}catch(e){}
+  document.querySelectorAll("[data-th]").forEach(b=>b.textContent=t==="dark"?"☀️ Modo día":"🌙 Modo noche");
+  const m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==="dark"?"#0b1210":"#eef3f1"}
+document.querySelectorAll("[data-th]").forEach(b=>b.onclick=()=>setTheme(document.documentElement.dataset.theme==="dark"?"light":"dark"));
+setTheme(document.documentElement.dataset.theme||"dark");
+const sideClose=()=>{$("side").classList.remove("open");$("scrim").classList.remove("on")};
+$("burger").onclick=()=>{$("side").classList.toggle("open");$("scrim").classList.toggle("on")};$("scrim").onclick=sideClose;
+const ICONS={dash:"📊",bill:"👛",fich:"🎰",mov:"🔎",rep:"📋",caj:"👥",pub:"📣",gas:"🧾",met:"📈",cfg:"⚙️"};
 $("lf").onsubmit=async e=>{e.preventDefault();$("lerr").textContent="";const b=$("lb");b.disabled=true;
   const {error}=await sb.auth.signInWithPassword({email:$("le").value.trim(),password:$("lp").value});
   b.disabled=false;if(error){$("lerr").textContent="Usuario o contraseña incorrectos.";return}
@@ -167,8 +207,8 @@ const TABS_AD=[["dash","Dashboard"],["bill","Billeteras"],["fich","Fichas"],["mo
 async function enterApp(){
   show("app");$("hRole").textContent=isAdm()?"ADMIN":"OPERADOR";$("hRole").className="badge"+(isAdm()?" adm":"");
   $("hCaj").textContent=isAdm()?"":"Turno: "+S.shift.name;$("hShift").classList.toggle("hide",isAdm());
-  const T=isAdm()?TABS_AD:TABS_OP;$("nav").innerHTML=T.map(t=>`<button data-t="${t[0]}">${t[1]}</button>`).join("");
-  $("nav").onclick=e=>{const b=e.target.closest("button");if(b)go(b.dataset.t)};
+  const T=isAdm()?TABS_AD:TABS_OP;$("nav").innerHTML=T.map(t=>`<button data-t="${t[0]}" data-ic="${ICONS[t[0]]||"•"}">${t[1]}</button>`).join("");
+  $("nav").onclick=e=>{const b=e.target.closest("button");if(b){sideClose();go(b.dataset.t)}};
   if(isAdm())startRepPoll();
   await go("dash");
 }
@@ -232,8 +272,8 @@ VIEWS.dash=async function(){
     <div class="card kpi"><div class="l">Retiros hoy</div><div class="v neg">${fm(m.retiros)}</div></div>
     <div class="card kpi"><div class="l">Gastos hoy</div><div class="v">${fm(m.gastos)}</div></div>
     <div class="card kpi"><div class="l">Neto del día</div><div class="v">${fm(N(m.ingresos)-N(m.retiros)-N(m.gastos))}</div></div></div>`}
-  const bal=()=>`<h3>Billeteras</h3>${actW().map(w=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #1a2a25"><span><span class="pill" style="background:${esc(w.color)};border-color:${esc(w.color)}">&nbsp;</span> ${esc(w.name)}</span><b>${fm(w.balance)}</b></div>`).join("")||'<p class="mut">Sin billeteras.</p>'}
-    <h3 style="margin-top:14px">Fichas (stock)</h3>${actC().map(c=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #1a2a25"><span>${esc(c.name)}</span><b>${fn(c.balance)}</b></div>`).join("")||'<p class="mut">Sin fichas.</p>'}`;
+  const bal=()=>`<h3>Billeteras</h3>${actW().map(w=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--b2)"><span><span class="pill" style="background:${esc(w.color)};border-color:${esc(w.color)}">&nbsp;</span> ${esc(w.name)}</span><b>${fm(w.balance)}</b></div>`).join("")||'<p class="mut">Sin billeteras.</p>'}
+    <h3 style="margin-top:14px">Fichas (stock)</h3>${actC().map(c=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--b2)"><span>${esc(c.name)}</span><b>${fn(c.balance)}</b></div>`).join("")||'<p class="mut">Sin fichas.</p>'}`;
   const qm=()=>`<h3>📩 Mensaje entrante</h3><div class="acts">${S.ads.map(a=>`<button class="btn" data-qm="${a.id}">+1 ${esc(a.name)} <span style="opacity:.7">(${fn(a.msgs)})</span></button>`).join("")||'<span class="mut">No hay campañas activas. Creá una en Publicidad.</span>'}</div>`;
   $("view").innerHTML=k+`<div class="card" id="dQM" style="margin-bottom:12px">${qm()}</div><div class="grid g2"><div class="card"><h2>Nuevo movimiento</h2><div id="dForm">${movFields()}</div>
     <button class="btn full" id="dGo">Registrar</button></div><div class="card" id="dBal">${bal()}</div></div>
@@ -389,7 +429,7 @@ VIEWS.gas=async function(){
   <label id="gDl">Descripción</label><input id="gD" maxlength="300"><div id="gRB"><label>Responsable</label><input id="gR" maxlength="60" value="${esc(isAdm()?"":S.shift.name)}"></div>
   <label>Comprobante (opcional)</label><input id="gF" type="file" accept="image/*,application/pdf">
   <button class="btn full" id="gS">Registrar gasto</button></div>
-  ${isAdm()?`<div class="card"><h2>Categorías</h2>${cats.map(c=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a2a25"><span${c.active?"":' class="mut"'}>${esc(c.name)}</span><button class="btn g s" data-ct="${c.id}">${c.active?"Desactivar":"Activar"}</button></div>`).join("")}
+  ${isAdm()?`<div class="card"><h2>Categorías</h2>${cats.map(c=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--b2)"><span${c.active?"":' class="mut"'}>${esc(c.name)}</span><button class="btn g s" data-ct="${c.id}">${c.active?"Desactivar":"Activar"}</button></div>`).join("")}
   <div class="row" style="margin-top:10px"><input id="gNC" placeholder="Nueva categoría" maxlength="40"><button class="btn s" id="gAC">Agregar</button></div></div>`:""}</div>
   <div class="card" style="margin-top:12px"><div class="row"><div><label>Desde</label><input type="date" id="xD" value="${addDays(t,-29)}"></div><div><label>Hasta</label><input type="date" id="xH" value="${t}"></div><button class="btn" id="xB">Ver</button></div><div id="xL" style="margin-top:10px"></div></div>`;
   const isSal=()=>!!(salCat&&$("gC").value===salCat.id);
@@ -441,7 +481,7 @@ VIEWS.pub=async function(){
   if(!isAdm()){
     const L=await rpc("g_ads_list");
     $("view").innerHTML=`<div class="row" style="margin-bottom:12px;align-items:center"><div><h2 style="margin:0">Publicidad</h2><span class="mut">Cuando entra un mensaje de una campaña, tocá +1.</span></div><button class="btn" id="oN">+ Nueva campaña</button></div>
-    <div class="card">`+(L.map(a=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 0;border-bottom:1px solid #1a2a25"><span><b>${esc(a.name)}</b> <span class="pill">${esc(a.status)}</span> <span class="mut">${fn(a.msgs)} mensajes · ${fn(a.loads)} cargas</span></span>
+    <div class="card">`+(L.map(a=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 0;border-bottom:1px solid var(--b2)"><span><b>${esc(a.name)}</b> <span class="pill">${esc(a.status)}</span> <span class="mut">${fn(a.msgs)} mensajes · ${fn(a.loads)} cargas</span></span>
       <span class="acts">${a.status==="activa"?`<button class="btn s" data-m="${a.id}">+1 mensaje</button><button class="btn g s" data-st="pausada" data-id="${a.id}">Pausar</button><button class="btn g s" data-st="finalizada" data-id="${a.id}">Finalizar</button>`:`<button class="btn g s" data-st="activa" data-id="${a.id}">Reactivar</button>`}</span></div>`).join("")||'<p class="mut">Todavía no hay campañas. Creá la primera.</p>')+"</div>";
     $("oN").onclick=()=>{const d=modal(`<h2>Nueva campaña</h2><label>Nombre</label><input id="oNm" maxlength="60" placeholder="Ej: Facebook noviembre"><div class="row" style="margin-top:12px"><button class="btn g" id="oX">Cancelar</button><button class="btn" id="oS">Crear</button></div>`);
       d.querySelector("#oX").onclick=()=>d.remove();
@@ -501,7 +541,7 @@ VIEWS.caj=async function(){
     <td><input type="number" step="0.01" min="0" value="${s}" data-s="${c.id}" style="width:120px"></td><td>${fm(p)}<div class="bar"><i style="width:${s>0?Math.min(100,p/s*100):0}%"></i></div></td><td class="${s-p>0?"neg":"pos"}">${fm(Math.max(s-p,0))}${p>s&&s>0?`<div class="mut">adelantó ${fm(p-s)} de más</div>`:""}</td>
     <td class="acts"><button class="btn s" data-pay="${c.id}">Registrar pago</button><button class="btn g s" data-det="${c.id}">Detalle</button><button class="btn g s" data-pin="${c.id}">Clave</button><button class="btn g s" data-act="${c.id}">${c.active?"Desactivar":"Activar"}</button></td></tr>`}).join("")+`</table></div>
   ${S.cajeros.length?"":'<p class="mut">Todavía no hay cajeros. Se crean desde la pantalla de turno ("Crear usuario").</p>'}</div>
-  <div class="card" style="margin-top:12px"><h3>Pagos registrados en ${per}</h3>${pay.map(p=>`<div style="padding:5px 0;border-bottom:1px solid #1a2a25">${fdt2(p.ts)} · ${esc((S.cajeros.find(c=>c.id===p.cajero_id)||{}).name)} · <b>${fm(p.amount)}</b> · ${esc(wLabel(p.wallet_id,p.source))} <span class="mut">${esc(p.note)}</span> <button class="btn d s" data-px="${p.expense_id}">Anular</button></div>`).join("")||'<p class="mut">Sin pagos este mes.</p>'}</div>`;
+  <div class="card" style="margin-top:12px"><h3>Pagos registrados en ${per}</h3>${pay.map(p=>`<div style="padding:5px 0;border-bottom:1px solid var(--b2)">${fdt2(p.ts)} · ${esc((S.cajeros.find(c=>c.id===p.cajero_id)||{}).name)} · <b>${fm(p.amount)}</b> · ${esc(wLabel(p.wallet_id,p.source))} <span class="mut">${esc(p.note)}</span> <button class="btn d s" data-px="${p.expense_id}">Anular</button></div>`).join("")||'<p class="mut">Sin pagos este mes.</p>'}</div>`;
   $("cM").onchange=()=>{S.per=$("cM").value||per;go("caj")};
   $("view").querySelectorAll("[data-s]").forEach(i=>i.onchange=()=>run(null,async()=>{await q(sb.from("g_salaries").upsert({cajero_id:i.dataset.s,monthly:N(i.value)},{onConflict:"cajero_id"}));toast("Sueldo guardado ✓");go("caj")}));
   $("view").onclick=ev=>{const dt=ev.target.closest("[data-det]"),p=ev.target.closest("[data-pay]"),k=ev.target.closest("[data-pin]"),a=ev.target.closest("[data-act]"),x=ev.target.closest("[data-px]");
