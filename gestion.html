@@ -194,6 +194,8 @@ async function go(t){
     $("view").innerHTML='<p class="neg">'+esc(e.message)+"</p>"}
 }
 const actW=()=>S.wallets.filter(w=>!w.archived), actC=()=>S.chips.filter(c=>!c.archived);
+const wLabel=(id,custom)=>id?wName(id):(custom||"Personalizado");
+const WCUST='<option value="__c">✍️ Personalizado (efectivo / billetera personal)</option>';
 const wName=id=>(S.wallets.find(w=>w.id===id)||{}).name||"—", cName=id=>(S.chips.find(c=>c.id===id)||{}).name||"—";
 
 /* ---------- formulario de movimiento ---------- */
@@ -376,22 +378,34 @@ function transfer(){
 /* ---------- Gastos de oficina ---------- */
 VIEWS.gas=async function(){
   const t=today();
-  const cats=(await q(sb.from("g_expense_cats").select("*").order("name"))).filter(c=>!c.is_salary);
-  S.cats=cats;
+  const allCats=await q(sb.from("g_expense_cats").select("*").order("name"));
+  const cats=allCats.filter(c=>!c.is_salary);S.cats=cats;
+  const salCat=allCats.find(c=>c.is_salary);const fcats=[...(salCat&&salCat.active?[salCat]:[]),...cats.filter(c=>c.active)];
   $("view").innerHTML=`<div class="grid g2"><div class="card"><h2>Nuevo gasto</h2>
-  <label>Categoría</label><select id="gC">${opts(cats.filter(c=>c.active))}</select>
-  <div class="row"><div><label>Monto ($)</label><input id="gA" type="number" step="0.01" min="0" inputmode="decimal"></div><div><label>Billetera</label><select id="gW">${opts(actW(),null,w=>w.name+" ("+fm(w.balance)+")")}</select></div></div>
-  <label>Descripción</label><input id="gD" maxlength="300"><label>Responsable</label><input id="gR" maxlength="60" value="${esc(isAdm()?"":S.shift.name)}">
+  <label>Categoría</label><select id="gC">${opts(fcats)}</select>
+  <div id="gCjB" class="hide"><label>¿A qué cajero le pagás el sueldo?</label><select id="gCj">${opts(S.cajeros.filter(c=>c.active))}</select><p class="sub" style="margin:6px 0 0">Se anota solo en la solapa de sueldos del cajero.</p></div>
+  <div class="row"><div><label>Monto ($)</label><input id="gA" type="number" step="0.01" min="0" inputmode="decimal"></div><div><label>Sale de</label><select id="gW"></select></div></div>
+  <div id="gCuB" class="hide"><label>¿De dónde sale? (ej: Efectivo, Billetera de Juan)</label><input id="gCu" maxlength="40" placeholder="Efectivo"></div>
+  <label id="gDl">Descripción</label><input id="gD" maxlength="300"><div id="gRB"><label>Responsable</label><input id="gR" maxlength="60" value="${esc(isAdm()?"":S.shift.name)}"></div>
   <label>Comprobante (opcional)</label><input id="gF" type="file" accept="image/*,application/pdf">
   <button class="btn full" id="gS">Registrar gasto</button></div>
   ${isAdm()?`<div class="card"><h2>Categorías</h2>${cats.map(c=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a2a25"><span${c.active?"":' class="mut"'}>${esc(c.name)}</span><button class="btn g s" data-ct="${c.id}">${c.active?"Desactivar":"Activar"}</button></div>`).join("")}
   <div class="row" style="margin-top:10px"><input id="gNC" placeholder="Nueva categoría" maxlength="40"><button class="btn s" id="gAC">Agregar</button></div></div>`:""}</div>
   <div class="card" style="margin-top:12px"><div class="row"><div><label>Desde</label><input type="date" id="xD" value="${addDays(t,-29)}"></div><div><label>Hasta</label><input type="date" id="xH" value="${t}"></div><button class="btn" id="xB">Ver</button></div><div id="xL" style="margin-top:10px"></div></div>`;
+  const isSal=()=>!!(salCat&&$("gC").value===salCat.id);
+  const wopts=()=>{const sel=$("gW").value;$("gW").innerHTML=opts(actW(),null,w=>w.name+" ("+fm(w.balance)+")")+(isSal()?WCUST:"");if(sel&&[...$("gW").options].some(o=>o.value===sel))$("gW").value=sel};
+  const gui=()=>{const sl=isSal();$("gCjB").classList.toggle("hide",!sl);$("gRB").classList.toggle("hide",sl);$("gDl").textContent=sl?"Nota (ej: adelanto)":"Descripción";wopts();$("gCuB").classList.toggle("hide",!(sl&&$("gW").value==="__c"))};
+  $("gC").onchange=gui;$("gW").onchange=()=>$("gCuB").classList.toggle("hide",!(isSal()&&$("gW").value==="__c"));gui();
   $("gS").onclick=()=>run($("gS"),async()=>{
     const f=$("gF").files[0];let path=null;
     if(f){if(f.size>8e6){toast("El archivo pesa más de 8 MB",true);return}
       path=Date.now()+"-"+Math.random().toString(36).slice(2,8)+"-"+f.name.replace(/[^\w.\-]/g,"_").slice(-40);
       const r=await sb.storage.from("g-docs").upload(path,f);if(r.error)throw new Error("No se pudo subir el comprobante: "+r.error.message)}
+    if(isSal()){
+      if(!$("gCj").value){toast("Elegí el cajero",true);return}
+      const cust=$("gW").value==="__c";
+      await rpc("g_pay_salary_op",{p_shift:sid(),p_cajero:$("gCj").value,p_amount:N($("gA").value),p_wallet:cust?null:$("gW").value,p_custom:cust?$("gCu").value:null,p_note:$("gD").value,p_doc:path});
+      toast("Sueldo registrado en la solapa de sueldos ✓");go("gas");return}
     await rpc("g_add_expense",{p_shift:sid(),p_cat:$("gC").value,p_amount:N($("gA").value),p_wallet:$("gW").value,p_descr:$("gD").value,p_responsible:$("gR").value,p_doc:path});
     toast("Gasto registrado ✓");go("gas")});
   if(isAdm()){
@@ -401,7 +415,7 @@ VIEWS.gas=async function(){
   const load=async()=>{const rows=await q(sb.from("g_expenses").select("*").gte("ts",dayISO($("xD").value)).lt("ts",dayISO(addDays($("xH").value,1))).order("ts",{ascending:false}).limit(300));
     const tot=rows.reduce((a,x)=>a+N(x.amount),0);
     $("xL").innerHTML=`<p class="sub">${rows.length} gastos · <b>${fm(tot)}</b></p><div class="tw"><table><tr><th>Fecha</th><th>Categoría</th><th>Monto</th><th>Billetera</th><th>Descripción</th><th>Resp.</th><th></th></tr>`+
-    rows.map(e=>`<tr><td>${fdt(e.ts)}</td><td>${esc(e.cat_name)}${e.adm_only?' <span class="pill">sueldo</span>':""}</td><td>${fm(e.amount)}</td><td>${esc(wName(e.wallet_id))}</td><td>${esc(e.descr)}</td><td>${esc(e.responsible)}</td>
+    rows.map(e=>`<tr><td>${fdt(e.ts)}</td><td>${esc(e.cat_name)}${e.adm_only?' <span class="pill">sueldo</span>':""}</td><td>${fm(e.amount)}</td><td>${esc(wLabel(e.wallet_id,e.paid_from))}</td><td>${esc(e.descr)}</td><td>${esc(e.responsible)}</td>
     <td class="acts">${e.doc_path&&isAdm()?`<button class="btn g s" data-d="${esc(e.doc_path)}">📎</button>`:e.doc_path?"📎":""}${canEditMov()&&!e.adm_only?`<button class="btn g s" data-ge="${e.id}">Editar</button><button class="btn d s" data-gx="${e.id}">Borrar</button>`:""}${isAdm()&&e.adm_only?`<button class="btn d s" data-gx="${e.id}">Anular</button>`:""}</td></tr>`).join("")+"</table></div>";
     $("xL").onclick=ev=>{const dd=ev.target.closest("[data-d]"),ge=ev.target.closest("[data-ge]"),gx=ev.target.closest("[data-gx]");
       if(dd)run(null,async()=>{const r=await sb.storage.from("g-docs").createSignedUrl(dd.dataset.d,120);if(r.error)throw new Error(r.error.message);window.open(r.data.signedUrl,"_blank")});
@@ -487,7 +501,7 @@ VIEWS.caj=async function(){
     <td><input type="number" step="0.01" min="0" value="${s}" data-s="${c.id}" style="width:120px"></td><td>${fm(p)}<div class="bar"><i style="width:${s>0?Math.min(100,p/s*100):0}%"></i></div></td><td class="${s-p>0?"neg":"pos"}">${fm(Math.max(s-p,0))}${p>s&&s>0?`<div class="mut">adelantó ${fm(p-s)} de más</div>`:""}</td>
     <td class="acts"><button class="btn s" data-pay="${c.id}">Registrar pago</button><button class="btn g s" data-det="${c.id}">Detalle</button><button class="btn g s" data-pin="${c.id}">Clave</button><button class="btn g s" data-act="${c.id}">${c.active?"Desactivar":"Activar"}</button></td></tr>`}).join("")+`</table></div>
   ${S.cajeros.length?"":'<p class="mut">Todavía no hay cajeros. Se crean desde la pantalla de turno ("Crear usuario").</p>'}</div>
-  <div class="card" style="margin-top:12px"><h3>Pagos registrados en ${per}</h3>${pay.map(p=>`<div style="padding:5px 0;border-bottom:1px solid #1a2a25">${fdt2(p.ts)} · ${esc((S.cajeros.find(c=>c.id===p.cajero_id)||{}).name)} · <b>${fm(p.amount)}</b> · ${esc(wName(p.wallet_id))} <span class="mut">${esc(p.note)}</span> <button class="btn d s" data-px="${p.expense_id}">Anular</button></div>`).join("")||'<p class="mut">Sin pagos este mes.</p>'}</div>`;
+  <div class="card" style="margin-top:12px"><h3>Pagos registrados en ${per}</h3>${pay.map(p=>`<div style="padding:5px 0;border-bottom:1px solid #1a2a25">${fdt2(p.ts)} · ${esc((S.cajeros.find(c=>c.id===p.cajero_id)||{}).name)} · <b>${fm(p.amount)}</b> · ${esc(wLabel(p.wallet_id,p.source))} <span class="mut">${esc(p.note)}</span> <button class="btn d s" data-px="${p.expense_id}">Anular</button></div>`).join("")||'<p class="mut">Sin pagos este mes.</p>'}</div>`;
   $("cM").onchange=()=>{S.per=$("cM").value||per;go("caj")};
   $("view").querySelectorAll("[data-s]").forEach(i=>i.onchange=()=>run(null,async()=>{await q(sb.from("g_salaries").upsert({cajero_id:i.dataset.s,monthly:N(i.value)},{onConflict:"cajero_id"}));toast("Sueldo guardado ✓");go("caj")}));
   $("view").onclick=ev=>{const dt=ev.target.closest("[data-det]"),p=ev.target.closest("[data-pay]"),k=ev.target.closest("[data-pin]"),a=ev.target.closest("[data-act]"),x=ev.target.closest("[data-px]");
@@ -500,20 +514,21 @@ VIEWS.caj=async function(){
 function paySal(c,def,per,sal,paid){const d=modal(`<h2>Registrar pago · ${esc(c.name)}</h2>
   <p class="sub">Sueldo mensual <b>${fm(sal)}</b> · ya cobró <b>${fm(paid)}</b> · pendiente <b>${fm(Math.max(sal-paid,0))}</b></p>
   <div class="row"><div><label>Monto transferido ($)</label><input id="sA" type="number" step="0.01" min="0" inputmode="decimal" value="${def||""}"></div><div><label>Período</label><input id="sP" type="month" value="${per}"></div></div>
-  <label>Billetera de la que sale</label><select id="sW">${opts(actW(),null,w=>w.name+" ("+fm(w.balance)+")")}</select><label>Nota (ej: adelanto)</label><input id="sN" maxlength="150">
+  <label>Sale de</label><select id="sW">${opts(actW(),null,w=>w.name+" ("+fm(w.balance)+")")}${WCUST}</select><div id="sCB" class="hide"><label>¿De dónde sale? (ej: Efectivo, Billetera de Juan)</label><input id="sCu" maxlength="40" placeholder="Efectivo"></div><label>Nota (ej: adelanto)</label><input id="sN" maxlength="150">
   <div class="prev" id="sQ"></div>
   <div class="row" style="margin-top:12px"><button class="btn g" id="sX">Cancelar</button><button class="btn" id="sS">Registrar pago</button></div>`);
   const upd=()=>{const a=N(d.querySelector("#sA").value),r=sal-paid-a;d.querySelector("#sQ").innerHTML=r>=0?`Después de este pago le quedan <b>${fm(r)}</b> por cobrar.`:`Este pago excede el sueldo en <b class="neg">${fm(-r)}</b> (queda como adelanto de más).`};
   d.addEventListener("input",upd);upd();
+  d.querySelector("#sW").onchange=()=>d.querySelector("#sCB").classList.toggle("hide",d.querySelector("#sW").value!=="__c");
   d.querySelector("#sX").onclick=()=>d.remove();
-  d.querySelector("#sS").onclick=()=>run(d.querySelector("#sS"),async()=>{await rpc("g_pay_salary",{p_cajero:c.id,p_amount:N(d.querySelector("#sA").value),p_wallet:d.querySelector("#sW").value,p_period:d.querySelector("#sP").value,p_note:d.querySelector("#sN").value});d.remove();toast("Pago registrado ✓");go("caj")})}
+  d.querySelector("#sS").onclick=()=>run(d.querySelector("#sS"),async()=>{const cu=d.querySelector("#sW").value==="__c";await rpc("g_pay_salary",{p_cajero:c.id,p_amount:N(d.querySelector("#sA").value),p_wallet:cu?null:d.querySelector("#sW").value,p_period:d.querySelector("#sP").value,p_note:d.querySelector("#sN").value,p_custom:cu?d.querySelector("#sCu").value:null});d.remove();toast("Pago registrado ✓");go("caj")})}
 function salDetail(c,sal,rows,per){
   const asc=[...rows].sort((x,y)=>new Date(x.ts)-new Date(y.ts));let acc=0;
   const tot=asc.reduce((a,x)=>a+N(x.amount),0);
   const d=modal(`<h2>${esc(c.name)} · ${per}</h2><div class="grid g4" style="margin-bottom:10px"><div><div class="mut">Sueldo mensual</div><b>${fm(sal)}</b></div><div><div class="mut">Cobrado</div><b class="pos">${fm(tot)}</b></div><div><div class="mut">Pendiente</div><b class="${sal-tot>0?"neg":"pos"}">${fm(Math.max(sal-tot,0))}</b></div></div>
   <div class="bar"><i style="width:${sal>0?Math.min(100,tot/sal*100):0}%"></i></div>
   <div class="tw" style="margin-top:12px"><table><tr><th>Fecha y hora</th><th>Monto</th><th>Billetera</th><th>Nota</th><th>Pendiente después</th><th></th></tr>`+
-  (asc.map(x=>{acc+=N(x.amount);return `<tr><td>${fdt2(x.ts)}</td><td><b>${fm(x.amount)}</b></td><td>${esc(wName(x.wallet_id))}</td><td>${esc(x.note)}</td><td>${fm(Math.max(sal-acc,0))}</td><td><button class="btn d s" data-px="${x.expense_id}">Anular</button></td></tr>`}).join("")||'<tr><td colspan="6" class="mut">Todavía no hay pagos este mes.</td></tr>')+
+  (asc.map(x=>{acc+=N(x.amount);return `<tr><td>${fdt2(x.ts)}</td><td><b>${fm(x.amount)}</b></td><td>${esc(wLabel(x.wallet_id,x.source))}</td><td>${esc(x.note)}</td><td>${fm(Math.max(sal-acc,0))}</td><td><button class="btn d s" data-px="${x.expense_id}">Anular</button></td></tr>`}).join("")||'<tr><td colspan="6" class="mut">Todavía no hay pagos este mes.</td></tr>')+
   `</table></div><div class="row" style="margin-top:12px"><button class="btn g" id="dX">Cerrar</button><button class="btn" id="dP">Registrar pago</button></div>`,true);
   d.querySelector("#dX").onclick=()=>d.remove();
   d.querySelector("#dP").onclick=()=>{d.remove();paySal(c,Math.max(sal-tot,0),per,sal,tot)};
