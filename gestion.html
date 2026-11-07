@@ -156,7 +156,7 @@ document.querySelectorAll("[data-th]").forEach(b=>b.onclick=()=>setTheme(documen
 setTheme(document.documentElement.dataset.theme||"dark");
 const sideClose=()=>{$("side").classList.remove("open");$("scrim").classList.remove("on")};
 $("burger").onclick=()=>{$("side").classList.toggle("open");$("scrim").classList.toggle("on")};$("scrim").onclick=sideClose;
-const ICONS={dash:"📊",bill:"👛",fich:"🎰",mov:"🔎",rep:"📋",caj:"👥",pub:"📣",gas:"🧾",met:"📈",cfg:"⚙️"};
+const ICONS={dash:"📊",bill:"👛",fich:"🎰",mov:"🔎",usr:"🏆",rep:"📋",caj:"👥",pub:"📣",gas:"🧾",met:"📈",cfg:"⚙️"};
 $("lf").onsubmit=async e=>{e.preventDefault();$("lerr").textContent="";const b=$("lb");b.disabled=true;
   const {error}=await sb.auth.signInWithPassword({email:$("le").value.trim(),password:$("lp").value});
   b.disabled=false;if(error){$("lerr").textContent="Usuario o contraseña incorrectos.";return}
@@ -202,8 +202,8 @@ $("hShift").onclick=async()=>{try{if(S.shift)await sb.rpc("g_end_shift",{p_shift
   S.shift=null;try{sessionStorage.removeItem("g_shift")}catch(e){}await showShift()};
 
 /* ---------- app ---------- */
-const TABS_OP=[["dash","Dashboard"],["bill","Billeteras"],["fich","Fichas"],["mov","Movimientos"],["gas","Gastos"],["pub","Publicidad"]];
-const TABS_AD=[["dash","Dashboard"],["bill","Billeteras"],["fich","Fichas"],["mov","Movimientos"],["rep","Reportes"],["caj","Cajeros"],["pub","Publicidad"],["gas","Gastos"],["met","Métricas"],["cfg","Ajustes"]];
+const TABS_OP=[["dash","Dashboard"],["bill","Billeteras"],["fich","Fichas"],["mov","Movimientos"],["usr","Usuarios"],["gas","Gastos"],["pub","Publicidad"]];
+const TABS_AD=[["dash","Dashboard"],["bill","Billeteras"],["fich","Fichas"],["mov","Movimientos"],["usr","Usuarios"],["rep","Reportes"],["caj","Cajeros"],["pub","Publicidad"],["gas","Gastos"],["met","Métricas"],["cfg","Ajustes"]];
 async function enterApp(){
   show("app");$("hRole").textContent=isAdm()?"ADMIN":"OPERADOR";$("hRole").className="badge"+(isAdm()?" adm":"");
   $("hCaj").textContent=isAdm()?"":"Turno: "+S.shift.name;$("hShift").classList.toggle("hide",isAdm());
@@ -625,6 +625,44 @@ VIEWS.rep=async function(){
   S.repBusy=false;
   if(rows.some(r=>!r.seen)){await rpc("g_reports_mark_seen");repLast=0;const bb=document.querySelector('#nav button[data-t=rep]');if(bb)bb.textContent="Reportes"}
 };
+
+
+/* ---------- Ranking de usuarios / jugadores (solo admin) ---------- */
+VIEWS.usr=async function(){
+  const t=today();
+  $("view").innerHTML=`<div class="card"><h2>Ranking de usuarios</h2><p class="sub">Jugadores ordenados por cantidad de cargas. Las anuladas no cuentan.${isAdm()?"":` Ves los últimos ${S.cfg.op_history_days} día(s).`}</p>
+  <div class="row"><div><label>Buscar usuario</label><input id="uQ" placeholder="nombre del usuario…" autocomplete="off"></div>
+  <div><label>Período</label><select id="uP"><option value="total">Todo el historial</option><option value="hoy">Hoy</option><option value="7">Últimos 7 días</option><option value="mes">Este mes</option><option value="x">Personalizado</option></select></div>
+  <div><label>Ordenar por</label><select id="uO"><option value="cargas_n">Cantidad de cargas</option><option value="cargas">Monto cargado</option><option value="retiros_n">Cantidad de retiros</option><option value="retiros">Monto retirado</option><option value="neto">Neto (cargas − retiros)</option><option value="ultima">Última actividad</option></select></div></div>
+  <div class="row hide" id="uX"><div><label>Desde</label><input type="date" id="uD" value="${addDays(t,-29)}"></div><div><label>Hasta</label><input type="date" id="uH" value="${t}"></div></div>
+  <div class="row" style="margin-top:8px"><button class="btn" id="uB">Buscar</button></div></div><div id="uR" style="margin-top:12px"></div>`;
+  const rng=()=>{const p=$("uP").value;if(p==="total")return[null,null];
+    if(p==="hoy")return[dayISO(t),dayISO(addDays(t,1))];if(p==="7")return[dayISO(addDays(t,-6)),dayISO(addDays(t,1))];
+    if(p==="mes")return[dayISO(t.slice(0,8)+"01"),dayISO(addDays(t,1))];return[dayISO($("uD").value||t),dayISO(addDays($("uH").value||t,1))]};
+  const load=async()=>{const [f,to]=rng();
+    const rows=await rpc("g_users_ranking",{p_from:f,p_to:to,p_search:$("uQ").value,p_sort:$("uO").value});
+    const tc=rows.reduce((a,x)=>a+N(x.cargas),0),tr=rows.reduce((a,x)=>a+N(x.retiros),0);
+    const medal=i=>i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1;
+    $("uR").innerHTML=`<div class="grid g4" style="margin-bottom:12px"><div class="card kpi"><div class="l">Usuarios</div><div class="v">${rows.length}</div></div><div class="card kpi"><div class="l">Total cargado</div><div class="v pos">${fm(tc)}</div></div><div class="card kpi"><div class="l">Total retirado</div><div class="v neg">${fm(tr)}</div></div><div class="card kpi"><div class="l">Neto</div><div class="v">${fm(tc-tr)}</div></div></div>
+    <div class="card"><div class="tw"><table><tr><th>#</th><th>Usuario</th><th>Cargas</th><th>Monto cargado</th><th>Retiros</th><th>Monto retirado</th><th>Neto</th><th>Última actividad</th><th></th></tr>`+
+    rows.map((u,i)=>`<tr><td>${medal(i)}</td><td><b>${esc(u.name)}</b></td><td><b>${u.cargas_n}</b></td><td class="pos">${fm(u.cargas)}</td><td>${u.retiros_n}</td><td class="neg">${fm(u.retiros)}</td><td class="${N(u.neto)>=0?"pos":"neg"}">${fm(u.neto)}</td><td>${fdt2(u.ultima)}</td><td><button class="btn g s" data-u="${i}">Ver</button></td></tr>`).join("")+
+    `</table></div>${rows.length?"":'<p class="mut">No hay usuarios con esos filtros.</p>'}${rows.length>=500?'<p class="sub">Mostrando los primeros 500.</p>':""}</div>`;
+    $("uR").onclick=ev=>{const b=ev.target.closest("[data-u]");if(b)userDetail(rows[+b.dataset.u],f,to)}};
+  $("uP").onchange=()=>{$("uX").classList.toggle("hide",$("uP").value!=="x");if($("uP").value!=="x")run(null,load)};
+  $("uO").onchange=()=>run(null,load);
+  $("uB").onclick=()=>run($("uB"),load);
+  $("uQ").onkeydown=e=>{if(e.key==="Enter")run(null,load)};
+  await load();
+};
+async function userDetail(u,f,to){
+  const esc2=u.name.replace(/[\\%_]/g,m=>"\\"+m);
+  let r=sb.from("g_movements").select("*").eq("voided",false).ilike("user_name",esc2).order("ts",{ascending:false}).limit(200);
+  if(f)r=r.gte("ts",f);if(to)r=r.lt("ts",to);
+  const rows=await run(null,()=>q(r));if(!rows)return;
+  modal(`<h2>${esc(u.name)}</h2><div class="grid g4" style="margin-bottom:10px"><div><div class="mut">Cargas (${u.cargas_n})</div><b class="pos">${fm(u.cargas)}</b></div><div><div class="mut">Retiros (${u.retiros_n})</div><b class="neg">${fm(u.retiros)}</b></div><div><div class="mut">Bonos recibidos</div><b>${fm(u.bonos)}</b></div><div><div class="mut">Neto</div><b class="${N(u.neto)>=0?"pos":"neg"}">${fm(u.neto)}</b></div></div>
+  <p class="sub">Primera actividad: ${fdt2(u.primera)} · Última: ${fdt2(u.ultima)}</p>
+  ${movTable(rows,false)}<button class="btn g full" onclick="this.closest('.ov').remove()">Cerrar</button>`,true);
+}
 
 /* ---------- Ajustes y auditoría (solo admin) ---------- */
 VIEWS.cfg=async function(){
