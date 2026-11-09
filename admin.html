@@ -1353,12 +1353,12 @@ async function visLoad(){
   if(error||!data){box.append(vh("p","empty",/visit_stats|function/i.test(String(error&&error.message))?"Falta ejecutar supabase-visitas.sql en Supabase.":"No se pudieron cargar las estadísticas."));return}
   const t=data.totals||{},conv=t.uniques?Math.round((t.chats||0)/t.uniques*100):0;
   const k=vh("div","vkpis");
-  [["Visitas",t.views||0],["Visitantes únicos",t.uniques||0],["Abrieron el chat",t.chats||0],["Conversión a chat",conv+"%"]].forEach(([l,v])=>{const c=vh("div","vkpi");c.append(vh("b",null,String(v)),vh("span",null,l));k.append(c)});
+  [["Visitas",t.views||0],["Visitantes únicos",t.uniques||0],["Abrieron el chat",t.chats||0],["Conversión a chat",conv+"%"],["Instalaron la app",t.installs||0],["Tocaron «Descargar»",t.install_clicks||0],["Abren la app instalada",t.app_users||0]].forEach(([l,v])=>{const c=vh("div","vkpi");c.append(vh("b",null,String(v)),vh("span",null,l));k.append(c)});
   box.append(k);
   const days=data.daily||[],card=vh("div","vcard");card.append(vh("h3",null,"Visitantes únicos por día"));
   const bars=vh("div","vbars"),mx=Math.max(...days.map(d=>d.uniques),1),step=Math.ceil(days.length/8);
   days.forEach((d,i)=>{const col=vh("div","col"),b=document.createElement("i");b.style.height=Math.max(2,d.uniques/mx*120)+"px";
-    col.title=d.day.split("-").reverse().join("/")+": "+d.uniques+" visitantes · "+d.views+" visitas · "+d.chats+" abrieron el chat";
+    col.title=d.day.split("-").reverse().join("/")+": "+d.uniques+" visitantes · "+d.views+" visitas · "+d.chats+" abrieron el chat · "+(d.installs||0)+" instalaron la app";
     col.append(b,vh("small",null,(i%step===0||i===days.length-1)?d.day.slice(8)+"/"+d.day.slice(5,7):""));bars.append(col)});
   card.append(bars);box.append(card);
   const g=vh("div","vgrid");
@@ -1368,7 +1368,7 @@ async function visLoad(){
     vList("Dispositivo",data.devices,r=>({mobile:"📱 Celular",desktop:"💻 PC",tablet:"📲 Tablet"}[r.k]||r.k)));
   if(data.campaigns&&data.campaigns.length)g.append(vList("Campañas (utm_campaign)",data.campaigns,r=>r.k));
   box.append(g);
-  box.append(vh("p","vnote","Se cuenta una visita por sesión. La ubicación sale de la conexión y es aproximada (a veces marca la ciudad de la compañía de internet). No se guarda la IP. Tu propia ventana de vista previa del editor no suma. Para medir anuncios, usá enlaces con ?utm_source=instagram&utm_campaign=nombre."));
+  box.append(vh("p","vnote","«Instalaron la app» cuenta instalaciones confirmadas por el navegador (Chrome/Android/PC); en iPhone no hay aviso de instalación, por eso se suma «Abren la app instalada» (gente que entra desde el ícono).  La ubicación sale de la conexión y es aproximada (a veces marca la ciudad de la compañía de internet). No se guarda la IP. Tu propia ventana de vista previa del editor no suma. Para medir anuncios, usá enlaces con ?utm_source=instagram&utm_campaign=nombre."));
 }
 function lkMake(){
   const sel=$("lkSrc").value;$("lkOtroL").hidden=sel!=="otro";

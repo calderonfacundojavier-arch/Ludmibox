@@ -465,10 +465,10 @@ function pwaApply0(){
   b.hidden=pwaStandalone()||!(pwaEv||pwaIOS());
 }
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();pwaEv=e;pwaApply()});
-addEventListener("appinstalled",()=>{pwaEv=null;pwaDone=true;$("pwaBtn").hidden=true;$("pwaHint").hidden=true;tkApply()});
+addEventListener("appinstalled",()=>{track("install");pwaEv=null;pwaDone=true;$("pwaBtn").hidden=true;$("pwaHint").hidden=true;tkApply()});
 document.addEventListener("click",e=>{
   if(e.target!==$("pwaBtn"))return;
-  if(pwaEv){pwaEv.prompt();pwaEv.userChoice.finally(()=>{pwaEv=null;pwaApply()});return}
+  if(pwaEv){pwaEv.prompt();pwaEv.userChoice.then(c=>{if(c&&c.outcome==="accepted")track("install_click")}).finally(()=>{pwaEv=null;pwaApply()});return}
   const h=$("pwaHint");h.textContent="En el iPhone: tocá el botón Compartir de Safari y elegí «Agregar a inicio».";h.hidden=false;
 });
 /* Avisos push: llegan aunque cierren la app */
@@ -543,7 +543,7 @@ function tkApply(){
 $("tkX").onclick=()=>{tkClosed=true;try{sessionStorage.setItem("tk_closed","1")}catch{}tkApply()};
 $("tkB").onclick=()=>{
   if(PREVIEW)return;
-  if(pwaEv){pwaEv.prompt();pwaEv.userChoice.finally(()=>{pwaEv=null;pwaApply()});return}
+  if(pwaEv){pwaEv.prompt();pwaEv.userChoice.then(c=>{if(c&&c.outcome==="accepted")track("install_click")}).finally(()=>{pwaEv=null;pwaApply()});return}
   const h=$("tkHint");
   h.textContent=pwaIOS()?"En el iPhone: tocá el botón Compartir de Safari y elegí «Agregar a inicio».":inAppBrowser()?"Para instalar la app, tocá los tres puntos (⋯) y elegí «Abrir en el navegador». Ahí vas a poder descargarla.":"Abrí el menú del navegador y elegí «Instalar app» o «Agregar a pantalla de inicio».";
   h.hidden=false;clearTimeout(h._t);h._t=setTimeout(()=>{h.hidden=true},8000);
@@ -679,7 +679,7 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"&&popUp)popClose()});
 addEventListener("appinstalled",popClose);
 $("popB").onclick=()=>{
   if(PREVIEW)return;
-  if(pwaEv){pwaEv.prompt();pwaEv.userChoice.finally(()=>{pwaEv=null;pwaApply()});popClose();return}
+  if(pwaEv){pwaEv.prompt();pwaEv.userChoice.then(c=>{if(c&&c.outcome==="accepted")track("install_click")}).finally(()=>{pwaEv=null;pwaApply()});popClose();return}
   const h=$("popH");
   h.textContent=pwaIOS()?"En el iPhone: tocá el botón Compartir de Safari y elegí «Agregar a inicio».":inAppBrowser()?"Para instalar la app, tocá los tres puntos (⋯) y elegí «Abrir en el navegador». Ahí vas a poder descargarla.":"Abrí el menú del navegador y elegí «Instalar app» o «Agregar a pantalla de inicio».";
   h.hidden=false;
@@ -776,6 +776,7 @@ function track(ev){
   }catch{}
 }
 track("view");
+try{if(pwaStandalone())track("app_open")}catch{}
 if(PREVIEW){
   addEventListener("message",e=>{
     if(e.origin!==location.origin||e.source!==window.parent||!e.data)return;
