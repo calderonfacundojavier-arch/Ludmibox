@@ -40,6 +40,8 @@ nav button.on{background:var(--p2);color:var(--a);box-shadow:inset 3px 0 0 var(-
 .sfoot .who{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
 .sfoot .btn{width:100%}
 #topbar{display:none}#scrim{display:none}
+#sideShow{display:none}
+@media(min-width:821px){#app.side-off #side{display:none}#app.side-off #sideShow{display:block;position:fixed;left:12px;top:12px;z-index:45}#app.side-off main{padding-top:58px}}
 main{padding:16px;max-width:1100px;margin:0 auto;flex:1;min-width:0;width:100%}
 html[data-theme=light] input,html[data-theme=light] select,html[data-theme=light] textarea{background:#fff}
 .lg{width:92px;height:92px;border-radius:50%;border:3px solid var(--a);display:block;margin:0 auto 10px;object-fit:cover}
@@ -103,12 +105,13 @@ td{padding:7px 6px;border-bottom:1px solid var(--b2);vertical-align:top}
 <div id="app" class="hide">
   <div id="topbar"><button class="btn g s" id="burger" aria-label="Menú">☰</button><img src="/icon-192.png" alt=""><b>Caja Ludmi</b><button class="btn g s thb" data-th></button></div>
   <aside id="side">
-    <div class="brand"><img src="/icon-192.png" alt="Caja Ludmi"><div><b>Caja Ludmi</b><small>Sistema de gestión</small></div></div>
+    <div class="brand"><img src="/icon-192.png" alt="Caja Ludmi"><div style="flex:1"><b>Caja Ludmi</b><small>Sistema de gestión</small></div><button class="btn g s" id="sideHide" title="Ocultar menú" aria-label="Ocultar menú">«</button></div>
     <nav id="nav"></nav>
     <div class="sfoot"><div class="who"><span class="badge" id="hRole"></span><span id="hCaj" class="mut"></span></div>
       <button class="btn g s thb" data-th></button><button class="btn g s hide" id="hShift">Cambiar turno</button><button class="btn g s" id="hOut">Salir</button></div>
   </aside>
   <div id="scrim"></div>
+  <button class="btn g s" id="sideShow" title="Mostrar menú">☰ Menú</button>
   <main id="view"></main>
 </div>
 <button class="btn g s thb thf" data-th id="thF"></button>
@@ -154,6 +157,9 @@ function setTheme(t){document.documentElement.dataset.theme=t;try{localStorage.s
   const m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==="dark"?"#0b1210":"#eef3f1"}
 document.querySelectorAll("[data-th]").forEach(b=>b.onclick=()=>setTheme(document.documentElement.dataset.theme==="dark"?"light":"dark"));
 setTheme(document.documentElement.dataset.theme||"dark");
+const setSide=off=>{$("app").classList.toggle("side-off",off);try{localStorage.setItem("g_side",off?"off":"on")}catch(e){}};
+try{if(localStorage.getItem("g_side")==="off")setSide(true)}catch(e){}
+$("sideHide").onclick=()=>setSide(true);$("sideShow").onclick=()=>setSide(false);
 const sideClose=()=>{$("side").classList.remove("open");$("scrim").classList.remove("on")};
 $("burger").onclick=()=>{$("side").classList.toggle("open");$("scrim").classList.toggle("on")};$("scrim").onclick=sideClose;
 const ICONS={dash:"📊",bill:"👛",fich:"🎰",mov:"🔎",usr:"🏆",rep:"📋",caj:"👥",pub:"📣",gas:"🧾",met:"📈",cfg:"⚙️"};
