@@ -242,6 +242,7 @@ async function go(t){
 const actW=()=>S.wallets.filter(w=>!w.archived), actC=()=>S.chips.filter(c=>!c.archived);
 const wLabel=(id,custom)=>id?wName(id):(custom||"Personalizado");
 const WCUST='<option value="__c">✍️ Personalizado (efectivo / billetera personal)</option>';
+const lastW=()=>{try{return localStorage.getItem("g_lastW")||""}catch(e){return""}},setLastW=v=>{try{if(v)localStorage.setItem("g_lastW",v)}catch(e){}};
 const wName=id=>(S.wallets.find(w=>w.id===id)||{}).name||"—", cName=id=>(S.chips.find(c=>c.id===id)||{}).name||"—";
 
 /* ---------- formulario de movimiento ---------- */
@@ -252,7 +253,7 @@ function movFields(m){
   <div class="row"><div><label>Monto ($)</label><input id="mfA" type="number" step="0.01" min="0" inputmode="decimal" value="${m.amount||""}"></div>
   <div class="mfB"><label>Bono</label><div class="row"><select id="mfBT" style="max-width:70px"><option value="%"${m.bonus_type!=="$"?" selected":""}>%</option><option value="$"${m.bonus_type==="$"?" selected":""}>$</option></select><input id="mfBV" type="number" step="0.01" min="0" inputmode="decimal" value="${m.bonus_value||""}" placeholder="0"></div></div></div>
   <div class="row"><div><label>Ficha</label><select id="mfC">${opts(actC(),m.chip_id)}</select></div>
-  <div><label>Billetera</label><select id="mfW">${opts(actW(),m.wallet_id,w=>w.name+" ("+fm(w.balance)+")")}</select></div></div>
+  <div><label>Billetera</label><select id="mfW">${opts(actW(),m.wallet_id||(m.id?null:lastW()),w=>w.name+" ("+fm(w.balance)+")")}</select></div></div>
   <div class="mfB"><label>Publicidad (opcional)</label><select id="mfAd"><option value="">— ninguna —</option>${opts(S.ads,m.ad_id)}</select></div>
   <div class="prev" id="mfP"></div>`;
 }
@@ -264,11 +265,11 @@ function movWire(root){
     const w=S.wallets.find(x=>x.id===g("mfW").value),c=S.chips.find(x=>x.id===g("mfC").value);
     g("mfP").innerHTML=k==="carga"?`Fichas a acreditar: <b>${fn(a+bo)}</b> ${bo?`(incluye bono ${fm(bo)})`:""}<br><span class="mut">Entra ${fm(a)} a ${esc(w?w.name:"—")} · salen ${fn(a+bo)} de ${esc(c?c.name:"—")}</span>`
       :`Se descuentan ${fm(a)} de ${esc(w?w.name:"—")} y vuelven ${fn(a)} fichas a ${esc(c?c.name:"—")}`};
-  root.addEventListener("input",upd);root.addEventListener("change",upd);upd();
+  root.addEventListener("input",upd);root.addEventListener("change",upd);if(root.id==="dForm")g("mfW").addEventListener("change",()=>setLastW(g("mfW").value));upd();
   return ()=>({kind:g("mfK").value,user:g("mfU").value.trim(),amount:N(g("mfA").value),bt:g("mfBT").value,bv:N(g("mfBV").value),chip:g("mfC").value,wallet:g("mfW").value,ad:g("mfAd").value||null});
 }
 function chk(v){if(!v.user)return"Escribí el usuario del jugador.";if(!(v.amount>0))return"El monto tiene que ser mayor a 0.";if(!v.chip)return"Elegí una ficha.";if(!v.wallet)return"Elegí una billetera.";return""}
-async function saveMov(v){await rpc("g_add_movement",{p_shift:sid(),p_user:v.user,p_kind:v.kind,p_amount:v.amount,p_bonus_type:v.bt,p_bonus_value:v.kind==="carga"?v.bv:0,p_chip:v.chip,p_wallet:v.wallet,p_ad:v.kind==="carga"?v.ad:null})}
+async function saveMov(v){setLastW(v.wallet);await rpc("g_add_movement",{p_shift:sid(),p_user:v.user,p_kind:v.kind,p_amount:v.amount,p_bonus_type:v.bt,p_bonus_value:v.kind==="carga"?v.bv:0,p_chip:v.chip,p_wallet:v.wallet,p_ad:v.kind==="carga"?v.ad:null})}
 
 /* ---------- Dashboard ---------- */
 VIEWS.dash=async function(){
@@ -279,7 +280,7 @@ VIEWS.dash=async function(){
     <div class="card kpi"><div class="l">Retiros hoy</div><div class="v neg">${fm(m.retiros)}</div><div class="l">${rn} retiro${rn===1?"":"s"}</div></div>
     <div class="card kpi"><div class="l">Gastos hoy</div><div class="v">${fm(m.gastos)}</div></div>
     <div class="card kpi"><div class="l">Neto del día</div><div class="v">${fm(N(m.ingresos)-N(m.retiros)-N(m.gastos))}</div></div></div>`}
-  const bal=()=>`<h3>Billeteras</h3>${actW().map(w=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--b2)"><span><span class="pill" style="background:${esc(w.color)};border-color:${esc(w.color)}">&nbsp;</span> ${esc(w.name)}</span><span style="display:flex;align-items:center;gap:8px"><b>${fm(w.balance)}</b>${isAdm()&&actW().length>1?`<button class="btn g s" data-tr="${w.id}">Transferir</button>`:""}</span></div>`).join("")||'<p class="mut">Sin billeteras.</p>'}
+  const bal=()=>`<h3>Billeteras</h3>${actW().map(w=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--b2)"><span><span class="pill" style="background:${esc(w.color)};border-color:${esc(w.color)}">&nbsp;</span> ${esc(w.name)}</span><span style="display:flex;align-items:center;gap:8px"><b>${fm(w.balance)}</b>${actW().length>1?`<button class="btn g s" data-tr="${w.id}">Transferir</button>`:""}</span></div>`).join("")||'<p class="mut">Sin billeteras.</p>'}
     <h3 style="margin-top:14px">Fichas (stock)</h3>${actC().map(c=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--b2)"><span>${esc(c.name)}</span><b>${fn(c.balance)}</b></div>`).join("")||'<p class="mut">Sin fichas.</p>'}`;
   const qm=()=>`<h3>📩 Mensaje entrante</h3><div class="acts">${S.ads.map(a=>`<button class="btn" data-qm="${a.id}">+1 ${esc(a.name)} <span style="opacity:.7">(${fn(a.msgs)})</span></button>`).join("")||'<span class="mut">No hay campañas activas. Creá una en Publicidad.</span>'}</div>`;
   $("view").innerHTML=k+`<div class="card" id="dQM" style="margin-bottom:12px">${qm()}</div><div class="grid g2"><div class="card"><h2>Nuevo movimiento</h2><div id="dForm">${movFields()}</div>
@@ -366,14 +367,14 @@ async function ledger(kind,item){
 VIEWS.bill=async function(){
   const tot=actW().reduce((a,w)=>a+N(w.balance),0);
   $("view").innerHTML=`<div class="row" style="margin-bottom:12px;align-items:center"><div><h2 style="margin:0">Billeteras</h2><span class="mut">Total: <b>${fm(tot)}</b></span></div>
-  ${isAdm()?'<button class="btn g" id="bT">Transferir</button><button class="btn" id="bN">+ Nueva billetera</button>':""}</div>
+  <button class="btn g" id="bT">Transferir</button>${isAdm()?'<button class="btn" id="bN">+ Nueva billetera</button>':""}</div>
   <div class="grid g2">${S.wallets.map(w=>`<div class="card wc" style="border-left-color:${esc(w.color)};${w.archived?"opacity:.5":""}"><b>${esc(w.name)}</b> <span class="mut">${esc(w.owner)}</span>${w.archived?' <span class="pill">archivada</span>':""}
     <div class="bal">${fm(w.balance)}</div><div class="acts"><button class="btn g s" data-l="${w.id}">Ver movimientos</button>
     ${isAdm()?`<button class="btn g s" data-a="${w.id}">Ajustar</button><button class="btn g s" data-ed="${w.id}">Editar</button>`:""}</div></div>`).join("")||'<p class="mut">Todavía no hay billeteras.</p>'}</div>`;
   $("view").onclick=ev=>{const l=ev.target.closest("[data-l]"),a=ev.target.closest("[data-a]"),e=ev.target.closest("[data-ed]");
     if(l)run(null,()=>ledger("w",S.wallets.find(w=>w.id===l.dataset.l)));
     if(a)adjust("w",S.wallets.find(w=>w.id===a.dataset.a));if(e)editItem("w",S.wallets.find(w=>w.id===e.dataset.ed))};
-  if(isAdm()){$("bN").onclick=newWallet;$("bT").onclick=()=>transfer()}
+  $("bT").onclick=()=>transfer();if(isAdm())$("bN").onclick=newWallet;
 };
 VIEWS.fich=async function(){
   $("view").innerHTML=`<div class="row" style="margin-bottom:12px;align-items:center"><div><h2 style="margin:0">Fichas</h2><span class="mut">Stock por plataforma</span></div>
@@ -430,7 +431,7 @@ function transfer(fromId,after){
   g("tAll").onclick=()=>{g("tA").value=W2().balance;info()};
   fillTo();info();
   g("tX").onclick=()=>d.remove();
-  g("tS").onclick=()=>run(g("tS"),async()=>{await rpc("g_wallet_transfer",{p_from:g("tF").value,p_to:g("tT").value,p_amount:N(g("tA").value),p_descr:g("tD").value});
+  g("tS").onclick=()=>run(g("tS"),async()=>{await rpc("g_wallet_transfer",{p_from:g("tF").value,p_to:g("tT").value,p_amount:N(g("tA").value),p_descr:g("tD").value,p_shift:sid()});
     d.remove();toast("Transferido ✓");await loadRef();if(after)await after();else go("bill")});
 }
 /* ---------- Gastos de oficina ---------- */
