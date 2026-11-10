@@ -252,7 +252,7 @@ function movFields(m){
   <div><label>Tipo</label><select id="mfK" ${m.id?"disabled":""}><option value="carga"${kind==="carga"?" selected":""}>Carga</option><option value="retiro"${kind==="retiro"?" selected":""}>Retiro</option></select></div></div>
   <div class="row"><div><label>Monto ($)</label><input id="mfA" type="number" step="0.01" min="0" inputmode="decimal" value="${m.amount||""}"></div>
   <div class="mfB"><label>Bono</label><div class="row"><select id="mfBT" style="max-width:70px"><option value="%"${m.bonus_type!=="$"?" selected":""}>%</option><option value="$"${m.bonus_type==="$"?" selected":""}>$</option></select><input id="mfBV" type="number" step="0.01" min="0" inputmode="decimal" value="${m.bonus_value||""}" placeholder="0"></div></div></div>
-  <div class="row"><div><label>Ficha</label><select id="mfC">${m.id?"":'<option value="__p">⏳ Sin reclamar (todavía no avisó)</option>'}${opts(actC(),m.chip_id)}</select></div>
+  <div class="row"><div><label>Ficha</label><select id="mfC">${m.id?"":'<option value="__p">⏳ Sin reclamar (todavía no avisó)</option>'}${opts(actC(),m.chip_id||(m.id?null:(S.topChip&&actC().some(c=>c.id===S.topChip)?S.topChip:(actC()[0]||{}).id)))}</select></div>
   <div><label>Billetera</label><select id="mfW">${opts(actW(),m.wallet_id||(m.id?null:lastW()),w=>w.name+" ("+fm(w.balance)+")")}</select></div></div>
   <div class="mfB"><label>Publicidad (opcional)</label><select id="mfAd"><option value="">— ninguna —</option>${opts(S.ads,m.ad_id)}</select></div>
   <div class="prev" id="mfP"></div>`;
@@ -274,6 +274,8 @@ async function saveMov(v){setLastW(v.wallet);if(v.pending){await rpc("g_add_pend
 
 /* ---------- Dashboard ---------- */
 VIEWS.dash=async function(){
+  try{const r=await q(sb.from("g_movements").select("chip_id").eq("voided",false).not("chip_id","is",null).order("ts",{ascending:false}).limit(300));
+    const n={};r.forEach(x=>n[x.chip_id]=(n[x.chip_id]||0)+1);S.topChip=Object.keys(n).sort((x,y)=>n[y]-n[x])[0]||""}catch(e){}
   let k="";
   if(isAdm()){const t=today(),m=await rpc("g_metrics",{p_from:dayISO(t),p_to:dayISO(addDays(t,1))});
     const rn=(m.cajeros||[]).reduce((a,x)=>a+N(x.ops)-N(x.cargas_n),0);
