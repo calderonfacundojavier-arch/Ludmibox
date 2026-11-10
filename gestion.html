@@ -248,11 +248,11 @@ const wName=id=>(S.wallets.find(w=>w.id===id)||{}).name||"—", cName=id=>(S.chi
 /* ---------- formulario de movimiento ---------- */
 function movFields(m){
   m=m||{};const kind=m.kind||"carga";
-  return `<div class="row"><div><label>Usuario del jugador</label><input id="mfU" maxlength="40" autocomplete="off" value="${esc(m.user_name||"")}"></div>
+  return `<div class="row"><div><label>Usuario del jugador</label><input id="mfU" maxlength="40" autocomplete="off" value="${esc(m.pending?"":m.user_name||"")}"></div>
   <div><label>Tipo</label><select id="mfK" ${m.id?"disabled":""}><option value="carga"${kind==="carga"?" selected":""}>Carga</option><option value="retiro"${kind==="retiro"?" selected":""}>Retiro</option></select></div></div>
   <div class="row"><div><label>Monto ($)</label><input id="mfA" type="number" step="0.01" min="0" inputmode="decimal" value="${m.amount||""}"></div>
   <div class="mfB"><label>Bono</label><div class="row"><select id="mfBT" style="max-width:70px"><option value="%"${m.bonus_type!=="$"?" selected":""}>%</option><option value="$"${m.bonus_type==="$"?" selected":""}>$</option></select><input id="mfBV" type="number" step="0.01" min="0" inputmode="decimal" value="${m.bonus_value||""}" placeholder="0"></div></div></div>
-  <div class="row"><div><label>Ficha</label><select id="mfC">${opts(actC(),m.chip_id)}</select></div>
+  <div class="row"><div><label>Ficha</label><select id="mfC">${m.id?"":'<option value="__p">⏳ Sin reclamar (todavía no avisó)</option>'}${opts(actC(),m.chip_id)}</select></div>
   <div><label>Billetera</label><select id="mfW">${opts(actW(),m.wallet_id||(m.id?null:lastW()),w=>w.name+" ("+fm(w.balance)+")")}</select></div></div>
   <div class="mfB"><label>Publicidad (opcional)</label><select id="mfAd"><option value="">— ninguna —</option>${opts(S.ads,m.ad_id)}</select></div>
   <div class="prev" id="mfP"></div>`;
@@ -260,16 +260,17 @@ function movFields(m){
 function movWire(root){
   const g=id=>root.querySelector("#"+id);
   const upd=()=>{const k=g("mfK").value,a=N(g("mfA").value),bv=N(g("mfBV").value),bt=g("mfBT").value;
-    root.querySelectorAll(".mfB").forEach(x=>x.classList.toggle("hide",k==="retiro"));
+    const pend=k==="carga"&&g("mfC").value==="__p";root.querySelectorAll(".mfB").forEach(x=>x.classList.toggle("hide",k==="retiro"||pend));g("mfU").parentElement.classList.toggle("hide",pend);
     const bo=k==="carga"?(bt==="%"?Math.round(a*bv)/100:bv):0;
     const w=S.wallets.find(x=>x.id===g("mfW").value),c=S.chips.find(x=>x.id===g("mfC").value);
+    if(pend){g("mfP").innerHTML=`Entran ${fm(a)} a ${esc(w?w.name:"—")} como <b>pago sin reclamar</b>. Las fichas se descuentan cuando lo reclamen.`;return}
     g("mfP").innerHTML=k==="carga"?`Fichas a acreditar: <b>${fn(a+bo)}</b> ${bo?`(incluye bono ${fm(bo)})`:""}<br><span class="mut">Entra ${fm(a)} a ${esc(w?w.name:"—")} · salen ${fn(a+bo)} de ${esc(c?c.name:"—")}</span>`
       :`Se descuentan ${fm(a)} de ${esc(w?w.name:"—")} y vuelven ${fn(a)} fichas a ${esc(c?c.name:"—")}`};
   root.addEventListener("input",upd);root.addEventListener("change",upd);if(root.id==="dForm")g("mfW").addEventListener("change",()=>setLastW(g("mfW").value));upd();
-  return ()=>({kind:g("mfK").value,user:g("mfU").value.trim(),amount:N(g("mfA").value),bt:g("mfBT").value,bv:N(g("mfBV").value),chip:g("mfC").value,wallet:g("mfW").value,ad:g("mfAd").value||null});
+  return ()=>({kind:g("mfK").value,user:g("mfU").value.trim(),amount:N(g("mfA").value),bt:g("mfBT").value,bv:N(g("mfBV").value),chip:g("mfC").value,wallet:g("mfW").value,ad:g("mfAd").value||null,pending:g("mfK").value==="carga"&&g("mfC").value==="__p"});
 }
-function chk(v){if(!v.user)return"Escribí el usuario del jugador.";if(!(v.amount>0))return"El monto tiene que ser mayor a 0.";if(!v.chip)return"Elegí una ficha.";if(!v.wallet)return"Elegí una billetera.";return""}
-async function saveMov(v){setLastW(v.wallet);await rpc("g_add_movement",{p_shift:sid(),p_user:v.user,p_kind:v.kind,p_amount:v.amount,p_bonus_type:v.bt,p_bonus_value:v.kind==="carga"?v.bv:0,p_chip:v.chip,p_wallet:v.wallet,p_ad:v.kind==="carga"?v.ad:null})}
+function chk(v){if(v.pending)return!(v.amount>0)?"El monto tiene que ser mayor a 0.":!v.wallet?"Elegí una billetera.":"";if(v.kind==="retiro"&&v.chip==="__p")return"Elegí una ficha.";if(!v.user)return"Escribí el usuario del jugador.";if(!(v.amount>0))return"El monto tiene que ser mayor a 0.";if(!v.chip)return"Elegí una ficha.";if(!v.wallet)return"Elegí una billetera.";return""}
+async function saveMov(v){setLastW(v.wallet);if(v.pending){await rpc("g_add_pending",{p_shift:sid(),p_amount:v.amount,p_wallet:v.wallet});return}await rpc("g_add_movement",{p_shift:sid(),p_user:v.user,p_kind:v.kind,p_amount:v.amount,p_bonus_type:v.bt,p_bonus_value:v.kind==="carga"?v.bv:0,p_chip:v.chip,p_wallet:v.wallet,p_ad:v.kind==="carga"?v.ad:null})}
 
 /* ---------- Dashboard ---------- */
 VIEWS.dash=async function(){
@@ -283,16 +284,20 @@ VIEWS.dash=async function(){
   const bal=()=>`<h3>Billeteras</h3>${actW().map(w=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--b2)"><span><span class="pill" style="background:${esc(w.color)};border-color:${esc(w.color)}">&nbsp;</span> ${esc(w.name)}</span><span style="display:flex;align-items:center;gap:8px"><b>${fm(w.balance)}</b>${actW().length>1?`<button class="btn g s" data-tr="${w.id}">Transferir</button>`:""}</span></div>`).join("")||'<p class="mut">Sin billeteras.</p>'}
     <h3 style="margin-top:14px">Fichas (stock)</h3>${actC().map(c=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--b2)"><span>${esc(c.name)}</span><b>${fn(c.balance)}</b></div>`).join("")||'<p class="mut">Sin fichas.</p>'}`;
   const qm=()=>`<h3>📩 Mensaje entrante</h3><div class="acts">${S.ads.map(a=>`<button class="btn" data-qm="${a.id}">+1 ${esc(a.name)} <span style="opacity:.7">(${fn(a.msgs)})</span></button>`).join("")||'<span class="mut">No hay campañas activas. Creá una en Publicidad.</span>'}</div>`;
-  $("view").innerHTML=k+`<div class="card" id="dQM" style="margin-bottom:12px">${qm()}</div><div class="grid g2"><div class="card"><h2>Nuevo movimiento</h2><div id="dForm">${movFields()}</div>
+  $("view").innerHTML=k+`<div class="card" id="dQM" style="margin-bottom:12px">${qm()}</div><div class="card hide" id="dPN" style="margin-bottom:12px"></div><div class="grid g2"><div class="card"><h2>Nuevo movimiento</h2><div id="dForm">${movFields()}</div>
     <button class="btn full" id="dGo">Registrar</button></div><div class="card" id="dBal">${bal()}</div></div>
   <div class="card" style="margin-top:12px"><h2>Buscar movimientos</h2><div id="dS"></div></div>`;
   $("dBal").onclick=ev=>{const b=ev.target.closest("[data-tr]");if(b)transfer(b.dataset.tr,async()=>{$("dBal").innerHTML=bal();await go("dash")})};
   $("dQM").onclick=ev=>{const b=ev.target.closest("[data-qm]");if(!b)return;run(b,async()=>{await rpc("g_ad_add_msg",{p_shift:sid(),p_ad:b.dataset.qm,p_qty:1});S.ads=await rpc("g_ads_active");$("dQM").innerHTML=qm();toast("+1 mensaje ✓")})};
+  const pend=async()=>{const r=await q(sb.from("g_movements").select("*").eq("pending",true).eq("voided",false).order("ts",{ascending:false}).limit(20));
+    $("dPN").classList.toggle("hide",!r.length);
+    $("dPN").innerHTML=r.length?`<h3>⏳ Pagos sin reclamar (${r.length})</h3>`+r.map(m=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--b2)"><span><b>${fm(m.amount)}</b> · ${esc(wName(m.wallet_id))} <span class="mut">${fdt(m.ts)}</span></span><button class="btn s" data-c="${m.id}">Reclamar</button></div>`).join(""):"";
+    $("dPN").onclick=ev=>{const b=ev.target.closest("[data-c]");if(b)claimMov(r.find(m=>m.id===b.dataset.c),async()=>{await pend();$("dBal").innerHTML=bal();await load()})}};
   let get=movWire($("dForm"));
-  const load=movSearch($("dS"),{from:today(),onChange:async()=>{$("dBal").innerHTML=bal()}});
+  const load=movSearch($("dS"),{from:today(),onChange:async()=>{$("dBal").innerHTML=bal();await pend()}});
   $("dGo").onclick=()=>run($("dGo"),async()=>{const v=get(),e=chk(v);if(e){toast(e,true);return}
-    await saveMov(v);toast("Registrado ✓");await loadRef();$("dBal").innerHTML=bal();$("dForm").innerHTML=movFields();get=movWire($("dForm"));await load()});
-  await load();
+    await saveMov(v);toast(v.pending?"Pago guardado sin reclamar ✓":"Registrado ✓");await loadRef();await pend();$("dBal").innerHTML=bal();$("dForm").innerHTML=movFields();get=movWire($("dForm"));await load()});
+  await load();await pend();
 };
 
 /* ---------- tabla de movimientos ---------- */
@@ -301,8 +306,8 @@ function movTable(rows,acts){
   if(!rows.length)return'<p class="mut">No hay movimientos con esos filtros.</p>';
   const cols=acts?10:9;
   return `<div class="tw"><table><tr><th>Fecha</th><th>Usuario</th><th>Tipo</th><th>Monto</th><th>Bono</th><th>Fichas</th><th>Ficha</th><th>Billetera</th><th>Cajero</th>${acts?"<th></th>":""}</tr>`+
-  rows.map(m=>{const v=m.voided;return `<tr${v?' style="opacity:.55"':""}><td>${fdt(m.ts)}</td><td${v?' style="text-decoration:line-through"':""}>${esc(m.user_name)}${m.edited?' <span class="pill">editado</span>':""}${v?' <span class="pill" style="color:var(--r);border-color:var(--r)">ANULADA</span>':""}</td><td class="${m.kind==="carga"?"pos":"neg"}">${KIND[m.kind]}</td><td>${fm(m.amount)}</td><td>${m.bonus>0?fm(m.bonus):"—"}</td><td>${fn(m.chips)}</td><td>${esc(cName(m.chip_id))}</td><td>${esc(wName(m.wallet_id))}</td><td>${esc(m.cajero_name)}</td>
-  ${acts?`<td class="acts">${v?"":`${canEditMov()?`<button class="btn g s" data-e="${m.id}">Editar</button>`:""}<button class="btn d s" data-x="${m.id}">Anular</button>`}</td>`:""}</tr>`+
+  rows.map(m=>{const v=m.voided;return `<tr${v?' style="opacity:.55"':""}><td>${fdt(m.ts)}</td><td${v?' style="text-decoration:line-through"':""}>${m.pending?'<span class="pill" style="color:var(--y,#f5a623);border-color:var(--y,#f5a623)">⏳ SIN RECLAMAR</span>':esc(m.user_name)}${m.edited?' <span class="pill">editado</span>':""}${v?' <span class="pill" style="color:var(--r);border-color:var(--r)">ANULADA</span>':""}</td><td class="${m.kind==="carga"?"pos":"neg"}">${KIND[m.kind]}</td><td>${fm(m.amount)}</td><td>${m.bonus>0?fm(m.bonus):"—"}</td><td>${fn(m.chips)}</td><td>${esc(cName(m.chip_id))}</td><td>${esc(wName(m.wallet_id))}</td><td>${esc(m.cajero_name)}</td>
+  ${acts?`<td class="acts">${v?"":`${m.pending?`<button class="btn s" data-c="${m.id}">Reclamar</button>`:canEditMov()?`<button class="btn g s" data-e="${m.id}">Editar</button>`:""}<button class="btn d s" data-x="${m.id}">Anular</button>`}</td>`:""}</tr>`+
   (v?`<tr style="opacity:.8"><td colspan="${cols}" class="mut" style="padding-top:0">↳ Anulada por <b>${esc(m.voided_by||"?")}</b> el ${fdt(m.voided_at)} · Motivo: <i>${esc(m.void_reason||"")}</i></td></tr>`:"")}).join("")+"</table></div>";
 }
 /* buscador reutilizable (Dashboard y Movimientos) */
@@ -328,7 +333,8 @@ function movSearch(root,o){
     const info=`<p class="sub">${rows.length} resultado(s)${rows.length>=500?" (mostrando los primeros 500)":""}`+
       (isAdm()?` · ${c.length} cargas: <b class="pos">${fm(c.reduce((a,x)=>a+N(x.amount),0))}</b> · ${re.length} retiros: <b class="neg">${fm(re.reduce((a,x)=>a+N(x.amount),0))}</b>`:"")+"</p>";
     g("fL").innerHTML=info+movTable(rows,true);
-    g("fL").onclick=ev=>{const e=ev.target.closest("[data-e]"),x=ev.target.closest("[data-x]");
+    g("fL").onclick=ev=>{const e=ev.target.closest("[data-e]"),x=ev.target.closest("[data-x]"),cl=ev.target.closest("[data-c]");
+      if(cl)claimMov(rows.find(m=>m.id===cl.dataset.c),async()=>{await load();if(o.onChange)await o.onChange()});
       if(e)editMov(rows.find(m=>m.id===e.dataset.e),async()=>{await load();if(o.onChange)await o.onChange()});
       if(x)voidMov(rows.find(m=>m.id===x.dataset.x),async()=>{await load();if(o.onChange)await o.onChange()})}};
   g("fS").onclick=()=>run(g("fS"),load);
@@ -340,6 +346,14 @@ VIEWS.mov=async function(){
   $("view").innerHTML='<div class="card"><div id="mS"></div></div>';
   const load=movSearch($("mS"),{from:isAdm()?addDays(today(),-6):today()});await load();
 };
+function claimMov(m,after){
+  const d=modal(`<h2>Reclamar pago</h2><p class="mut">Pago de <b>${fm(m.amount)}</b> recibido ${fdt(m.ts)} en <b>${esc(wName(m.wallet_id))}</b>. Indicá de quién es y de qué fichas se acredita.</p>${movFields({...m,pending:true,kind:"carga"})}<div class="row" style="margin-top:12px"><button class="btn g" id="eC">Cancelar</button><button class="btn" id="eS">Acreditar</button></div>`);
+  ["mfA","mfW","mfK"].forEach(i=>d.querySelector("#"+i).disabled=true);
+  const get=movWire(d);d.querySelector("#eC").onclick=()=>d.remove();
+  d.querySelector("#eS").onclick=()=>run(d.querySelector("#eS"),async()=>{const v=get(),e=chk(v);if(e){toast(e,true);return}
+    await rpc("g_claim_movement",{p_shift:sid(),p_id:m.id,p_user:v.user,p_bonus_type:v.bt,p_bonus_value:v.bv,p_chip:v.chip,p_ad:v.ad});
+    d.remove();toast("Acreditado ✓");await loadRef();await after()});
+}
 function editMov(m,after){
   const d=modal(`<h2>Editar ${KIND[m.kind].toLowerCase()}</h2>${movFields(m)}<div class="row" style="margin-top:12px"><button class="btn g" id="eC">Cancelar</button><button class="btn" id="eS">Guardar</button></div>`);
   const get=movWire(d);d.querySelector("#eC").onclick=()=>d.remove();
@@ -381,7 +395,7 @@ VIEWS.fich=async function(){
   ${isAdm()?'<button class="btn" id="cN">+ Nueva ficha</button>':""}</div>
   <div class="grid g2">${S.chips.map(c=>`<div class="card wc" style="${c.archived?"opacity:.5":""}"><b>${esc(c.name)}</b>${c.archived?' <span class="pill">archivada</span>':""}
     <div class="bal">${fn(c.balance)}</div><div class="acts"><button class="btn g s" data-l="${c.id}">Ver movimientos</button>
-    ${isAdm()?`<button class="btn g s" data-a="${c.id}">Ajustar / Comprar</button><button class="btn g s" data-ed="${c.id}">Editar</button>`:""}</div></div>`).join("")||'<p class="mut">Todavía no hay fichas.</p>'}</div>`;
+    <button class="btn g s" data-a="${c.id}">${isAdm()?"Ajustar / Comprar":"Cargar fichas"}</button>${isAdm()?`<button class="btn g s" data-ed="${c.id}">Editar</button>`:""}</div></div>`).join("")||'<p class="mut">Todavía no hay fichas.</p>'}</div>`;
   $("view").onclick=ev=>{const l=ev.target.closest("[data-l]"),a=ev.target.closest("[data-a]"),e=ev.target.closest("[data-ed]");
     if(l)run(null,()=>ledger("c",S.chips.find(c=>c.id===l.dataset.l)));
     if(a)adjust("c",S.chips.find(c=>c.id===a.dataset.a));if(e)editItem("c",S.chips.find(c=>c.id===e.dataset.ed))};
@@ -397,12 +411,12 @@ function newChip(){const d=modal(`<h2>Nueva ficha</h2><label>Nombre (plataforma)
   d.querySelector("#nS").onclick=()=>run(d.querySelector("#nS"),async()=>{await rpc("g_create_chip",{p_name:d.querySelector("#nN").value,p_initial:N(d.querySelector("#nI").value)});d.remove();toast("Ficha creada ✓");go("fich")})}
 function adjust(kind,it){
   const isW=kind==="w";
-  const d=modal(`<h2>Ajustar ${esc(it.name)}</h2><p class="mut">Actual: <b>${isW?fm(it.balance):fn(it.balance)}</b></p><label>Tipo</label><select id="aK"><option value="ajuste+">Sumar (ajuste +)</option><option value="ajuste-">Restar (ajuste −)</option>${isW?"":'<option value="compra">Compra de fichas</option>'}</select>
-  <label>${isW?"Monto ($)":"Cantidad"}</label><input id="aA" type="number" step="0.01" min="0"><label>Motivo</label><input id="aD" maxlength="200">
+  const d=modal(`<h2>Ajustar ${esc(it.name)}</h2><p class="mut">Actual: <b>${isW?fm(it.balance):fn(it.balance)}</b></p><label>Tipo</label><select id="aK"><option value="ajuste+">${isW||isAdm()?"Sumar (ajuste +)":"Cargar fichas"}</option>${isAdm()?'<option value="ajuste-">Restar (ajuste −)</option>':""}${isW?"":'<option value="compra">Compra de fichas</option>'}</select>
+  <label>${isW?"Monto ($)":"Cantidad"}</label><input id="aA" type="number" step="0.01" min="0"><label>Motivo${isAdm()?"":" (obligatorio)"}</label><input id="aD" maxlength="200">
   <div class="row" style="margin-top:12px"><button class="btn g" id="aX">Cancelar</button><button class="btn" id="aS">Aplicar</button></div>`);
   d.querySelector("#aX").onclick=()=>d.remove();
   d.querySelector("#aS").onclick=()=>run(d.querySelector("#aS"),async()=>{const a={p_kind:d.querySelector("#aK").value,p_amount:N(d.querySelector("#aA").value),p_descr:d.querySelector("#aD").value};
-    if(isW)await rpc("g_wallet_adjust",{p_wallet:it.id,...a});else await rpc("g_chip_adjust",{p_chip:it.id,...a});
+    if(isW)await rpc("g_wallet_adjust",{p_wallet:it.id,...a});else await rpc("g_chip_adjust",{p_chip:it.id,...a,p_shift:sid()});
     d.remove();toast("Aplicado ✓");go(isW?"bill":"fich")});
 }
 function editItem(kind,it){
