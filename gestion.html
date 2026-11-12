@@ -163,7 +163,7 @@ try{if(localStorage.getItem("g_side")==="off")setSide(true)}catch(e){}
 $("sideHide").onclick=()=>setSide(true);$("sideShow").onclick=()=>setSide(false);
 const sideClose=()=>{$("side").classList.remove("open");$("scrim").classList.remove("on")};
 $("burger").onclick=()=>{$("side").classList.toggle("open");$("scrim").classList.toggle("on")};$("scrim").onclick=sideClose;
-const ICONS={dash:"📊",bill:"👛",fich:"🎰",mov:"🔎",usr:"🏆",rep:"📋",caj:"👥",pub:"📣",gas:"🧾",met:"📈",cfg:"⚙️"};
+const ICONS={dash:"📊",bill:"👛",fich:"🎰",mov:"🔎",usr:"🏆",rep:"📋",bon:"🎁",caj:"👥",pub:"📣",gas:"🧾",met:"📈",cfg:"⚙️"};
 $("lf").onsubmit=async e=>{e.preventDefault();$("lerr").textContent="";const b=$("lb");b.disabled=true;
   const {error}=await sb.auth.signInWithPassword({email:$("le").value.trim(),password:$("lp").value});
   b.disabled=false;if(error){$("lerr").textContent="Usuario o contraseña incorrectos.";return}
@@ -209,8 +209,8 @@ $("hShift").onclick=async()=>{try{if(S.shift)await sb.rpc("g_end_shift",{p_shift
   S.shift=null;try{sessionStorage.removeItem("g_shift")}catch(e){}await showShift()};
 
 /* ---------- app ---------- */
-const TABS_OP=[["dash","Dashboard"],["bill","Billeteras"],["fich","Fichas"],["mov","Movimientos"],["usr","Usuarios"],["gas","Gastos"],["pub","Publicidad"]];
-const TABS_AD=[["dash","Dashboard"],["bill","Billeteras"],["fich","Fichas"],["mov","Movimientos"],["usr","Usuarios"],["rep","Reportes"],["caj","Cajeros"],["pub","Publicidad"],["gas","Gastos"],["met","Métricas"],["cfg","Ajustes"]];
+const TABS_OP=[["dash","Dashboard"],["bill","Billeteras"],["fich","Fichas"],["mov","Movimientos"],["usr","Usuarios"],["gas","Gastos"],["pub","Publicidad"],["bon","Bonos"]];
+const TABS_AD=[["dash","Dashboard"],["bill","Billeteras"],["fich","Fichas"],["mov","Movimientos"],["usr","Usuarios"],["rep","Reportes"],["caj","Cajeros"],["pub","Publicidad"],["bon","Bonos"],["gas","Gastos"],["met","Métricas"],["cfg","Ajustes"]];
 async function enterApp(){
   show("app");$("hRole").textContent=isAdm()?"ADMIN":"OPERADOR";$("hRole").className="badge"+(isAdm()?" adm":"");
   $("hCaj").textContent=isAdm()?"":"Turno: "+S.shift.name;$("hShift").classList.toggle("hide",isAdm());
@@ -245,8 +245,8 @@ async function repCheck(){
     repLast=n;if(S.tab==="rep"&&n>0&&!S.repBusy)VIEWS.rep()}catch(e){}
 }
 async function loadRef(){
-  const [w,c,a,cj]=await Promise.all([q(sb.from("g_wallets").select("*").order("name")),q(sb.from("g_chips").select("*").order("name")),rpc("g_ads_active"),rpc("g_cajeros_list")]);
-  S.wallets=w;S.chips=c;S.ads=a;S.cajeros=cj;
+  const [w,c,a,cj,bs]=await Promise.all([q(sb.from("g_wallets").select("*").order("name")),q(sb.from("g_chips").select("*").order("name")),rpc("g_ads_active"),rpc("g_cajeros_list"),q(sb.from("g_bonus_src").select("*").eq("archived",false).order("created_at"))]);
+  S.wallets=w;S.chips=c;S.ads=a;S.cajeros=cj;S.bsrc=bs;
 }
 const VIEWS={};
 async function go(t){
@@ -271,7 +271,8 @@ function movFields(m){
   <div class="mfB"><label>Bono</label><div class="row"><select id="mfBT" style="max-width:70px"><option value="%"${m.bonus_type!=="$"?" selected":""}>%</option><option value="$"${m.bonus_type==="$"?" selected":""}>$</option></select><input id="mfBV" type="number" step="0.01" min="0" inputmode="decimal" value="${m.bonus_value||""}" placeholder="0"></div></div></div>
   <div class="row"><div><label>Ficha</label><select id="mfC">${m.id?"":'<option value="__p">⏳ Sin reclamar (todavía no avisó)</option>'}${opts(actC(),m.chip_id||(m.id?null:(S.topChip&&actC().some(c=>c.id===S.topChip)?S.topChip:(actC()[0]||{}).id)))}</select></div>
   <div><label>Billetera</label><select id="mfW">${opts(actW(),m.wallet_id||(m.id?null:lastW()),w=>w.name+" ("+fm(w.balance)+")")}</select></div></div>
-  <div class="mfB"><label>Publicidad (opcional)</label><select id="mfAd"><option value="">— ninguna —</option>${opts(S.ads,m.ad_id)}</select></div>
+  <div class="row mfB"><div><label>Publicidad (opcional)</label><select id="mfAd"><option value="">— ninguna —</option>${opts(S.ads,m.ad_id)}</select></div>
+  <div><label>🎁 Bono por (opcional)</label><select id="mfBs"><option value="">— ninguno —</option>${(S.bsrc||[]).map(b=>`<option value="${esc(b.name)}"${m.bonus_src===b.name?" selected":""}>${esc(b.name)}</option>`).join("")}</select></div></div>
   <div class="prev" id="mfP"></div>`;
 }
 function movWire(root){
@@ -284,10 +285,10 @@ function movWire(root){
     g("mfP").innerHTML=k==="carga"?`Fichas a acreditar: <b>${fn(a+bo)}</b> ${bo?`(incluye bono ${fm(bo)})`:""}<br><span class="mut">Entra ${fm(a)} a ${esc(w?w.name:"—")} · salen ${fn(a+bo)} de ${esc(c?c.name:"—")}</span>`
       :`Se descuentan ${fm(a)} de ${esc(w?w.name:"—")} y vuelven ${fn(a)} fichas a ${esc(c?c.name:"—")}`};
   root.addEventListener("input",upd);root.addEventListener("change",upd);if(root.id==="dForm")g("mfW").addEventListener("change",()=>setLastW(g("mfW").value));upd();
-  return ()=>({kind:g("mfK").value,user:g("mfU").value.trim(),amount:N(g("mfA").value),bt:g("mfBT").value,bv:N(g("mfBV").value),chip:g("mfC").value,wallet:g("mfW").value,ad:g("mfAd").value||null,pending:g("mfK").value==="carga"&&g("mfC").value==="__p"});
+  return ()=>({kind:g("mfK").value,user:g("mfU").value.trim(),amount:N(g("mfA").value),bt:g("mfBT").value,bv:N(g("mfBV").value),chip:g("mfC").value,wallet:g("mfW").value,ad:g("mfAd").value||null,bsrc:g("mfBs").value||null,pending:g("mfK").value==="carga"&&g("mfC").value==="__p"});
 }
 function chk(v){if(v.pending)return!(v.amount>0)?"El monto tiene que ser mayor a 0.":!v.wallet?"Elegí una billetera.":"";if(v.kind==="retiro"&&v.chip==="__p")return"Elegí una ficha.";if(!v.user)return"Escribí el usuario del jugador.";if(!(v.amount>0))return"El monto tiene que ser mayor a 0.";if(!v.chip)return"Elegí una ficha.";if(!v.wallet)return"Elegí una billetera.";return""}
-async function saveMov(v){setLastW(v.wallet);if(v.pending){await rpc("g_add_pending",{p_shift:sid(),p_amount:v.amount,p_wallet:v.wallet});return}await rpc("g_add_movement",{p_shift:sid(),p_user:v.user,p_kind:v.kind,p_amount:v.amount,p_bonus_type:v.bt,p_bonus_value:v.kind==="carga"?v.bv:0,p_chip:v.chip,p_wallet:v.wallet,p_ad:v.kind==="carga"?v.ad:null})}
+async function saveMov(v){setLastW(v.wallet);if(v.pending){await rpc("g_add_pending",{p_shift:sid(),p_amount:v.amount,p_wallet:v.wallet});return}await rpc("g_add_movement",{p_shift:sid(),p_user:v.user,p_kind:v.kind,p_amount:v.amount,p_bonus_type:v.bt,p_bonus_value:v.kind==="carga"?v.bv:0,p_chip:v.chip,p_wallet:v.wallet,p_ad:v.kind==="carga"?v.ad:null,p_bsrc:v.kind==="carga"?v.bsrc:null})}
 
 /* ---------- Dashboard ---------- */
 VIEWS.dash=async function(){
@@ -328,7 +329,7 @@ function movTable(rows,acts){
   if(!rows.length)return'<p class="mut">No hay movimientos con esos filtros.</p>';
   const cols=acts?10:9;
   return `<div class="tw"><table><tr><th>Fecha</th><th>Usuario</th><th>Tipo</th><th>Monto</th><th>Bono</th><th>Fichas</th><th>Ficha</th><th>Billetera</th><th>Cajero</th>${acts?"<th></th>":""}</tr>`+
-  rows.map(m=>{const v=m.voided;return `<tr${v?' style="opacity:.55"':""}><td>${fdt(m.ts)}</td><td${v?' style="text-decoration:line-through"':""}>${m.pending?'<span class="pill" style="color:var(--y,#f5a623);border-color:var(--y,#f5a623)">⏳ SIN RECLAMAR</span>':esc(m.user_name)}${m.edited?' <span class="pill">editado</span>':""}${v?' <span class="pill" style="color:var(--r);border-color:var(--r)">ANULADA</span>':""}</td><td class="${m.kind==="carga"?"pos":"neg"}">${KIND[m.kind]}</td><td>${fm(m.amount)}</td><td>${m.bonus>0?fm(m.bonus):"—"}</td><td>${fn(m.chips)}</td><td>${esc(cName(m.chip_id))}</td><td>${esc(wName(m.wallet_id))}</td><td>${esc(m.cajero_name)}</td>
+  rows.map(m=>{const v=m.voided;return `<tr${v?' style="opacity:.55"':""}><td>${fdt(m.ts)}</td><td${v?' style="text-decoration:line-through"':""}>${m.pending?'<span class="pill" style="color:var(--y,#f5a623);border-color:var(--y,#f5a623)">⏳ SIN RECLAMAR</span>':esc(m.user_name)}${m.edited?' <span class="pill">editado</span>':""}${v?' <span class="pill" style="color:var(--r);border-color:var(--r)">ANULADA</span>':""}</td><td class="${m.kind==="carga"?"pos":"neg"}">${KIND[m.kind]}</td><td>${fm(m.amount)}</td><td>${m.bonus>0?fm(m.bonus)+(m.bonus_src?`<br><span class="mut" style="font-size:11px">${esc(m.bonus_src)}</span>`:""):"—"}</td><td>${fn(m.chips)}</td><td>${esc(cName(m.chip_id))}</td><td>${esc(wName(m.wallet_id))}</td><td>${esc(m.cajero_name)}</td>
   ${acts?`<td class="acts">${v?"":`${m.pending?`<button class="btn s" data-c="${m.id}">Reclamar</button>`:canEditMov()?`<button class="btn g s" data-e="${m.id}">Editar</button>`:""}<button class="btn d s" data-x="${m.id}">Anular</button>`}</td>`:""}</tr>`+
   (v?`<tr style="opacity:.8"><td colspan="${cols}" class="mut" style="padding-top:0">↳ Anulada por <b>${esc(m.voided_by||"?")}</b> el ${fdt(m.voided_at)} · Motivo: <i>${esc(m.void_reason||"")}</i></td></tr>`:"")}).join("")+"</table></div>";
 }
@@ -373,14 +374,14 @@ function claimMov(m,after){
   ["mfA","mfW","mfK"].forEach(i=>d.querySelector("#"+i).disabled=true);
   const get=movWire(d);d.querySelector("#eC").onclick=()=>d.remove();
   d.querySelector("#eS").onclick=()=>run(d.querySelector("#eS"),async()=>{const v=get(),e=chk(v);if(e){toast(e,true);return}
-    await rpc("g_claim_movement",{p_shift:sid(),p_id:m.id,p_user:v.user,p_bonus_type:v.bt,p_bonus_value:v.bv,p_chip:v.chip,p_ad:v.ad});
+    await rpc("g_claim_movement",{p_shift:sid(),p_id:m.id,p_user:v.user,p_bonus_type:v.bt,p_bonus_value:v.bv,p_chip:v.chip,p_ad:v.ad,p_bsrc:v.bsrc});
     d.remove();toast("Acreditado ✓");await loadRef();await after()});
 }
 function editMov(m,after){
   const d=modal(`<h2>Editar ${KIND[m.kind].toLowerCase()}</h2>${movFields(m)}<div class="row" style="margin-top:12px"><button class="btn g" id="eC">Cancelar</button><button class="btn" id="eS">Guardar</button></div>`);
   const get=movWire(d);d.querySelector("#eC").onclick=()=>d.remove();
   d.querySelector("#eS").onclick=()=>run(d.querySelector("#eS"),async()=>{const v=get(),e=chk(v);if(e){toast(e,true);return}
-    await rpc("g_edit_movement",{p_shift:sid(),p_id:m.id,p_user:v.user,p_amount:v.amount,p_bonus_type:v.bt,p_bonus_value:v.kind==="carga"?v.bv:0,p_chip:v.chip,p_wallet:v.wallet,p_ad:v.kind==="carga"?v.ad:null});
+    await rpc("g_edit_movement",{p_shift:sid(),p_id:m.id,p_user:v.user,p_amount:v.amount,p_bonus_type:v.bt,p_bonus_value:v.kind==="carga"?v.bv:0,p_chip:v.chip,p_wallet:v.wallet,p_ad:v.kind==="carga"?v.ad:null,p_bsrc:v.kind==="carga"?v.bsrc:null});
     d.remove();toast("Guardado ✓");await loadRef();await after()});
 }
 function voidMov(m,after){
@@ -696,6 +697,23 @@ VIEWS.rep=async function(){
 
 
 /* ---------- Ranking de usuarios / jugadores (solo admin) ---------- */
+VIEWS.bon=async function(){
+  const t=today();
+  $("view").innerHTML=`<div class="card"><div class="row" style="align-items:center"><div><h2 style="margin:0">🎁 Bonos por origen</h2><p class="sub" style="margin:4px 0 0">Cargas que vinieron con bono (Referidos, Estados de WhatsApp, etc.), separadas de Publicidad. Las anuladas no cuentan.${isAdm()?"":` Ves los últimos ${S.cfg.op_history_days} día(s).`}</p></div>${isAdm()?'<button class="btn" id="bnN">+ Nuevo origen</button>':""}</div>
+  <div class="row" style="margin-top:10px"><div><label>Desde</label><input type="date" id="bD" value="${isAdm()?addDays(t,-29):t}"></div><div><label>Hasta</label><input type="date" id="bH" value="${t}"></div><button class="btn" id="bB">Ver</button></div></div>
+  <div class="card" style="margin-top:12px" id="bR"></div>
+  ${isAdm()?'<div class="card" style="margin-top:12px" id="bO"></div>':""}`;
+  const load=async()=>{const r=await rpc("g_bonus_report",{p_from:dayISO($("bD").value||t),p_to:dayISO(addDays($("bH").value||t,1))});
+    const tb=r.reduce((a,x)=>a+N(x.bonos),0),tn=r.reduce((a,x)=>a+N(x.cargas_n),0);
+    $("bR").innerHTML=r.length?`<div class="tw"><table><tr><th>Origen</th><th>Cargas con bono</th><th>Usuarios</th><th>Monto cargado</th><th>Bono otorgado</th></tr>`+r.map(x=>`<tr><td><b>${esc(x.name)}</b></td><td>${fn(x.cargas_n)}</td><td>${fn(x.usuarios)}</td><td>${fm(x.cargas)}</td><td>${fm(x.bonos)}</td></tr>`).join("")+`<tr><td><b>Total</b></td><td><b>${fn(tn)}</b></td><td></td><td></td><td><b>${fm(tb)}</b></td></tr></table></div>`:'<p class="mut">No hay cargas con bono en ese período.</p>'};
+  const own=async()=>{if(!isAdm())return;const l=await q(sb.from("g_bonus_src").select("*").order("created_at"));
+    $("bO").innerHTML="<h3>Orígenes disponibles</h3>"+l.map(b=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--b2)"><span${b.archived?' style="opacity:.5"':""}>${esc(b.name)}${b.archived?' <span class="pill">oculto</span>':""}</span><button class="btn g s" data-ar="${b.id}" data-v="${b.archived?0:1}">${b.archived?"Mostrar":"Ocultar"}</button></div>`).join("");
+    $("bO").onclick=ev=>{const b=ev.target.closest("[data-ar]");if(b)run(b,async()=>{await rpc("g_bonus_src_archive",{p_id:b.dataset.ar,p_archived:b.dataset.v==="1"});await loadRef();await own()})}};
+  $("bB").onclick=()=>run($("bB"),load);
+  if(isAdm())$("bnN").onclick=()=>{const d=modal(`<h2>Nuevo origen de bono</h2><label>Nombre</label><input id="nN" maxlength="40" placeholder="Ej: Sorteo de Instagram"><div class="row" style="margin-top:12px"><button class="btn g" id="nX">Cancelar</button><button class="btn" id="nS">Crear</button></div>`);
+    d.querySelector("#nX").onclick=()=>d.remove();d.querySelector("#nS").onclick=()=>run(d.querySelector("#nS"),async()=>{const v=d.querySelector("#nN").value.trim();if(!v){toast("Poné un nombre.",true);return}await rpc("g_bonus_src_add",{p_name:v});d.remove();toast("Origen creado ✓");await loadRef();await own()})};
+  await load();await own();
+};
 VIEWS.usr=async function(){
   const t=today();
   $("view").innerHTML=`<div class="card"><h2>Ranking de usuarios</h2><p class="sub">Jugadores ordenados por cantidad de cargas. Las anuladas no cuentan.${isAdm()?"":` Ves los últimos ${S.cfg.op_history_days} día(s).`}</p>
