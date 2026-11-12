@@ -73,6 +73,7 @@ td{padding:7px 6px;border-bottom:1px solid var(--b2);vertical-align:top}
 .ov{position:fixed;inset:0;background:#000b;display:flex;align-items:flex-start;justify-content:center;padding:20px 12px;overflow:auto;z-index:50}
 .ov .card{width:100%;max-width:520px;margin:auto}.ov .card.wide{max-width:760px}
 .sw{display:flex;align-items:center;gap:8px}.sw input{width:auto}
+#hChat.alert{border-color:var(--r);animation:chp 1.2s infinite}@keyframes chp{50%{box-shadow:0 0 0 4px rgba(220,53,69,.25)}}
 .nb{background:var(--r);color:#fff;border-radius:99px;font-size:11px;padding:1px 6px;margin-left:5px}
 .prev{background:var(--p2);border-radius:9px;padding:9px 11px;margin-top:10px;font-size:13px}
 </style></head><body>
@@ -108,7 +109,7 @@ td{padding:7px 6px;border-bottom:1px solid var(--b2);vertical-align:top}
     <div class="brand"><img src="/icon-192.png" alt="Caja Ludmi"><div style="flex:1"><b>Caja Ludmi</b><small>Sistema de gestión</small></div><button class="btn g s" id="sideHide" title="Ocultar menú" aria-label="Ocultar menú">«</button></div>
     <nav id="nav"></nav>
     <div class="sfoot"><div class="who"><span class="badge" id="hRole"></span><span id="hCaj" class="mut"></span></div>
-      <button class="btn g s thb" data-th></button><button class="btn g s hide" id="hShift">Cambiar turno</button><button class="btn g s" id="hOut">Salir</button></div>
+      <button class="btn g s thb" data-th></button><button class="btn g s hide" id="hChat" title="Abrir el chat en otra pestaña">💬 Chat</button><button class="btn g s hide" id="hShift">Cambiar turno</button><button class="btn g s" id="hOut">Salir</button></div>
   </aside>
   <div id="scrim"></div>
   <button class="btn g s" id="sideShow" title="Mostrar menú">☰ Menú</button>
@@ -143,7 +144,7 @@ async function run(btn,fn){if(btn)btn.disabled=true;try{return await fn()}catch(
 function modal(html,wide){const d=document.createElement("div");d.className="ov";d.innerHTML='<div class="card'+(wide?" wide":"")+'">'+html+"</div>";
   d.addEventListener("mousedown",e=>{if(e.target===d)d.remove()});$("ovs").appendChild(d);return d}
 const opts=(arr,sel,f)=>arr.map(x=>`<option value="${esc(x.id)}"${x.id===sel?" selected":""}>${esc(f?f(x):x.name)}</option>`).join("");
-const KIND={carga:"Carga",retiro:"Retiro","ajuste+":"Ajuste +","ajuste-":"Ajuste −",gasto:"Gasto",sueldo:"Sueldo",transf_in:"Transf. recibida",transf_out:"Transf. enviada",inicial:"Saldo inicial",compra:"Compra"};
+const KIND={carga:"Carga",retiro:"Retiro","ajuste+":"Ajuste +","ajuste-":"Ajuste −",gasto:"Gasto",sueldo:"Sueldo",transf_in:"Transf. recibida",transf_out:"Transf. enviada",rend:"Rendimiento",inicial:"Saldo inicial",compra:"Compra"};
 
 /* ---------- sesión ---------- */
 async function boot(){
@@ -214,11 +215,27 @@ async function enterApp(){
   show("app");$("hRole").textContent=isAdm()?"ADMIN":"OPERADOR";$("hRole").className="badge"+(isAdm()?" adm":"");
   $("hCaj").textContent=isAdm()?"":"Turno: "+S.shift.name;$("hShift").classList.toggle("hide",isAdm());
   const T=isAdm()?TABS_AD:TABS_OP;$("nav").innerHTML=T.map(t=>`<button data-t="${t[0]}" data-ic="${ICONS[t[0]]||"•"}">${t[1]}</button>`).join("");
+  $("hChat").onclick=()=>{try{if("Notification" in window&&Notification.permission==="default")Notification.requestPermission()}catch(e){}window.open("/admin","ludmi-chat")};
   $("nav").onclick=e=>{const b=e.target.closest("button");if(b){sideClose();go(b.dataset.t)}};
   if(isAdm())startRepPoll();
+  startChatPoll();
   await go("dash");
 }
-let repT=null,repLast=-1;
+let repT=null,repLast=-1,chT=null,chLast=-1,actx=null;
+function beep(){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();const o=actx.createOscillator(),g=actx.createGain();o.type="sine";o.frequency.value=880;o.connect(g);g.connect(actx.destination);
+  g.gain.setValueAtTime(.0001,actx.currentTime);g.gain.exponentialRampToValueAtTime(.25,actx.currentTime+.02);g.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+.5);o.start();o.stop(actx.currentTime+.5);
+  const o2=actx.createOscillator(),g2=actx.createGain();o2.frequency.value=1175;o2.connect(g2);g2.connect(actx.destination);g2.gain.setValueAtTime(.0001,actx.currentTime+.25);g2.gain.exponentialRampToValueAtTime(.25,actx.currentTime+.27);g2.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+.8);o2.start(actx.currentTime+.25);o2.stop(actx.currentTime+.8)}catch(e){}}
+document.addEventListener("click",()=>{try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume()}catch(e){}},{once:true});
+function startChatPoll(){clearInterval(chT);chLast=-1;chCheck();chT=setInterval(chCheck,10000)}
+async function chCheck(){
+  if($("app").classList.contains("hide"))return;
+  try{const r=await rpc("g_chat_unread"),n=+r.msgs||0,c=+r.chats||0,b=$("hChat");
+    b.classList.toggle("hide",false);b.innerHTML="💬 Chat"+(n>0?`<span class="nb">${n}</span>`:"");b.classList.toggle("alert",n>0);
+    document.title=(n>0?"("+n+") 💬 ":"")+"Gestión · Caja Ludmi";
+    if(chLast>=0&&n>chLast){beep();toast("💬 Mensaje nuevo en el chat ("+c+" "+(c===1?"conversación":"conversaciones")+")");
+      try{if("Notification" in window&&Notification.permission==="granted"&&document.hidden)new Notification("Caja Ludmi · Chat",{body:"Tenés "+n+" mensaje(s) sin leer",tag:"g-chat"})}catch(e){}}
+    chLast=n}catch(e){}
+}
 function startRepPoll(){clearInterval(repT);repLast=-1;repCheck();repT=setInterval(repCheck,45000)}
 async function repCheck(){
   if(!isAdm()||$("app").classList.contains("hide"))return;
@@ -286,13 +303,13 @@ VIEWS.dash=async function(){
   const wOpen=()=>{try{return localStorage.getItem("g_wOpen")==="1"}catch(e){return false}};
   const bal=()=>{const W=actW(),tot=W.reduce((a,w)=>a+N(w.balance),0),op=wOpen();
     return `<h3>Billeteras</h3><div data-wt="1" role="button" tabindex="0" style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--b2);cursor:pointer"><span><b>${op?"▾":"▸"} Total en billeteras</b> <span class="mut">(${W.length})</span></span><b style="font-size:1.25em">${fm(tot)}</b></div>`+
-    (op?W.map(w=>`<div style="display:flex;justify-content:space-between;padding:5px 0 5px 18px;border-bottom:1px solid var(--b2)"><span><span class="pill" style="background:${esc(w.color)};border-color:${esc(w.color)}">&nbsp;</span> ${esc(w.name)}</span><span style="display:flex;align-items:center;gap:8px"><b>${fm(w.balance)}</b>${W.length>1?`<button class="btn g s" data-tr="${w.id}">Transferir</button>`:""}</span></div>`).join("")||'<p class="mut">Sin billeteras.</p>':'<p class="sub" style="margin:6px 0 0">Tocá para ver el detalle de cada billetera.</p>')+`
+    (op?W.map(w=>`<div style="display:flex;justify-content:space-between;padding:5px 0 5px 18px;border-bottom:1px solid var(--b2)"><span><span class="pill" style="background:${esc(w.color)};border-color:${esc(w.color)}">&nbsp;</span> ${esc(w.name)}</span><span style="display:flex;align-items:center;gap:8px"><b>${fm(w.balance)}</b><button class="btn g s" data-rd="${w.id}">Rend</button>${W.length>1?`<button class="btn g s" data-tr="${w.id}">Transferir</button>`:""}</span></div>`).join("")||'<p class="mut">Sin billeteras.</p>':'<p class="sub" style="margin:6px 0 0">Tocá para ver el detalle de cada billetera.</p>')+`
     <h3 style="margin-top:14px">Fichas (stock)</h3>${actC().map(c=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--b2)"><span>${esc(c.name)}</span><b>${fn(c.balance)}</b></div>`).join("")||'<p class="mut">Sin fichas.</p>'}`;}
   const qm=()=>`<h3>📩 Mensaje entrante</h3><div class="acts">${S.ads.map(a=>`<button class="btn" data-qm="${a.id}">+1 ${esc(a.name)} <span style="opacity:.7">(${fn(a.msgs)})</span></button>`).join("")||'<span class="mut">No hay campañas activas. Creá una en Publicidad.</span>'}</div>`;
   $("view").innerHTML=k+`<div class="card" id="dQM" style="margin-bottom:12px">${qm()}</div><div class="card hide" id="dPN" style="margin-bottom:12px"></div><div class="grid g2"><div class="card"><h2>Nuevo movimiento</h2><div id="dForm">${movFields()}</div>
     <button class="btn full" id="dGo">Registrar</button></div><div class="card" id="dBal">${bal()}</div></div>
   <div class="card" style="margin-top:12px"><h2>Buscar movimientos</h2><div id="dS"></div></div>`;
-  $("dBal").onclick=ev=>{if(ev.target.closest("[data-wt]")){try{localStorage.setItem("g_wOpen",wOpen()?"0":"1")}catch(e){}$("dBal").innerHTML=bal();return}const b=ev.target.closest("[data-tr]");if(b)transfer(b.dataset.tr,async()=>{$("dBal").innerHTML=bal();await go("dash")})};
+  $("dBal").onclick=ev=>{if(ev.target.closest("[data-wt]")){try{localStorage.setItem("g_wOpen",wOpen()?"0":"1")}catch(e){}$("dBal").innerHTML=bal();return}const rd=ev.target.closest("[data-rd]");if(rd){rend(rd.dataset.rd,async()=>{$("dBal").innerHTML=bal();await load()});return}const b=ev.target.closest("[data-tr]");if(b)transfer(b.dataset.tr,async()=>{$("dBal").innerHTML=bal();await go("dash")})};
   $("dQM").onclick=ev=>{const b=ev.target.closest("[data-qm]");if(!b)return;run(b,async()=>{await rpc("g_ad_add_msg",{p_shift:sid(),p_ad:b.dataset.qm,p_qty:1});S.ads=await rpc("g_ads_active");$("dQM").innerHTML=qm();toast("+1 mensaje ✓")})};
   const pend=async()=>{const r=await q(sb.from("g_movements").select("*").eq("pending",true).eq("voided",false).order("ts",{ascending:false}).limit(20));
     $("dPN").classList.toggle("hide",!r.length);
@@ -388,9 +405,10 @@ VIEWS.bill=async function(){
   $("view").innerHTML=`<div class="row" style="margin-bottom:12px;align-items:center"><div><h2 style="margin:0">Billeteras</h2><span class="mut">Total: <b>${fm(tot)}</b></span></div>
   <button class="btn g" id="bT">Transferir</button>${isAdm()?'<button class="btn" id="bN">+ Nueva billetera</button>':""}</div>
   <div class="grid g2">${S.wallets.map(w=>`<div class="card wc" style="border-left-color:${esc(w.color)};${w.archived?"opacity:.5":""}"><b>${esc(w.name)}</b> <span class="mut">${esc(w.owner)}</span>${w.archived?' <span class="pill">archivada</span>':""}
-    <div class="bal">${fm(w.balance)}</div><div class="acts"><button class="btn g s" data-l="${w.id}">Ver movimientos</button>
+    <div class="bal">${fm(w.balance)}</div><div class="acts"><button class="btn g s" data-l="${w.id}">Ver movimientos</button>${w.archived?"":`<button class="btn g s" data-rd="${w.id}">Rend</button>`}
     ${isAdm()?`<button class="btn g s" data-a="${w.id}">Ajustar</button><button class="btn g s" data-ed="${w.id}">Editar</button>`:""}</div></div>`).join("")||'<p class="mut">Todavía no hay billeteras.</p>'}</div>`;
-  $("view").onclick=ev=>{const l=ev.target.closest("[data-l]"),a=ev.target.closest("[data-a]"),e=ev.target.closest("[data-ed]");
+  $("view").onclick=ev=>{const l=ev.target.closest("[data-l]"),a=ev.target.closest("[data-a]"),e=ev.target.closest("[data-ed]"),rd=ev.target.closest("[data-rd]");
+    if(rd)rend(rd.dataset.rd,()=>go("bill"));
     if(l)run(null,()=>ledger("w",S.wallets.find(w=>w.id===l.dataset.l)));
     if(a)adjust("w",S.wallets.find(w=>w.id===a.dataset.a));if(e)editItem("w",S.wallets.find(w=>w.id===e.dataset.ed))};
   $("bT").onclick=()=>transfer();if(isAdm())$("bN").onclick=newWallet;
@@ -452,6 +470,18 @@ function transfer(fromId,after){
   g("tX").onclick=()=>d.remove();
   g("tS").onclick=()=>run(g("tS"),async()=>{await rpc("g_wallet_transfer",{p_from:g("tF").value,p_to:g("tT").value,p_amount:N(g("tA").value),p_descr:g("tD").value,p_shift:sid()});
     d.remove();toast("Transferido ✓");await loadRef();if(after)await after();else go("bill")});
+}
+function rend(id,after){
+  const w=S.wallets.find(x=>x.id===id);if(!w)return;
+  const d=modal(`<h2>Rendimiento · ${esc(w.name)}</h2><p class="mut">Saldo actual <b>${fm(w.balance)}</b>. Lo que cargues se suma a esta billetera.</p>
+  <label>Monto del rendimiento ($)</label><input id="rA" type="number" step="0.01" min="0" inputmode="decimal"><div class="prev" id="rI"></div>
+  <label>Detalle (opcional)</label><input id="rD" maxlength="150" placeholder="Ej: rendimiento del día">
+  <div class="row" style="margin-top:12px"><button class="btn g" id="rX">Cancelar</button><button class="btn" id="rS">Sumar</button></div>`);
+  const g=i=>d.querySelector("#"+i);
+  g("rA").oninput=()=>{const m=N(g("rA").value);g("rI").innerHTML=m>0?`${fm(w.balance)} + ${fm(m)} = <b>${fm(N(w.balance)+m)}</b>`:""};
+  g("rX").onclick=()=>d.remove();g("rA").focus();
+  g("rS").onclick=()=>run(g("rS"),async()=>{const m=N(g("rA").value);if(!(m>0)){toast("Poné un monto mayor a 0.",true);return}
+    await rpc("g_wallet_rend",{p_wallet:id,p_amount:m,p_descr:g("rD").value,p_shift:sid()});d.remove();toast("Rendimiento sumado ✓");await loadRef();await after()});
 }
 /* ---------- Gastos de oficina ---------- */
 VIEWS.gas=async function(){
