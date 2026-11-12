@@ -286,7 +286,7 @@ function movWire(root){
     g("mfP").innerHTML=k==="carga"?`Fichas a acreditar: <b>${fn(a+bo)}</b> ${bo?`(incluye bono ${fm(bo)})`:""}<br><span class="mut">Entra ${fm(a)} a ${esc(w?w.name:"—")} · salen ${fn(a+bo)} de ${esc(c?c.name:"—")}</span>`
       :(()=>{const bd=Math.min(N(g("mfBD").value),a);return `Salen ${fm(a-bd)} de ${esc(w?w.name:"—")}${bd>0?` (el bono de ${fm(bd)} no se paga)`:""} y vuelven ${fn(a)} fichas a ${esc(c?c.name:"—")}`})()};
   g("mfBH").onclick=async()=>{const u=g("mfU").value.trim();if(!u){toast("Escribí primero el usuario.",true);return}
-    try{const b=N(await rpc("g_user_bonus",{p_user:u})),a=N(g("mfA").value);g("mfBI").textContent=b>0?`Bono pendiente de ${u}: ${fm(b)} (se cargó y todavía no se descontó).`:`${u} no tiene bono pendiente.`;
+    try{const b=N(await rpc("g_user_bonus",{p_user:u})),a=N(g("mfA").value);g("mfBI").textContent=b>0?`Bono pendiente de ${u}: ${fm(b)} (de su última carga, todavía no descontado).`:`${u} no tiene bono pendiente.`;
       if(b>0){g("mfBD").value=a>0?Math.min(a,b):b;upd()}}catch(e){toast(e.message||"Error",true)}};
   root.addEventListener("input",upd);root.addEventListener("change",upd);if(root.id==="dForm")g("mfW").addEventListener("change",()=>setLastW(g("mfW").value));upd();
   return ()=>({kind:g("mfK").value,user:g("mfU").value.trim(),amount:N(g("mfA").value),bt:g("mfBT").value,bv:N(g("mfBV").value),chip:g("mfC").value,wallet:g("mfW").value,ad:g("mfAd").value||null,bsrc:g("mfBs").value||null,bded:g("mfK").value==="retiro"?N(g("mfBD").value):0,pending:g("mfK").value==="carga"&&g("mfC").value==="__p"});
