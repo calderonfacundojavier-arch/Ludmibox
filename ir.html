@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LudmiBox · Redirigiendo…</title>
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#6d28d9">
+<link rel="icon" href="/icon-192.png">
+<!-- Respaldo: si el navegador no ejecuta JavaScript, redirige igual a los 4 segundos -->
+<noscript><meta http-equiv="refresh" content="4;url=/"></noscript>
+
+<!-- ▼▼ ESPACIO PARA LA AGENCIA: pegar acá el píxel / etiqueta de seguimiento (Meta Pixel, Google Tag, TikTok, etc.) ▼▼ -->
+
+<!-- ▲▲ FIN ESPACIO PARA LA AGENCIA ▲▲ -->
+
+<style>
+:root{--bg:#0b0414;--pink:#d41cd8;--gold:#ffd21f;--mut:#b9aec9}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{background:radial-gradient(900px 500px at 50% -10%,#3b0a63 0%,transparent 60%),var(--bg);color:#fff;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px}
+.w{max-width:360px;width:100%}
+img{display:block;margin:0 auto 6px;height:min(38vh,310px);width:auto;max-width:100%;object-fit:contain;filter:drop-shadow(0 0 28px rgba(212,28,216,.5))}
+h1{font-size:1.5rem;letter-spacing:.2px}
+h1 span{color:var(--gold)}
+p{color:var(--mut);margin-top:8px;font-size:.98rem}
+.ring{position:relative;width:104px;height:104px;margin:20px auto 8px}
+.ring svg{transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:7}
+.ring .bg{stroke:rgba(255,255,255,.12)}
+.ring .fg{stroke:var(--gold);stroke-linecap:round;stroke-dasharray:283;stroke-dashoffset:283;animation:go 4s linear forwards}
+.ring b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:2.3rem}
+@keyframes go{to{stroke-dashoffset:0}}
+a.btn{display:inline-block;margin-top:18px;padding:12px 22px;border-radius:12px;background:linear-gradient(135deg,var(--pink),#6d28d9);color:#fff;text-decoration:none;font-weight:700}
+small{display:block;margin-top:14px;color:var(--mut);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="w">
+  <img src="/ludmi-ir.png" alt="Ludmi">
+  <h1>Te estamos llevando a <span>LudmiBox</span></h1>
+  <p>Un momento, ya casi estás…</p>
+  <div class="ring">
+    <svg width="104" height="104" viewBox="0 0 104 104"><circle class="bg" cx="52" cy="52" r="45"/><circle class="fg" cx="52" cy="52" r="45"/></svg>
+    <b id="n">4</b>
+  </div>
+  <a class="btn" id="go" href="/">Entrar ahora</a>
+  <small>Si no pasa nada, tocá el botón.</small>
+</div>
+<script>
+(function(){
+  var SEGUNDOS = 4;                       // ← tiempo de espera antes de redirigir
+  var DESTINO  = "/";                     // ← tu landing (misma página principal)
+  // Conserva todo lo que traiga el anuncio (utm_source, utm_campaign, fbclid, etc.) para que no se pierda el seguimiento
+  var url = DESTINO + (location.search || "") + (location.hash || "");
+  var a = document.getElementById("go"); a.href = url;
+  var n = document.getElementById("n"), t = SEGUNDOS;
+  n.textContent = t;
+  var iv = setInterval(function(){ t--; if(t > 0) n.textContent = t; else { clearInterval(iv); n.textContent = "✓"; } }, 1000);
+  setTimeout(function(){ location.replace(url); }, SEGUNDOS * 1000);
+})();
+</script>
+</body>
+</html>
