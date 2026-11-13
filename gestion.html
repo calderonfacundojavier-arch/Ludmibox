@@ -221,20 +221,21 @@ async function enterApp(){
   startChatPoll();
   await go("dash");
 }
-let repT=null,repLast=-1,chT=null,chLast=-1,actx=null;
+let repT=null,repLast=-1,chT=null,chLast=-1,chTs=-1,actx=null;
 function beep(){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();const o=actx.createOscillator(),g=actx.createGain();o.type="sine";o.frequency.value=880;o.connect(g);g.connect(actx.destination);
   g.gain.setValueAtTime(.0001,actx.currentTime);g.gain.exponentialRampToValueAtTime(.25,actx.currentTime+.02);g.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+.5);o.start();o.stop(actx.currentTime+.5);
   const o2=actx.createOscillator(),g2=actx.createGain();o2.frequency.value=1175;o2.connect(g2);g2.connect(actx.destination);g2.gain.setValueAtTime(.0001,actx.currentTime+.25);g2.gain.exponentialRampToValueAtTime(.25,actx.currentTime+.27);g2.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+.8);o2.start(actx.currentTime+.25);o2.stop(actx.currentTime+.8)}catch(e){}}
 document.addEventListener("click",()=>{try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume()}catch(e){}},{once:true});
-function startChatPoll(){clearInterval(chT);chLast=-1;chCheck();chT=setInterval(chCheck,10000)}
+function startChatPoll(){clearInterval(chT);chLast=-1;chTs=-1;chCheck();chT=setInterval(chCheck,5000)}
 async function chCheck(){
   if($("app").classList.contains("hide"))return;
   try{const r=await rpc("g_chat_unread"),n=+r.msgs||0,c=+r.chats||0,b=$("hChat");
     b.classList.toggle("hide",false);b.innerHTML="💬 Chat"+(n>0?`<span class="nb">${n}</span>`:"");b.classList.toggle("alert",n>0);
     document.title=(n>0?"("+n+") 💬 ":"")+"Gestión · Caja Ludmi";
-    if(chLast>=0&&n>chLast){beep();toast("💬 Mensaje nuevo en el chat ("+c+" "+(c===1?"conversación":"conversaciones")+")");
-      try{if("Notification" in window&&Notification.permission==="granted"&&document.hidden)new Notification("Caja Ludmi · Chat",{body:"Tenés "+n+" mensaje(s) sin leer",tag:"g-chat"})}catch(e){}}
-    chLast=n}catch(e){}
+    const ts=r.last?Date.parse(r.last)||0:0;
+    if(chTs>=0&&ts>chTs){beep();toast("💬 Mensaje nuevo en el chat");
+      try{if("Notification" in window&&Notification.permission==="granted"&&document.hidden)new Notification("Caja Ludmi · Chat",{body:"Llegó un mensaje nuevo",tag:"g-chat"})}catch(e){}}
+    chLast=n;chTs=Math.max(chTs,ts)}catch(e){}
 }
 function startRepPoll(){clearInterval(repT);repLast=-1;repCheck();repT=setInterval(repCheck,45000)}
 async function repCheck(){
