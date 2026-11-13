@@ -756,13 +756,39 @@ async function userDetail(u,f,to){
 }
 
 /* ---------- Ajustes y auditoría (solo admin) ---------- */
+const AUD={billetera_ajuste:["⚖️","Ajuste de billetera"],billetera_crear:["➕","Billetera"],billetera_rend:["📈","Rendimientos"],billetera_transf:["🔁","Transferencias"],cajero_clave:["🔑","Cajeros"],cajero_crear:["👤","Cajeros"],campana_crear:["📣","Publicidad"],campana_estado:["📣","Publicidad"],ficha_ajuste:["🎰","Fichas"],ficha_crear:["🎰","Fichas"],gasto_borrar:["🧾","Gastos"],gasto_editar:["🧾","Gastos"],mov_anular:["🚫","Anulaciones"],mov_editar:["✏️","Ediciones"],mov_reclamar:["✅","Pagos reclamados"],sueldo_pago:["💵","Sueldos"],billetera_alta:["➕","Billetera"]};
+function auditWho(a){const d=a.detail||{};const n=d.cajero||d.por;const r=a.actor==="admin"?"Admin":a.actor==="operador"||a.actor==="operator"?"Operador":a.actor;return n&&n!==r&&n!=="admin"?`${esc(n)} <span class="mut">(${esc(r)})</span>`:esc(n==="admin"?"Admin":r)}
+function auditText(a){const d=a.detail||{},m=d.mov||d.antes||{};const W=id=>esc(wName(id)||"—"),C=id=>esc(cName(id)||"—");
+  const mv=x=>x&&x.kind?`${x.kind==="carga"?"carga":"retiro"} de <b>${fm(x.amount)}</b> del usuario <b>${esc(x.user_name||"")}</b> (${W(x.wallet_id)}${x.chip_id?" · "+C(x.chip_id):""}${x.bonus>0?" · bono "+fm(x.bonus):""})`:"un movimiento";
+  switch(a.action){
+    case"mov_anular":return`Anuló la ${mv(d.mov)}.${d.motivo?` Motivo: <i>${esc(d.motivo)}</i>`:""}`;
+    case"mov_editar":return`Editó la ${mv(d.antes)}. <span class="mut">(se muestran los datos de antes de editar)</span>`;
+    case"mov_reclamar":return`Reclamó un pago sin reclamar: usuario <b>${esc(d.usuario||"")}</b> · ficha ${C(d.chip)}.`;
+    case"billetera_transf":return`Transfirió <b>${fm(d.amount)}</b> de <b>${W(d.from)}</b> a <b>${W(d.to)}</b>.`;
+    case"billetera_rend":return`Sumó un rendimiento de <b>${fm(d.amount)}</b> a <b>${W(d.wallet)}</b>.`;
+    case"billetera_ajuste":return`${d.kind==="ajuste-"?"Restó":"Sumó"} <b>${fm(d.amount)}</b> ${d.kind==="ajuste-"?"de":"a"} <b>${W(d.wallet)}</b>${d.descr?` · <i>${esc(d.descr)}</i>`:""}.`;
+    case"billetera_crear":return`Creó la billetera <b>${esc(d.name||"")}</b> con saldo inicial ${fm(d.inicial||0)}.`;
+    case"ficha_ajuste":return`${d.kind==="compra"?"Registró compra de":d.kind==="ajuste-"?"Restó":"Cargó"} <b>${fn(d.amount)}</b> fichas ${d.kind==="ajuste-"?"de":"a"} <b>${C(d.chip)}</b>${d.descr?` · <i>${esc(d.descr)}</i>`:""}.`;
+    case"ficha_crear":return`Creó la ficha <b>${esc(d.name||"")}</b> con stock inicial ${fn(d.inicial||0)}.`;
+    case"gasto_borrar":return`Borró un gasto${d.gasto?` de <b>${fm(d.gasto.amount)}</b> (${esc(d.gasto.category||"")})`:""}.`;
+    case"gasto_editar":return`Editó un gasto${d.antes?` de <b>${fm(d.antes.amount)}</b> (${esc(d.antes.category||"")})`:""}.`;
+    case"sueldo_pago":return`Pagó <b>${fm(d.amount)}</b> de sueldo a <b>${esc(d.cajero||"")}</b>${d.period?` (${esc(d.period)})`:""}${d.desde?` desde ${esc(d.desde)}`:""}.`;
+    case"cajero_crear":return`Creó el cajero <b>${esc(d.name||"")}</b>.`;
+    case"cajero_clave":return`Cambió la clave de un cajero.`;
+    case"campana_crear":return`Creó la campaña <b>${esc(d.name||"")}</b>.`;
+    case"campana_estado":return`Cambió la campaña <b>${esc(d.name||"")}</b> de ${esc(d.de||"")} a <b>${esc(d.a||"")}</b>.`;
+    default:return esc(a.action)+" "+esc(JSON.stringify(d).slice(0,120))}}
+
 VIEWS.cfg=async function(){
   const au=await q(sb.from("g_audit").select("*").order("ts",{ascending:false}).limit(100));
   $("view").innerHTML=`<div class="card"><h2>Permisos del operador</h2>
   <div class="sw"><input type="checkbox" id="cE"${S.cfg.op_can_edit?" checked":""}><label style="margin:0">Puede editar / anular movimientos y gastos</label></div>
   <label>Días de historial que ve el operador (1 = solo hoy)</label><input type="number" id="cD" min="1" max="31" value="${S.cfg.op_history_days}" style="max-width:120px">
   <p class="sub" style="margin-top:10px">El operador nunca ve métricas, sueldos, auditoría ni los números de publicidad.</p><button class="btn" id="cS">Guardar</button></div>
-  <div class="card" style="margin-top:12px"><h2>Auditoría (últimas 100)</h2><div class="tw"><table><tr><th>Fecha</th><th>Quién</th><th>Acción</th><th>Detalle</th></tr>${au.map(a=>`<tr><td>${fdt(a.ts)}</td><td>${esc(a.actor)}</td><td>${esc(a.action)}</td><td class="mut" style="max-width:420px;word-break:break-word">${esc(JSON.stringify(a.detail).slice(0,220))}</td></tr>`).join("")||'<tr><td colspan="4" class="mut">Sin registros.</td></tr>'}</table></div></div>`;
+  <div class="card" style="margin-top:12px"><div class="row" style="align-items:center"><h2 style="margin:0">Auditoría (últimas 100)</h2><div><select id="auF"><option value="">Todas las acciones</option>${[...new Set(Object.values(AUD).map(x=>x[1]))].map(x=>`<option>${x}</option>`).join("")}</select></div></div><div class="tw" id="auT"></div></div>`;
+  const auDraw=()=>{const f=$("auF").value,rows=au.filter(a=>!f||(AUD[a.action]||["","Otros"])[1]===f);
+    $("auT").innerHTML=`<table><tr><th>Fecha</th><th>Quién</th><th>Qué hizo</th></tr>`+(rows.map(a=>`<tr><td style="white-space:nowrap">${fdt(a.ts)}</td><td>${auditWho(a)}</td><td>${(AUD[a.action]||["•"])[0]} ${auditText(a)}<details style="margin-top:3px"><summary class="mut" style="font-size:11px;cursor:pointer">detalle técnico</summary><code class="mut" style="font-size:11px;word-break:break-all">${esc(JSON.stringify(a.detail))}</code></details></td></tr>`).join("")||'<tr><td colspan="3" class="mut">Sin registros.</td></tr>')+"</table>"};
+  $("auF").onchange=auDraw;auDraw();
   $("cS").onclick=()=>run($("cS"),async()=>{const n=Math.min(31,Math.max(1,Math.round(N($("cD").value)||2)));
     await q(sb.from("g_settings").upsert([{key:"op_can_edit",value:$("cE").checked},{key:"op_history_days",value:n}],{onConflict:"key"}));
     S.cfg={op_can_edit:$("cE").checked,op_history_days:n};toast("Guardado ✓")});
