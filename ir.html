@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#6d28d9">
 <link rel="icon" href="/icon-192.png">
 <!-- Respaldo: si el navegador no ejecuta JavaScript, redirige igual a los 4 segundos -->
-<noscript><meta http-equiv="refresh" content="4;url=/"></noscript>
+<noscript><meta http-equiv="refresh" content="4;url=/ludmi"></noscript>
 
 <!-- ▼▼ ESPACIO PARA LA AGENCIA: pegar acá el píxel / etiqueta de seguimiento (Meta Pixel, Google Tag, TikTok, etc.) ▼▼ -->
 
@@ -44,13 +44,13 @@ small{display:block;margin-top:14px;color:var(--mut);font-size:.8rem}
     <svg width="104" height="104" viewBox="0 0 104 104"><circle class="bg" cx="52" cy="52" r="45"/><circle class="fg" cx="52" cy="52" r="45"/></svg>
     <b id="n">4</b>
   </div>
-  <a class="btn" id="go" href="/">Entrar ahora</a>
+  <a class="btn" id="go" href="/ludmi">Entrar ahora</a>
   <small>Si no pasa nada, tocá el botón.</small>
 </div>
 <script>
 (function(){
   var SEGUNDOS = 4;                       // ← tiempo de espera antes de redirigir
-  var DESTINO  = "/";                     // ← tu landing (misma página principal)
+  var DESTINO  = "/ludmi";                // ← tu landing
   // Conserva todo lo que traiga el anuncio (utm_source, utm_campaign, fbclid, etc.) para que no se pierda el seguimiento
   var url = DESTINO + (location.search || "") + (location.hash || "");
   var a = document.getElementById("go"); a.href = url;
