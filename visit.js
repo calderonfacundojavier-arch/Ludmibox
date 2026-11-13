@@ -37,7 +37,7 @@ module.exports = async (req, res) => {
     const b = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
     const ua = String(req.headers["user-agent"] || "");
     if (!ua || BOT.test(ua)) { res.status(204).end(); return; }
-    const event = ["chat", "install", "install_click", "app_open"].includes(b.event) ? b.event : "view";
+    const event = ["chat", "install", "install_click", "app_open", "redir"].includes(b.event) ? b.event : "view";
     const vid = clean(b.vid, 64);
     if (!vid || vid.length < 8) { res.status(400).end(); return; }
     const row = {

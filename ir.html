@@ -53,6 +53,18 @@ small{display:block;margin-top:14px;color:var(--mut);font-size:.8rem}
   var DESTINO  = "/ludmi";                // ← tu landing
   // Conserva todo lo que traiga el anuncio (utm_source, utm_campaign, fbclid, etc.) para que no se pierda el seguimiento
   var url = DESTINO + (location.search || "") + (location.hash || "");
+  // Estadísticas: cuenta la pasada por esta página (una vez por sesión). No guarda la IP.
+  try{
+    if(!sessionStorage.getItem("tr_redir")){
+      sessionStorage.setItem("tr_redir","1");
+      var vid=localStorage.getItem("vid");
+      if(!vid||vid.length<8){vid=(window.crypto&&crypto.randomUUID?crypto.randomUUID():String(Math.random()).slice(2)+Date.now());localStorage.setItem("vid",vid)}
+      var q=new URLSearchParams(location.search);
+      var src=q.get("utm_source")||(q.has("fbclid")?"facebook":q.has("igshid")?"instagram":"");
+      fetch("/api/visit",{method:"POST",keepalive:true,headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({vid:vid,event:"redir",ref:document.referrer||"",utm_source:src,utm_campaign:q.get("utm_campaign")||""})}).catch(function(){});
+    }
+  }catch(e){}
   var a = document.getElementById("go"); a.href = url;
   var n = document.getElementById("n"), t = SEGUNDOS;
   n.textContent = t;

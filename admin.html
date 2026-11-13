@@ -1353,7 +1353,7 @@ async function visLoad(){
   if(error||!data){box.append(vh("p","empty",/visit_stats|function/i.test(String(error&&error.message))?"Falta ejecutar supabase-visitas.sql en Supabase.":"No se pudieron cargar las estadísticas."));return}
   const t=data.totals||{},conv=t.uniques?Math.round((t.chats||0)/t.uniques*100):0;
   const k=vh("div","vkpis");
-  [["Visitas",t.views||0],["Visitantes únicos",t.uniques||0],["Abrieron el chat",t.chats||0],["Conversión a chat",conv+"%"],["Instalaron la app",t.installs||0],["Tocaron «Descargar»",t.install_clicks||0],["Abren la app instalada",t.app_users||0]].forEach(([l,v])=>{const c=vh("div","vkpi");c.append(vh("b",null,String(v)),vh("span",null,l));k.append(c)});
+  [["Tocaron el anuncio (pasaron por /ir)",t.redir_uniques||0],["Visitas",t.views||0],["Visitantes únicos",t.uniques||0],["Abrieron el chat",t.chats||0],["Conversión a chat",conv+"%"],["Instalaron la app",t.installs||0],["Tocaron «Descargar»",t.install_clicks||0],["Abren la app instalada",t.app_users||0]].forEach(([l,v])=>{const c=vh("div","vkpi");c.append(vh("b",null,String(v)),vh("span",null,l));k.append(c)});
   box.append(k);
   const days=data.daily||[],card=vh("div","vcard");card.append(vh("h3",null,"Visitantes únicos por día"));
   const bars=vh("div","vbars"),mx=Math.max(...days.map(d=>d.uniques),1),step=Math.ceil(days.length/8);
