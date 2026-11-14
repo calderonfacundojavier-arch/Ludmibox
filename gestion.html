@@ -144,7 +144,7 @@ async function run(btn,fn){if(btn)btn.disabled=true;try{return await fn()}catch(
 function modal(html,wide){const d=document.createElement("div");d.className="ov";d.innerHTML='<div class="card'+(wide?" wide":"")+'">'+html+"</div>";
   d.addEventListener("mousedown",e=>{if(e.target===d)d.remove()});$("ovs").appendChild(d);return d}
 const opts=(arr,sel,f)=>arr.map(x=>`<option value="${esc(x.id)}"${x.id===sel?" selected":""}>${esc(f?f(x):x.name)}</option>`).join("");
-const KIND={carga:"Carga",retiro:"Retiro","ajuste+":"Ajuste +","ajuste-":"Ajuste −",gasto:"Gasto",sueldo:"Sueldo",transf_in:"Transf. recibida",transf_out:"Transf. enviada",rend:"Rendimiento",inicial:"Saldo inicial",compra:"Compra"};
+const KIND={carga:"Carga",retiro:"Retiro","ajuste+":"Ajuste +","ajuste-":"Ajuste −",gasto:"Gasto",sueldo:"Sueldo",transf_in:"Transf. recibida",transf_out:"Transf. enviada",rend:"Rendimiento",inicial:"Saldo inicial",compra:"Compra",regalo:"Regalo de fichas"};
 
 /* ---------- sesión ---------- */
 async function boot(){
@@ -310,12 +310,12 @@ VIEWS.dash=async function(){
   const bal=()=>{const W=actW(),tot=W.reduce((a,w)=>a+N(w.balance),0),op=wOpen();
     return `<h3>Billeteras</h3><div data-wt="1" role="button" tabindex="0" style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--b2);cursor:pointer"><span><b>${op?"▾":"▸"} Total en billeteras</b> <span class="mut">(${W.length})</span></span><b style="font-size:1.25em">${fm(tot)}</b></div>`+
     (op?W.map(w=>`<div style="display:flex;justify-content:space-between;padding:5px 0 5px 18px;border-bottom:1px solid var(--b2)"><span><span class="pill" style="background:${esc(w.color)};border-color:${esc(w.color)}">&nbsp;</span> ${esc(w.name)}</span><span style="display:flex;align-items:center;gap:8px"><b>${fm(w.balance)}</b><button class="btn g s" data-rd="${w.id}">Rend</button>${W.length>1?`<button class="btn g s" data-tr="${w.id}">Transferir</button>`:""}</span></div>`).join("")||'<p class="mut">Sin billeteras.</p>':'<p class="sub" style="margin:6px 0 0">Tocá para ver el detalle de cada billetera.</p>')+`
-    <h3 style="margin-top:14px">Fichas (stock)</h3>${actC().map(c=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--b2)"><span>${esc(c.name)}</span><b>${fn(c.balance)}</b></div>`).join("")||'<p class="mut">Sin fichas.</p>'}`;}
+    <h3 style="margin-top:14px">Fichas (stock)</h3>${actC().map(c=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--b2)"><span>${esc(c.name)}</span><span style="display:flex;align-items:center;gap:8px"><b>${fn(c.balance)}</b><button class="btn g s" data-gf="${c.id}">🎁 Regalar</button></span></div>`).join("")||'<p class="mut">Sin fichas.</p>'}`;}
   const qm=()=>`<h3>📩 Mensaje entrante</h3><div class="acts">${S.ads.map(a=>`<button class="btn" data-qm="${a.id}">+1 ${esc(a.name)} <span style="opacity:.7">(${fn(a.msgs)})</span></button>`).join("")||'<span class="mut">No hay campañas activas. Creá una en Publicidad.</span>'}</div>`;
   $("view").innerHTML=k+`<div class="card" id="dQM" style="margin-bottom:12px">${qm()}</div><div class="card hide" id="dPN" style="margin-bottom:12px"></div><div class="grid g2"><div class="card"><h2>Nuevo movimiento</h2><div id="dForm">${movFields()}</div>
     <button class="btn full" id="dGo">Registrar</button></div><div class="card" id="dBal">${bal()}</div></div>
   <div class="card" style="margin-top:12px"><h2>Buscar movimientos</h2><div id="dS"></div></div>`;
-  $("dBal").onclick=ev=>{if(ev.target.closest("[data-wt]")){try{localStorage.setItem("g_wOpen",wOpen()?"0":"1")}catch(e){}$("dBal").innerHTML=bal();return}const rd=ev.target.closest("[data-rd]");if(rd){rend(rd.dataset.rd,async()=>{$("dBal").innerHTML=bal();await load()});return}const b=ev.target.closest("[data-tr]");if(b)transfer(b.dataset.tr,async()=>{$("dBal").innerHTML=bal();await go("dash")})};
+  $("dBal").onclick=ev=>{const gf=ev.target.closest("[data-gf]");if(gf){gift(gf.dataset.gf,async()=>{$("dBal").innerHTML=bal();await load()});return}if(ev.target.closest("[data-wt]")){try{localStorage.setItem("g_wOpen",wOpen()?"0":"1")}catch(e){}$("dBal").innerHTML=bal();return}const rd=ev.target.closest("[data-rd]");if(rd){rend(rd.dataset.rd,async()=>{$("dBal").innerHTML=bal();await load()});return}const b=ev.target.closest("[data-tr]");if(b)transfer(b.dataset.tr,async()=>{$("dBal").innerHTML=bal();await go("dash")})};
   $("dQM").onclick=ev=>{const b=ev.target.closest("[data-qm]");if(!b)return;run(b,async()=>{await rpc("g_ad_add_msg",{p_shift:sid(),p_ad:b.dataset.qm,p_qty:1});S.ads=await rpc("g_ads_active");$("dQM").innerHTML=qm();toast("+1 mensaje ✓")})};
   const pend=async()=>{const r=await q(sb.from("g_movements").select("*").eq("pending",true).eq("voided",false).order("ts",{ascending:false}).limit(20));
     $("dPN").classList.toggle("hide",!r.length);
@@ -424,8 +424,9 @@ VIEWS.fich=async function(){
   ${isAdm()?'<button class="btn" id="cN">+ Nueva ficha</button>':""}</div>
   <div class="grid g2">${S.chips.map(c=>`<div class="card wc" style="${c.archived?"opacity:.5":""}"><b>${esc(c.name)}</b>${c.archived?' <span class="pill">archivada</span>':""}
     <div class="bal">${fn(c.balance)}</div><div class="acts"><button class="btn g s" data-l="${c.id}">Ver movimientos</button>
-    <button class="btn g s" data-a="${c.id}">${isAdm()?"Ajustar / Comprar":"Cargar fichas"}</button>${isAdm()?`<button class="btn g s" data-ed="${c.id}">Editar</button>`:""}</div></div>`).join("")||'<p class="mut">Todavía no hay fichas.</p>'}</div>`;
-  $("view").onclick=ev=>{const l=ev.target.closest("[data-l]"),a=ev.target.closest("[data-a]"),e=ev.target.closest("[data-ed]");
+    <button class="btn g s" data-a="${c.id}">${isAdm()?"Ajustar / Comprar":"Cargar fichas"}</button>${c.archived?"":`<button class="btn g s" data-gf="${c.id}">🎁 Regalar</button>`}${isAdm()?`<button class="btn g s" data-ed="${c.id}">Editar</button>`:""}</div></div>`).join("")||'<p class="mut">Todavía no hay fichas.</p>'}</div>`;
+  $("view").onclick=ev=>{const l=ev.target.closest("[data-l]"),a=ev.target.closest("[data-a]"),e=ev.target.closest("[data-ed]"),gf=ev.target.closest("[data-gf]");
+    if(gf)gift(gf.dataset.gf,()=>go("fich"));
     if(l)run(null,()=>ledger("c",S.chips.find(c=>c.id===l.dataset.l)));
     if(a)adjust("c",S.chips.find(c=>c.id===a.dataset.a));if(e)editItem("c",S.chips.find(c=>c.id===e.dataset.ed))};
   if(isAdm())$("cN").onclick=newChip;
@@ -476,6 +477,21 @@ function transfer(fromId,after){
   g("tX").onclick=()=>d.remove();
   g("tS").onclick=()=>run(g("tS"),async()=>{await rpc("g_wallet_transfer",{p_from:g("tF").value,p_to:g("tT").value,p_amount:N(g("tA").value),p_descr:g("tD").value,p_shift:sid()});
     d.remove();toast("Transferido ✓");await loadRef();if(after)await after();else go("bill")});
+}
+function gift(id,after){
+  const c=S.chips.find(x=>x.id===id);if(!c)return;
+  const d=modal(`<h2>🎁 Regalar fichas · ${esc(c.name)}</h2><p class="mut">Stock disponible <b>${fn(c.balance)}</b>. Las fichas salen del stock; <b>no se toca ninguna billetera</b>.</p>
+  <label>Usuario que recibe el regalo</label><input id="gU" maxlength="40" autocomplete="off" placeholder="ej: juan02">
+  <div class="row"><div><label>Cantidad de fichas</label><input id="gA" type="number" min="0" step="1" inputmode="numeric" placeholder="10000"></div>
+  <div><label>Motivo</label><select id="gR"><option>Referido</option><option>Promo</option><option>Otro</option></select></div></div>
+  <label>Detalle (opcional)</label><input id="gD" maxlength="100" placeholder="ej: recomendó a maria22">
+  <div class="prev" id="gI"></div>
+  <div class="row" style="margin-top:12px"><button class="btn g" id="gX">Cancelar</button><button class="btn" id="gS">Regalar</button></div>`);
+  const g=i=>d.querySelector("#"+i);
+  g("gA").oninput=()=>{const a=N(g("gA").value);g("gI").innerHTML=a>0?`Salen <b>${fn(a)}</b> fichas de ${esc(c.name)} · quedan ${fn(N(c.balance)-a)}`:""};
+  g("gX").onclick=()=>d.remove();g("gU").focus();
+  g("gS").onclick=()=>run(g("gS"),async()=>{const a=N(g("gA").value),u=g("gU").value.trim();if(!u){toast("Escribí el usuario.",true);return}if(!(a>0)){toast("Poné una cantidad mayor a 0.",true);return}
+    await rpc("g_chip_gift",{p_chip:id,p_amount:a,p_user:u,p_reason:g("gR").value,p_descr:g("gD").value,p_shift:sid()});d.remove();toast("Regalo registrado ✓");await loadRef();await after()});
 }
 function rend(id,after){
   const w=S.wallets.find(x=>x.id===id);if(!w)return;
@@ -707,17 +723,23 @@ VIEWS.bon=async function(){
   $("view").innerHTML=`<div class="card"><div class="row" style="align-items:center"><div><h2 style="margin:0">🎁 Bonos por origen</h2><p class="sub" style="margin:4px 0 0">Cargas que vinieron con bono (Referidos, Estados de WhatsApp, etc.), separadas de Publicidad. Las anuladas no cuentan.${isAdm()?"":` Ves los últimos ${S.cfg.op_history_days} día(s).`}</p></div>${isAdm()?'<button class="btn" id="bnN">+ Nuevo origen</button>':""}</div>
   <div class="row" style="margin-top:10px"><div><label>Desde</label><input type="date" id="bD" value="${isAdm()?addDays(t,-29):t}"></div><div><label>Hasta</label><input type="date" id="bH" value="${t}"></div><button class="btn" id="bB">Ver</button></div></div>
   <div class="card" style="margin-top:12px" id="bR"></div>
+  <div class="card" style="margin-top:12px" id="bG"></div>
   ${isAdm()?'<div class="card" style="margin-top:12px" id="bO"></div>':""}`;
+  const gifts=async()=>{const r=await rpc("g_gift_report",{p_from:dayISO($("bD").value||t),p_to:dayISO(addDays($("bH").value||t,1))});
+    const ok=r.filter(x=>!x.anulado),tot=ok.reduce((a,x)=>a+N(x.fichas),0);
+    $("bG").innerHTML=`<h3>🎁 Regalos de fichas <span class="mut" style="font-weight:400">(${ok.length} · ${fn(tot)} fichas)</span></h3>`+(r.length?`<div class="tw"><table><tr><th>Fecha</th><th>Usuario</th><th>Motivo</th><th>Ficha</th><th>Fichas</th><th>Cajero</th><th></th></tr>`+r.map(x=>`<tr${x.anulado?' style="opacity:.5;text-decoration:line-through"':""}><td>${fdt(x.ts)}</td><td><b>${esc(x.usuario)}</b></td><td>${esc(x.motivo)}</td><td>${esc(x.ficha)}</td><td>${fn(x.fichas)}</td><td>${esc(x.cajero)}</td><td>${x.anulado?'<span class="pill">anulado</span>':`<button class="btn g s" data-gv="${x.id}">Anular</button>`}</td></tr>`).join("")+"</table></div>":'<p class="mut">No hay regalos en ese período.</p>');
+    $("bG").onclick=ev=>{const b=ev.target.closest("[data-gv]");if(!b)return;const d=modal(`<h2>Anular regalo</h2><p class="mut">Las fichas vuelven al stock.</p><label>Motivo (obligatorio)</label><input id="vR" maxlength="100"><div class="row" style="margin-top:12px"><button class="btn g" id="vX">Cancelar</button><button class="btn" id="vS">Anular</button></div>`);
+      d.querySelector("#vX").onclick=()=>d.remove();d.querySelector("#vS").onclick=()=>run(d.querySelector("#vS"),async()=>{const m=d.querySelector("#vR").value.trim();if(m.length<3){toast("Escribí el motivo.",true);return}await rpc("g_gift_void",{p_id:b.dataset.gv,p_reason:m,p_shift:sid()});d.remove();toast("Regalo anulado ✓");await loadRef();await gifts()})}};
   const load=async()=>{const r=await rpc("g_bonus_report",{p_from:dayISO($("bD").value||t),p_to:dayISO(addDays($("bH").value||t,1))});
     const tb=r.reduce((a,x)=>a+N(x.bonos),0),tn=r.reduce((a,x)=>a+N(x.cargas_n),0);
     $("bR").innerHTML=r.length?`<div class="tw"><table><tr><th>Origen</th><th>Cargas con bono</th><th>Usuarios</th><th>Monto cargado</th><th>Bono otorgado</th></tr>`+r.map(x=>`<tr><td><b>${esc(x.name)}</b></td><td>${fn(x.cargas_n)}</td><td>${fn(x.usuarios)}</td><td>${fm(x.cargas)}</td><td>${fm(x.bonos)}</td></tr>`).join("")+`<tr><td><b>Total</b></td><td><b>${fn(tn)}</b></td><td></td><td></td><td><b>${fm(tb)}</b></td></tr></table></div>`:'<p class="mut">No hay cargas con bono en ese período.</p>'};
   const own=async()=>{if(!isAdm())return;const l=await q(sb.from("g_bonus_src").select("*").order("created_at"));
     $("bO").innerHTML="<h3>Orígenes disponibles</h3>"+l.map(b=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--b2)"><span${b.archived?' style="opacity:.5"':""}>${esc(b.name)}${b.archived?' <span class="pill">oculto</span>':""}</span><button class="btn g s" data-ar="${b.id}" data-v="${b.archived?0:1}">${b.archived?"Mostrar":"Ocultar"}</button></div>`).join("");
     $("bO").onclick=ev=>{const b=ev.target.closest("[data-ar]");if(b)run(b,async()=>{await rpc("g_bonus_src_archive",{p_id:b.dataset.ar,p_archived:b.dataset.v==="1"});await loadRef();await own()})}};
-  $("bB").onclick=()=>run($("bB"),load);
+  $("bB").onclick=()=>run($("bB"),async()=>{await load();await gifts()});
   if(isAdm())$("bnN").onclick=()=>{const d=modal(`<h2>Nuevo origen de bono</h2><label>Nombre</label><input id="nN" maxlength="40" placeholder="Ej: Sorteo de Instagram"><div class="row" style="margin-top:12px"><button class="btn g" id="nX">Cancelar</button><button class="btn" id="nS">Crear</button></div>`);
     d.querySelector("#nX").onclick=()=>d.remove();d.querySelector("#nS").onclick=()=>run(d.querySelector("#nS"),async()=>{const v=d.querySelector("#nN").value.trim();if(!v){toast("Poné un nombre.",true);return}await rpc("g_bonus_src_add",{p_name:v});d.remove();toast("Origen creado ✓");await loadRef();await own()})};
-  await load();await own();
+  await load();await gifts();await own();
 };
 VIEWS.usr=async function(){
   const t=today();
@@ -756,7 +778,7 @@ async function userDetail(u,f,to){
 }
 
 /* ---------- Ajustes y auditoría (solo admin) ---------- */
-const AUD={billetera_ajuste:["⚖️","Ajuste de billetera"],billetera_crear:["➕","Billetera"],billetera_rend:["📈","Rendimientos"],billetera_transf:["🔁","Transferencias"],cajero_clave:["🔑","Cajeros"],cajero_crear:["👤","Cajeros"],campana_crear:["📣","Publicidad"],campana_estado:["📣","Publicidad"],ficha_ajuste:["🎰","Fichas"],ficha_crear:["🎰","Fichas"],gasto_borrar:["🧾","Gastos"],gasto_editar:["🧾","Gastos"],mov_anular:["🚫","Anulaciones"],mov_editar:["✏️","Ediciones"],mov_reclamar:["✅","Pagos reclamados"],sueldo_pago:["💵","Sueldos"],billetera_alta:["➕","Billetera"]};
+const AUD={billetera_ajuste:["⚖️","Ajuste de billetera"],billetera_crear:["➕","Billetera"],billetera_rend:["📈","Rendimientos"],billetera_transf:["🔁","Transferencias"],cajero_clave:["🔑","Cajeros"],cajero_crear:["👤","Cajeros"],campana_crear:["📣","Publicidad"],campana_estado:["📣","Publicidad"],ficha_ajuste:["🎰","Fichas"],ficha_regalo:["🎁","Regalos"],regalo_anular:["🎁","Regalos"],ficha_crear:["🎰","Fichas"],gasto_borrar:["🧾","Gastos"],gasto_editar:["🧾","Gastos"],mov_anular:["🚫","Anulaciones"],mov_editar:["✏️","Ediciones"],mov_reclamar:["✅","Pagos reclamados"],sueldo_pago:["💵","Sueldos"],billetera_alta:["➕","Billetera"]};
 function auditWho(a){const d=a.detail||{};const n=d.cajero||d.por;const r=a.actor==="admin"?"Admin":a.actor==="operador"||a.actor==="operator"?"Operador":a.actor;return n&&n!==r&&n!=="admin"?`${esc(n)} <span class="mut">(${esc(r)})</span>`:esc(n==="admin"?"Admin":r)}
 function auditText(a){const d=a.detail||{},m=d.mov||d.antes||{};const W=id=>esc(wName(id)||"—"),C=id=>esc(cName(id)||"—");
   const mv=x=>x&&x.kind?`${x.kind==="carga"?"carga":"retiro"} de <b>${fm(x.amount)}</b> del usuario <b>${esc(x.user_name||"")}</b> (${W(x.wallet_id)}${x.chip_id?" · "+C(x.chip_id):""}${x.bonus>0?" · bono "+fm(x.bonus):""})`:"un movimiento";
@@ -769,6 +791,8 @@ function auditText(a){const d=a.detail||{},m=d.mov||d.antes||{};const W=id=>esc(
     case"billetera_ajuste":return`${d.kind==="ajuste-"?"Restó":"Sumó"} <b>${fm(d.amount)}</b> ${d.kind==="ajuste-"?"de":"a"} <b>${W(d.wallet)}</b>${d.descr?` · <i>${esc(d.descr)}</i>`:""}.`;
     case"billetera_crear":return`Creó la billetera <b>${esc(d.name||"")}</b> con saldo inicial ${fm(d.inicial||0)}.`;
     case"ficha_ajuste":return`${d.kind==="compra"?"Registró compra de":d.kind==="ajuste-"?"Restó":"Cargó"} <b>${fn(d.amount)}</b> fichas ${d.kind==="ajuste-"?"de":"a"} <b>${C(d.chip)}</b>${d.descr?` · <i>${esc(d.descr)}</i>`:""}.`;
+    case"ficha_regalo":return`Regaló <b>${fn(d.amount)}</b> fichas de <b>${C(d.chip)}</b> al usuario <b>${esc(d.usuario||"")}</b> (${esc(d.motivo||"")}).`;
+    case"regalo_anular":return`Anuló el regalo de <b>${fn(d.amount)}</b> fichas al usuario <b>${esc(d.usuario||"")}</b>. Motivo: <i>${esc(d.motivo||"")}</i>`;
     case"ficha_crear":return`Creó la ficha <b>${esc(d.name||"")}</b> con stock inicial ${fn(d.inicial||0)}.`;
     case"gasto_borrar":return`Borró un gasto${d.gasto?` de <b>${fm(d.gasto.amount)}</b> (${esc(d.gasto.category||"")})`:""}.`;
     case"gasto_editar":return`Editó un gasto${d.antes?` de <b>${fm(d.antes.amount)}</b> (${esc(d.antes.category||"")})`:""}.`;
