@@ -287,6 +287,15 @@ textarea.fi{min-height:78px;resize:vertical;font-family:inherit}
 @media(max-width:760px){#rail{display:none}#side{width:100%}#side>header{font-size:20px}#msgs{padding:12px 3%}}
 @media(min-width:761px){#side>header #visBtn,#side>header #themeBtn,#side>header #soundBtn,#side>header #cfgBtn,#side>header #edLand,#side>header #out{display:none}}
 @media(max-width:760px){#side{width:100%}#chat{display:none;position:fixed;inset:0;z-index:5}#app.open #chat{display:flex}#back{display:block}}
+
+/* visor de imágenes (agrandar fotos del chat) */
+#lbx{position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.93);display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}
+#lbx img{max-width:94vw;max-height:86vh;transform-origin:center center;cursor:zoom-in;-webkit-user-drag:none;will-change:transform}
+#lbx.z img{cursor:grab}#lbx.pan img{cursor:grabbing}
+#lbx .tb{position:absolute;top:max(10px,env(safe-area-inset-top));right:12px;display:flex;gap:8px;z-index:2}
+#lbx .tb button,#lbx .tb a{width:42px;height:42px;border-radius:50%;border:0;background:rgba(255,255,255,.16);color:#fff;font-size:20px;line-height:42px;text-align:center;cursor:pointer;text-decoration:none;display:flex;align-items:center;justify-content:center}
+#lbx .tb button:hover,#lbx .tb a:hover{background:rgba(255,255,255,.3)}
+#lbx .hint{position:absolute;bottom:14px;left:0;right:0;text-align:center;color:#ffffffa0;font-size:12px;pointer-events:none}
 </style></head>
 <body>
 <form id="login"><h2>Panel de atención</h2>
@@ -676,7 +685,7 @@ function draw(m){
   else if(isPay(m)&&parsePay(m,MARK))d.append(payBox(parsePay(m,MARK),"💳 Datos que le enviaste"));
   else if(m.kind==="text")d.append(isPay(m)?payLabel(m):linkify(m.body));
   else{const el=document.createElement(m.kind==="image"?"img":"audio");if(m.kind==="audio")el.controls=true;d.appendChild(el);
-    sb.storage.from("chat-media").createSignedUrl(m.media_path,3600).then(({data})=>{if(data){el.src=data.signedUrl;if(m.kind==="image")el.onclick=()=>window.open(data.signedUrl,"_blank")}})}
+    sb.storage.from("chat-media").createSignedUrl(m.media_path,3600).then(({data})=>{if(data){el.src=data.signedUrl;if(m.kind==="image"){el.style.cursor="zoom-in";el.title="Tocar para agrandar";el.onclick=()=>openImg(data.signedUrl)}}})}
   const t=document.createElement("time");t.textContent=(m.edited_at?"editado · ":"")+fmt(m.created_at,true);
   if(m.sender==="agent"&&m.id!=null){d.dataset.ts=new Date(m.created_at).getTime();const k=document.createElement("span");k.className="tk";t.append(k)}
   d.appendChild(t);
@@ -814,6 +823,35 @@ async function uploadSite(file,max){
   const {error}=await sb.storage.from("site-assets").upload(path,blob,{contentType:blob.type,cacheControl:"31536000"});
   if(error){say("No se pudo subir la imagen: "+error.message);return null}
   return sb.storage.from("site-assets").getPublicUrl(path).data.publicUrl;
+}
+
+/* visor de imágenes: zoom con rueda/pellizco/botones, arrastrar, doble toque, girar, descargar */
+function openImg(url){
+  const old=document.getElementById("lbx");if(old)old.remove();
+  const box=document.createElement("div");box.id="lbx";
+  const img=document.createElement("img");img.src=url;img.alt="Imagen del chat";img.draggable=false;
+  const tb=document.createElement("div");tb.className="tb";
+  const mk=(t,title,fn)=>{const b=document.createElement("button");b.type="button";b.textContent=t;b.title=title;b.onclick=e=>{e.stopPropagation();fn()};return b};
+  const dl=document.createElement("a");dl.href=url;dl.target="_blank";dl.rel="noopener";dl.title="Abrir original / descargar";dl.textContent="⤓";dl.onclick=e=>e.stopPropagation();
+  const hint=document.createElement("div");hint.className="hint";hint.textContent="Rueda o pellizco para zoom · doble clic para acercar · arrastrá para mover · Esc para cerrar";
+  let sc=1,x=0,y=0,rot=0;
+  const apply=()=>{img.style.transform=`translate(${x}px,${y}px) scale(${sc}) rotate(${rot}deg)`;box.classList.toggle("z",sc>1.001)};
+  const zoom=(f,cx,cy)=>{const n=Math.min(8,Math.max(1,sc*f));if(cx!=null){const r=box.getBoundingClientRect(),ox=cx-(r.left+r.width/2),oy=cy-(r.top+r.height/2),k=n/sc;x=ox-(ox-x)*k;y=oy-(oy-y)*k}sc=n;if(sc<=1.001){sc=1;x=0;y=0}apply()};
+  const close=()=>{document.removeEventListener("keydown",key,true);box.remove()};
+  const key=e=>{if(e.key==="Escape"){e.stopPropagation();close()}else if(e.key==="+"||e.key==="=")zoom(1.3);else if(e.key==="-")zoom(1/1.3)};
+  tb.append(mk("＋","Acercar",()=>zoom(1.4)),mk("－","Alejar",()=>zoom(1/1.4)),mk("⟳","Girar",()=>{rot=(rot+90)%360;apply()}),dl,mk("✕","Cerrar",close));
+  box.append(img,tb,hint);document.body.appendChild(box);document.addEventListener("keydown",key,true);
+  box.addEventListener("wheel",e=>{e.preventDefault();zoom(e.deltaY<0?1.2:1/1.2,e.clientX,e.clientY)},{passive:false});
+  const P=new Map();let moved=0,pd=0;
+  box.addEventListener("pointerdown",e=>{if(e.target.closest(".tb"))return;box.setPointerCapture(e.pointerId);P.set(e.pointerId,{x:e.clientX,y:e.clientY});moved=0;if(P.size===2){const[a,b]=[...P.values()];pd=Math.hypot(a.x-b.x,a.y-b.y)}});
+  box.addEventListener("pointermove",e=>{const p=P.get(e.pointerId);if(!p)return;
+    if(P.size===2){P.set(e.pointerId,{x:e.clientX,y:e.clientY});const[a,b]=[...P.values()],d=Math.hypot(a.x-b.x,a.y-b.y);if(pd)zoom(d/pd,(a.x+b.x)/2,(a.y+b.y)/2);pd=d;moved=9;return}
+    const dx=e.clientX-p.x,dy=e.clientY-p.y;moved+=Math.abs(dx)+Math.abs(dy);P.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(sc>1.001){x+=dx;y+=dy;box.classList.add("pan");apply()}});
+  const up=e=>{P.delete(e.pointerId);pd=0;box.classList.remove("pan")};
+  box.addEventListener("pointerup",e=>{const wasTap=moved<6&&P.size<=1;up(e);if(wasTap&&e.target===box)close()});
+  box.addEventListener("pointercancel",up);
+  img.addEventListener("click",e=>{if(moved<6){e.stopPropagation();if(sc>1.001){sc=1;x=0;y=0;apply()}else zoom(2.5,e.clientX,e.clientY)}});
 }
 /* botón de subir imagen + miniatura */
 function imgCtl(get,set,max){
