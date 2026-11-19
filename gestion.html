@@ -246,8 +246,8 @@ async function repCheck(){
     repLast=n;if(S.tab==="rep"&&n>0&&!S.repBusy)VIEWS.rep()}catch(e){}
 }
 async function loadRef(){
-  const [w,c,a,cj,bs]=await Promise.all([q(sb.from("g_wallets").select("*").order("name")),q(sb.from("g_chips").select("*").order("name")),rpc("g_ads_active"),rpc("g_cajeros_list"),q(sb.from("g_bonus_src").select("*").eq("archived",false).order("created_at"))]);
-  S.wallets=w;S.chips=c;S.ads=a;S.cajeros=cj;S.bsrc=bs;
+  const [w,c,a,cj,bs,an]=await Promise.all([q(sb.from("g_wallets").select("*").order("name")),q(sb.from("g_chips").select("*").order("name")),rpc("g_ads_active"),rpc("g_cajeros_list"),q(sb.from("g_bonus_src").select("*").eq("archived",false).order("created_at")),rpc("g_ad_names").catch(()=>[])]);
+  S.wallets=w;S.chips=c;S.ads=a;S.adNames=Object.fromEntries((an||[]).map(x=>[x.id,x.name]));S.cajeros=cj;S.bsrc=bs;
 }
 const VIEWS={};
 async function go(t){
@@ -332,9 +332,9 @@ VIEWS.dash=async function(){
 function canEditMov(){return isAdm()||S.cfg.op_can_edit}
 function movTable(rows,acts){
   if(!rows.length)return'<p class="mut">No hay movimientos con esos filtros.</p>';
-  const cols=acts?11:10;
-  return `<div class="tw"><table><tr><th>Fecha</th><th>Usuario</th><th>Tipo</th><th>Monto</th><th>Bono</th><th>Fichas</th><th>Ficha</th><th>Billetera</th><th>Cajero</th><th>Neto billetera</th>${acts?"<th></th>":""}</tr>`+
-  rows.map(m=>{const v=m.voided;return `<tr${v?' style="opacity:.55"':""}><td>${fdt(m.ts)}</td><td${v?' style="text-decoration:line-through"':""}>${m.pending?'<span class="pill" style="color:var(--y,#f5a623);border-color:var(--y,#f5a623)">⏳ SIN RECLAMAR</span>':esc(m.user_name)}${m.edited?' <span class="pill">editado</span>':""}${v?' <span class="pill" style="color:var(--r);border-color:var(--r)">ANULADA</span>':""}</td><td class="${m.kind==="carga"?"pos":"neg"}">${KIND[m.kind]}</td><td>${fm(m.amount)}</td><td>${m.kind==="retiro"&&m.bonus_deduct>0?`${fm(m.bonus_deduct)}<br><span class="mut" style="font-size:11px">bono descontado</span>`:m.bonus>0?fm(m.bonus)+(m.bonus_src?`<br><span class="mut" style="font-size:11px">${esc(m.bonus_src)}</span>`:""):"—"}</td><td>${fn(m.chips)}</td><td>${esc(cName(m.chip_id))}</td><td>${esc(wName(m.wallet_id))}</td><td>${esc(m.cajero_name)}</td><td style="font-weight:700;text-align:right;background:${m.kind==="carga"?"rgba(0,230,118,.14)":"rgba(255,82,82,.16)"};color:${m.kind==="carga"?"var(--a)":"var(--r)"}">${m.kind==="carga"?"+":"−"}${fm(m.kind==="carga"?m.amount:m.amount-N(m.bonus_deduct))}</td>
+  const cols=acts?12:11;
+  return `<div class="tw"><table><tr><th>Fecha</th><th>Usuario</th><th>Publi</th><th>Tipo</th><th>Monto</th><th>Bono</th><th>Fichas</th><th>Ficha</th><th>Billetera</th><th>Cajero</th><th>Neto billetera</th>${acts?"<th></th>":""}</tr>`+
+  rows.map(m=>{const v=m.voided;return `<tr${v?' style="opacity:.55"':""}><td>${fdt(m.ts)}</td><td${v?' style="text-decoration:line-through"':""}>${m.pending?'<span class="pill" style="color:var(--y,#f5a623);border-color:var(--y,#f5a623)">⏳ SIN RECLAMAR</span>':esc(m.user_name)}${m.edited?' <span class="pill">editado</span>':""}${v?' <span class="pill" style="color:var(--r);border-color:var(--r)">ANULADA</span>':""}</td><td>${m.ad_id?esc((S.adNames||{})[m.ad_id]||"Publi"):'<span class="mut">—</span>'}</td><td class="${m.kind==="carga"?"pos":"neg"}">${KIND[m.kind]}</td><td>${fm(m.amount)}</td><td>${m.kind==="retiro"&&m.bonus_deduct>0?`${fm(m.bonus_deduct)}<br><span class="mut" style="font-size:11px">bono descontado</span>`:m.bonus>0?fm(m.bonus)+(m.bonus_src?`<br><span class="mut" style="font-size:11px">${esc(m.bonus_src)}</span>`:""):"—"}</td><td>${fn(m.chips)}</td><td>${esc(cName(m.chip_id))}</td><td>${esc(wName(m.wallet_id))}</td><td>${esc(m.cajero_name)}</td><td style="font-weight:700;text-align:right;background:${m.kind==="carga"?"rgba(0,230,118,.14)":"rgba(255,82,82,.16)"};color:${m.kind==="carga"?"var(--a)":"var(--r)"}">${m.kind==="carga"?"+":"−"}${fm(m.kind==="carga"?m.amount:m.amount-N(m.bonus_deduct))}</td>
   ${acts?`<td class="acts">${v?"":`${m.pending?`<button class="btn s" data-c="${m.id}">Reclamar</button>`:canEditMov()?`<button class="btn g s" data-e="${m.id}">Editar</button>`:""}<button class="btn d s" data-x="${m.id}">Anular</button>`}</td>`:""}</tr>`+
   (v?`<tr style="opacity:.8"><td colspan="${cols}" class="mut" style="padding-top:0">↳ Anulada por <b>${esc(m.voided_by||"?")}</b> el ${fdt(m.voided_at)} · Motivo: <i>${esc(m.void_reason||"")}</i></td></tr>`:"")}).join("")+"</table></div>";
 }
