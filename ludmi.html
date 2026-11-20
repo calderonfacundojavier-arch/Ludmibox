@@ -249,11 +249,66 @@ body.hastk{padding-top:calc(38px + env(safe-area-inset-top))}
 #popH{margin:10px 0 0;font-size:13px;line-height:1.4;color:#ffe9a8}
 #popN{margin-top:6px;border:0;background:none;color:#ffffffa6;font:inherit;font-size:13px;text-decoration:underline;cursor:pointer;padding:8px}
 @media(prefers-reduced-motion:reduce){.avatar.st:not(.seen),#popB,.pmod{animation:none}}
+/* ===== reforma: marco neón con tarjetas (rosa + celeste) ===== */
+:root{--pink:#ec4899;--cyan:#22d3ee;--card:rgba(255,255,255,.04);--glass:rgba(255,255,255,.04);--edge:rgba(236,72,153,.4)}
+body{background:radial-gradient(760px 520px at 0% 0%,rgba(236,72,153,.24),transparent 60%),radial-gradient(640px 520px at 100% 100%,rgba(34,211,238,.10),transparent 62%),#06060d;background-attachment:fixed}
+.wrap{display:flex;flex-direction:column;width:calc(100% - 20px);max-width:500px;margin:14px auto 96px;padding:24px 16px 20px;border:1px solid rgba(236,72,153,.75);border-radius:22px;background:rgba(8,8,18,.84);box-shadow:0 0 0 1px rgba(236,72,153,.12),0 0 26px rgba(236,72,153,.3),inset 0 0 44px rgba(236,72,153,.06)}
+.crown{order:0;align-self:center;color:var(--pink);margin-bottom:6px;filter:drop-shadow(0 0 6px var(--pink))}.crown svg{width:22px;height:22px;display:block}
+.avatar{order:1;width:92px;height:92px;box-shadow:0 0 22px rgba(236,72,153,.55)}
+.avatar::before{background:conic-gradient(from 0deg,#ec4899,#22d3ee,#ec4899)}
+h1{order:2;background:none;color:#fff;letter-spacing:.14em;font-weight:900;margin:14px 0 4px;text-shadow:0 0 3px #fff,0 0 12px var(--pink),0 0 28px rgba(236,72,153,.7),0 0 2px var(--cyan)}
+.name{order:3;text-transform:none;letter-spacing:.02em;font-size:11px;font-weight:600;color:#a9a3b8;margin-bottom:16px}
+#blocks{order:4}#pwaWrap{order:5}footer{order:6}
+.bonus{box-shadow:inset 0 0 0 1px rgba(236,72,153,.55),0 0 18px rgba(236,72,153,.18);background:linear-gradient(160deg,rgba(236,72,153,.2),rgba(34,211,238,.06)),var(--glass)}
+.cta{border-radius:14px}
+.sec{margin:22px 0}
+.sec h2{justify-content:center;gap:8px;font-size:15px;letter-spacing:.04em;font-weight:900;color:#fff;text-shadow:0 0 12px rgba(236,72,153,.65)}
+.sec h2::before,.sec h2::after{content:"\2726";height:auto;flex:none;background:none;transform:none;color:var(--pink);font-size:14px;text-shadow:0 0 8px var(--pink)}
+.row{background:none;box-shadow:none;border:0;padding:6px 2px 10px;gap:12px;-webkit-backdrop-filter:none;backdrop-filter:none}
+.row.round .item{width:76px;font-size:10px;font-weight:600;color:#cfc9dc}
+.row.round .item img{width:66px;height:66px;border-radius:50%;border:2px solid transparent;background:linear-gradient(#000,#000) padding-box,linear-gradient(135deg,var(--pink),var(--cyan)) border-box;box-shadow:0 0 14px rgba(236,72,153,.45);margin-bottom:7px}
+.row:not(.round) .item{width:112px;position:relative;line-height:0}
+.row:not(.round) .item img{width:112px;height:150px;margin:0;border-radius:12px;border:1px solid var(--pink);box-shadow:0 0 14px rgba(236,72,153,.3)}
+.row:not(.round) .item span{position:absolute;left:1px;right:1px;bottom:1px;padding:22px 8px 7px;text-align:left;line-height:1.2;font-size:10.5px;font-weight:800;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.88));border-radius:0 0 11px 11px}
+.grid{grid-template-columns:repeat(auto-fit,minmax(64px,1fr));gap:8px;margin:16px 0 6px}
+.grid div{border:0;border-radius:12px;padding:12px 4px;background:rgba(255,255,255,.03);box-shadow:inset 0 0 0 1px rgba(236,72,153,.55);font-size:9.5px;letter-spacing:.03em;text-transform:uppercase;line-height:1.25;font-weight:800}
+.grid div::before{content:"";display:block;width:30px;height:30px;border-radius:50%;margin:0 auto 7px;box-shadow:inset 0 0 0 1px rgba(236,72,153,.7);background:center/15px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ec4899' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 2'/%3E%3C/svg%3E")}
+.grid div:nth-child(2)::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ec4899' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 12a8 8 0 0 1-11.5 7.2L4 21l1.8-5.5A8 8 0 1 1 21 12z'/%3E%3C/svg%3E")}
+.grid div:nth-child(3)::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ec4899' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z'/%3E%3C/svg%3E")}
+.grid div:nth-child(4)::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ec4899' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M13 2L4 14h7l-1 8 9-12h-7z'/%3E%3C/svg%3E")}
+.grid div:nth-child(n+5)::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ec4899' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z'/%3E%3C/svg%3E")}
+.grid span{text-transform:none;letter-spacing:0;font-size:8.5px;font-weight:500;color:#9b95ab;margin-top:3px}
+.cbtn,.faq details{box-shadow:inset 0 0 0 1px rgba(236,72,153,.4)}
+footer{margin-top:20px;padding-top:14px;border-top:1px solid rgba(255,255,255,.1);font-size:10px;color:#8b86a0}
+footer::before{content:"\265B";display:block;color:var(--pink);font-size:15px;margin-bottom:4px;text-shadow:0 0 8px var(--pink)}
+#f1{font-style:italic;font-weight:700;font-size:12px;color:#d6d0e4}
+/* tarjeta "Datos para transferencias" */
+.tub.neon{border-radius:16px;font-size:13px;letter-spacing:.1em;text-transform:uppercase;justify-content:center;gap:12px;background:linear-gradient(#0a0a16,#0a0a16) padding-box,linear-gradient(135deg,var(--pink),var(--cyan)) border-box;box-shadow:0 0 16px rgba(236,72,153,.4);text-shadow:0 0 8px rgba(236,72,153,.8)}
+.tub.neon::after{background:linear-gradient(135deg,var(--pink),var(--cyan))}
+#tuBox{border:1px solid rgba(236,72,153,.7);border-radius:18px;background:rgba(255,255,255,.03);padding:16px 14px;box-shadow:0 0 18px rgba(236,72,153,.15)}
+#tuBox .pc{display:flex;flex-direction:column;align-items:stretch;text-align:center;border:0;background:none;padding:0;margin:0 0 6px}
+#tuBox .pc .bk{order:1;font-size:11px;color:#a9a3b8;font-weight:600;margin:0 0 2px}
+#tuBox .pc .r{flex-direction:column;align-items:stretch;gap:5px;margin:0}
+#tuBox .pc .r span:first-child{min-width:0;font-size:9.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan)}
+#tuBox .pc .r span:last-child{font:700 14px/1.3 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#fff;padding:13px 40px 13px 12px;border:1px solid rgba(236,72,153,.7);border-radius:12px;background:rgba(0,0,0,.35);position:relative;overflow-wrap:anywhere}
+#tuBox .pc .r.k-copy{cursor:pointer}
+#tuBox .pc .r.k-copy span:last-child::after{content:"\29C9";position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#ffffffa0;font-family:system-ui,sans-serif;font-size:15px}
+#tuBox .pc .r.k-hold{order:2;margin-bottom:10px}
+#tuBox .pc .r.k-hold span:last-child{font:900 15px/1.25 system-ui,sans-serif;text-transform:uppercase;padding:0;border:0;background:none;letter-spacing:.03em}
+#tuBox .pc .r.k-hold span:first-child{font-size:10px;letter-spacing:0;text-transform:none;font-weight:500;color:#a9a3b8}
+#tuBox .pc .r.k-cbu{order:3}#tuBox .pc .pbtn.cp-cbu{order:4}
+#tuBox .pc .r.k-alias{order:5;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.1)}#tuBox .pc .pbtn.cp-al{order:6}
+#tuBox .pc .note{order:7;text-align:center}
+#tuBox .pc .pbtn{align-self:center;width:auto;margin-top:10px;padding:10px 26px;border:0;border-radius:10px;color:#fff;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+#tuBox .pc .pbtn.cp-cbu{background:linear-gradient(90deg,var(--pink),var(--cyan))}
+#tuBox .pc .pbtn.cp-al{background:rgba(236,72,153,.14);box-shadow:inset 0 0 0 1px rgba(236,72,153,.55)}
+#tuBox .pbtn.go{border-radius:12px}
 </style></head>
 <body>
 <div id="tk" hidden><button type="button" id="tkB"><span class="tkm"><span id="tkT"></span><span id="tkT2" aria-hidden="true"></span></span></button><button type="button" id="tkX" aria-label="Cerrar aviso">✕</button></div><p id="tkHint" hidden></p>
 <div id="bg" hidden></div>
 <main class="wrap">
+  <div class="crown" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></svg></div>
   <div class="avatar" id="av" aria-hidden="true">👑</div>
   <div class="name" id="nm"></div>
   <h1 id="ttl"></h1>
@@ -820,8 +875,8 @@ function copyBtn(text,v){
   };
   return b;
 }
-function row(label,v){
-  const r=document.createElement("div");r.className="r";
+function row(label,v,k){
+  const r=document.createElement("div");r.className="r"+(k?" "+k:"");
   const a=document.createElement("span");a.textContent=label;
   const b=document.createElement("span");b.textContent=v;r.append(a,b);return r;
 }
@@ -831,12 +886,12 @@ function payBox(intro,accounts,proof){
   accounts.forEach(a=>{
     const d=document.createElement("div");d.className="pc";
     if(a.label){const b=document.createElement("div");b.className="bk";b.textContent=String(a.label);d.append(b)}
-    if(a.cbu)d.append(row("CBU/CVU",String(a.cbu)));
-    if(a.alias)d.append(row("Alias",String(a.alias)));
-    if(a.holder)d.append(row("Titular",String(a.holder)));
+    const rc=a.cbu?row("CBU/CVU",String(a.cbu),"k-cbu k-copy"):null,ra=a.alias?row("Alias",String(a.alias),"k-alias k-copy"):null;if(rc)d.append(rc);
+    if(ra)d.append(ra);
+    if(a.holder)d.append(row("Titular de la cuenta:",String(a.holder),"k-hold"));
     if(a.note){const n=document.createElement("small");n.className="note";n.textContent=String(a.note);d.append(n)}
-    if(a.cbu)d.append(copyBtn("Copiar CBU",String(a.cbu)));
-    if(a.alias)d.append(copyBtn("Copiar alias",String(a.alias)));
+    if(a.cbu){const b=copyBtn("Copiar CBU",String(a.cbu));b.classList.add("cp-cbu");d.append(b);rc.onclick=()=>b.click()}
+    if(a.alias){const b=copyBtn("Copiar alias",String(a.alias));b.classList.add("cp-al");d.append(b);ra.onclick=()=>b.click()}
     box.append(d);
   });
   const up=document.createElement("button");up.type="button";up.className="pbtn go";up.textContent=proof?proof.label:"Subir comprobante";
