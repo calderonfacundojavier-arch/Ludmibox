@@ -588,7 +588,7 @@ VIEWS.pub=async function(){
     return;
   }
   $("view").innerHTML=`<div class="row" style="margin-bottom:12px;align-items:flex-end"><div><label>Período</label><select id="pP"><option value="total">Total histórico</option><option value="hoy">Hoy</option><option value="7">Últimos 7 días</option><option value="mes">Este mes</option></select></div>
-  <div><label>Estado</label><select id="pS"><option value="">Todas (menos archivadas)</option><option value="activa">Activas</option><option value="pausada">Pausadas</option><option value="finalizada">Finalizadas</option><option value="archivada">Archivadas</option></select></div><button class="btn" id="pN">+ Nueva campaña</button></div><div class="card" id="pL"></div>`;
+  <div><label>Estado</label><select id="pS"><option value="">Todas (menos archivadas)</option><option value="activa">Activas</option><option value="pausada">Pausadas</option><option value="finalizada">Finalizadas</option><option value="archivada">Archivadas</option></select></div><button class="btn" id="pN">+ Nueva campaña</button></div><div class="card" id="pL"></div><div class="card" id="pH" style="margin-top:14px"></div>`;
   const load=async()=>{const t=today(),p=$("pP").value;let f=dayISO(t),to=dayISO(addDays(t,1));
     if(p==="7")f=dayISO(addDays(t,-6));if(p==="mes")f=dayISO(t.slice(0,8)+"01");
     const rows=await rpc("g_ads_stats",{p_from:f,p_to:to,p_total:p==="total",p_status:$("pS").value||null});
@@ -601,8 +601,43 @@ VIEWS.pub=async function(){
       if(o1)run(o1,async()=>{await rpc("g_ad_add_msg",{p_shift:null,p_ad:o1.dataset.p1,p_qty:1});toast("+1 mensaje ✓");await load()});
       if(m)adMsg(find(m.dataset.pm),load);if(c)adCost(find(c.dataset.pc),load);if(a)adAdj(find(a.dataset.pa),load);if(s)adStatus(find(s.dataset.ps),load)}};
   $("pP").onchange=$("pS").onchange=()=>run(null,load);
-  $("pN").onclick=()=>adNew(load);await load();
+  $("pN").onclick=()=>adNew(load);await load();adHourly($("pH"));
 };
+/* Análisis por día y hora: mensajes y cargas por publicidad (solo admin) */
+async function adHourly(box){
+  const t=today(),hrs=Array.from({length:24},(_,i)=>i),hopt=(v,e)=>hrs.map(i=>`<option value="${i}"${i===v?" selected":""}>${String(i).padStart(2,"0")}:${e?"59":"00"}</option>`).join("");
+  const names=Object.assign({},S.adNames||{});
+  box.innerHTML=`<h3 style="margin-top:0">📊 Mensajes y cargas por día y hora</h3>
+  <p class="sub" style="margin-top:0">Filtrá por días, franja horaria y campaña. La hora es la de Argentina. Los mensajes cuentan en el momento en que se registran con «+1 mensaje».</p>
+  <div class="row" style="align-items:flex-end;flex-wrap:wrap;gap:10px">
+   <div><label>Desde</label><input type="date" id="hD" value="${addDays(t,-6)}"></div><div><label>Hasta</label><input type="date" id="hH" value="${t}"></div>
+   <div><label>Hora desde</label><select id="hA">${hopt(0,0)}</select></div><div><label>Hora hasta</label><select id="hB">${hopt(23,1)}</select></div>
+   <div><label>Campaña</label><select id="hC"><option value="">Todas</option>${Object.entries(names).map(([id,n])=>`<option value="${id}">${esc(n)}</option>`).join("")}</select></div>
+   <div><label>Ver por</label><select id="hG"><option value="ad">Campaña</option><option value="day">Día</option><option value="hour">Hora del día</option><option value="adhour">Campaña y hora</option></select></div>
+   <button class="btn" id="hX">Ver</button></div>
+  <div class="row" style="margin:8px 0;gap:6px;flex-wrap:wrap"><button class="btn g s" data-q="0">Hoy</button><button class="btn g s" data-q="1">Ayer</button><button class="btn g s" data-q="7">Últimos 7 días</button><button class="btn g s" data-q="30">Últimos 30 días</button></div>
+  <div id="hR"></div>`;
+  const load=async()=>{
+    const rows=await rpc("g_ads_hourly",{p_from:$("hD").value,p_to:$("hH").value,p_h1:+$("hA").value,p_h2:+$("hB").value,p_ad:$("hC").value||null});
+    const g=$("hG").value,acc={};let tm=0,tl=0,ti=0;
+    rows.forEach(r=>{const adn=names[r.ad_id]||"(campaña eliminada)",hh=String(r.h).padStart(2,"0")+":00";
+      const key=g==="ad"?adn:g==="day"?r.d:g==="hour"?hh:adn+" · "+hh,sort=g==="ad"?adn:g==="day"?r.d:g==="hour"?hh:adn+hh;
+      const o=acc[key]||(acc[key]={k:key,s:sort,m:0,l:0,i:0});o.m+=N(r.msgs);o.l+=N(r.loads);o.i+=N(r.income);tm+=N(r.msgs);tl+=N(r.loads);ti+=N(r.income)});
+    let list=Object.values(acc);
+    if(g==="hour"){const all=[];const a=+$("hA").value,b=+$("hB").value;for(let i=0;i<24;i++){if(a<=b?(i>=a&&i<=b):(i>=a||i<=b)){const k=String(i).padStart(2,"0")+":00";all.push(acc[k]||{k,s:k,m:0,l:0,i:0})}}list=all}
+    list.sort((x,y)=>g==="ad"?y.l-x.l||y.m-x.m:x.s<y.s?-1:1);
+    const mx=Math.max(1,...list.map(x=>Math.max(x.m,x.l))),df=d=>/^\d{4}-\d\d-\d\d$/.test(d)?d.slice(8)+"/"+d.slice(5,7):d;
+    const bar=(v,c)=>`<div class="bar"><i style="width:${v/mx*100}%;${c}"></i></div>`;
+    $("hR").innerHTML=`<div class="row" style="gap:10px;flex-wrap:wrap;margin:6px 0 10px"><div class="card kpi"><div class="l">Mensajes</div><div class="v">${fn(tm)}</div></div><div class="card kpi"><div class="l">Cargas</div><div class="v pos">${fn(tl)}</div></div><div class="card kpi"><div class="l">Ingresos por cargas</div><div class="v">${fm(ti)}</div></div><div class="card kpi"><div class="l">Conversión</div><div class="v">${tm>0?fn(tl/tm*100)+"%":"—"}</div></div></div>`+
+    (list.length?`<div class="tw"><table><tr><th>${g==="ad"?"Campaña":g==="day"?"Día":g==="hour"?"Hora":"Campaña · hora"}</th><th>Mensajes</th><th>Cargas</th><th>Ingresos</th><th>Conversión</th></tr>`+
+      list.map(x=>`<tr><td><b>${esc(g==="day"?df(x.k):x.k)}</b></td><td>${fn(x.m)}${bar(x.m,"")}</td><td>${fn(x.l)}${bar(x.l,"background:var(--g,#16a34a)")}</td><td>${fm(x.i)}</td><td>${x.m>0?fn(x.l/x.m*100)+"%":"—"}</td></tr>`).join("")+`</table></div>`:'<p class="mut">No hay mensajes ni cargas con esos filtros.</p>')+
+    '<p class="sub">Los números históricos cargados a mano (inicial o «Ajustar») no tienen hora, por eso acá no aparecen. Las cargas cuentan solo si tienen campaña asignada.</p>'};
+  $("hX").onclick=()=>run($("hX"),load);
+  $("hG").onchange=$("hC").onchange=$("hA").onchange=$("hB").onchange=$("hD").onchange=$("hH").onchange=()=>run(null,load);
+  box.onclick=ev=>{const b=ev.target.closest("[data-q]");if(!b)return;const n=+b.dataset.q;
+    $("hD").value=n===1?addDays(t,-1):n===0?t:addDays(t,-(n-1));$("hH").value=n===1?addDays(t,-1):t;run(null,load)};
+  await load();
+}
 function adNew(after){
   const d=modal(`<h2>Nueva campaña</h2><label>Nombre</label><input id="nN" maxlength="60"><div class="row"><div><label>Inversión ($)</label><input id="nI" type="number" step="0.01" min="0" value="0"></div><div><label>Inicio</label><input id="nF" type="date" value="${today()}"></div></div>
   <p class="sub" style="margin-top:12px">Si ya venía corriendo, cargá lo acumulado hasta hoy (opcional):</p><div class="row"><div><label>Mensajes</label><input id="nM" type="number" min="0" value="0"></div><div><label>Cargas</label><input id="nL" type="number" min="0" value="0"></div><div><label>Ingresos ($)</label><input id="nR" type="number" min="0" value="0"></div></div>
