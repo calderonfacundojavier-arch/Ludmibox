@@ -1257,5 +1257,26 @@ $("mic").onclick=async()=>{
     rec.start(); $("mic").classList.add("rec"); timer=setTimeout(()=>rec.stop(),120000);
   }catch{alert("Permití el acceso al micrófono para enviar audios.")}
 };
+/* Entrada desde otra app (ej. Truco): ?soporte=1&nombre=ana&msg=Hola... abre el chat, pone el nombre y manda el mensaje una sola vez */
+(async function(){
+  if(PREVIEW)return;
+  const q=new URLSearchParams(location.search);if(!q.has("soporte"))return;
+  const nom=(q.get("nombre")||"").replace(/[\u0000-\u001f\u007f]/g,"").trim().slice(0,20),msg=(q.get("msg")||"").replace(/[\u0000-\u001f\u007f]/g," ").trim().slice(0,500);
+  try{
+    $("chat").hidden=false;syncFab();
+    await init();if(!uid)return;
+    for(let i=0;i<30&&!nameLoaded;i++)await new Promise(r=>setTimeout(r,100));
+    if(nameNeeded()&&nom){
+      const {data}=await sb.rpc("register_username",{p_name:nom});
+      if(typeof data==="string"){myName=data;nameShow();nameWaiters.splice(0).forEach(f=>f())}
+    }
+    const key="soporte_"+msg;
+    if(msg&&!sessionStorage.getItem(key)){
+      if(nameNeeded())await whenNamed();
+      if(await sendBody(msg))sessionStorage.setItem(key,"1");
+    }
+    history.replaceState(null,"",location.pathname);
+  }catch(e){console.warn("soporte:",e)}
+})();
 </script>
 </body></html>
