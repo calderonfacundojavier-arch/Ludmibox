@@ -372,7 +372,7 @@ const SUPABASE_URL="https://otlrgjezfuwlxqigqpfz.supabase.co", SUPABASE_ANON_KEY
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 const $=id=>document.getElementById(id), seen=new Set();
 let readAt=0, seenSent=0, lastAgentTs=0;
-let myName=null,nameLoaded=false;
+let myName=null,nameLoaded=false;const FORCE_NAME=new URLSearchParams(location.search).has("crear"); // ?crear=1 (desde Truco): obliga a pedir el nombre
 const WCOL=["#d41cd8","#7c3aed","#f59e0b","#16a34a","#0ea5e9","#ef4444","#ec4899","#14b8a6","#a855f7","#f97316"];
 const W={a:0,state:"idle",v:0,raf:0,last:0,t0:0,idx:0,max:9};
 const LSG={get(k){try{return localStorage.getItem(k)}catch{return null}},set(k,v){try{localStorage.setItem(k,v)}catch{}}};
@@ -1142,9 +1142,9 @@ $("wbtn").onclick=()=>{
   else if(W.state==="idle"||W.state==="done"){W.state="idle";wSpin()}
 };
 /* usuario: el visitante dice cómo se llama y queda guardado como contacto en el panel */
-function nameNeeded(){return !!(CFG.ask_name&&!PREVIEW&&nameLoaded&&!myName)}
+function nameNeeded(){return !!((CFG.ask_name||FORCE_NAME)&&!PREVIEW&&nameLoaded&&!myName)}
 function nameShow(){
-  const need=CFG.ask_name&&(PREVIEW||(nameLoaded&&!myName));
+  const need=(CFG.ask_name||FORCE_NAME)&&(PREVIEW||(nameLoaded&&!myName));
   $("nameBar").hidden=!need;$("chat").classList.toggle("needname",!!need&&!PREVIEW);
 }
 const nameWaiters=[];
@@ -1272,7 +1272,7 @@ $("mic").onclick=async()=>{
       if(typeof r.data==="string"){myName=r.data;nameShow();nameWaiters.splice(0).forEach(f=>f())}
     }
     if(!$("msgs").querySelector(".sop")){
-      const n=document.createElement("div");n.className="sys sop";n.textContent=myName?("Hola "+myName+", ya te identificamos. Contanos en qué te podemos ayudar."):"Contanos en qué te podemos ayudar.";$("msgs").append(n);$("msgs").scrollTop=1e9}
+      const n=document.createElement("div");n.className="sys sop";n.textContent=FORCE_NAME&&!myName?"¡Hola! Para crearte tu usuario de Truco, decinos cómo te llamás.":myName?("Hola "+myName+(FORCE_NAME?", ya casi está. Te avisamos por acá cuando tu usuario esté listo.":", ya te identificamos. Contanos en qué te podemos ayudar.")):"Contanos en qué te podemos ayudar.";$("msgs").append(n);$("msgs").scrollTop=1e9}
     const key="soporte_"+msg;
     if(msg&&!sessionStorage.getItem(key)){
       if(nameNeeded())await whenNamed();
