@@ -973,7 +973,7 @@ function init(){
     uid=session.user.id;
     if(CFG.chat_notice){const n=document.createElement("div");n.className="sys";n.textContent=CFG.chat_notice;$("msgs").append(n)}
     const {data}=await sb.from("messages").select("*").eq("visitor_id",uid).order("created_at");
-    if(!data||!data.length)String(CFG.greeting||"").split(/\n\s*\n/).map(g=>g.trim()).filter(Boolean)
+    if((!data||!data.length)&&!new URLSearchParams(location.search).has("soporte"))String(CFG.greeting||"").split(/\n\s*\n/).map(g=>g.trim()).filter(Boolean)
       .forEach(g=>bubble({sender:"agent",kind:"text",body:g,created_at:new Date()}));
     (data||[]).forEach(render);
     try{const {data:ar}=await sb.from("agent_read").select("read_at").eq("visitor_id",uid).maybeSingle();if(ar&&ar.read_at)readAt=new Date(ar.read_at).getTime();ticks()}catch{}
@@ -1257,7 +1257,7 @@ $("mic").onclick=async()=>{
     rec.start(); $("mic").classList.add("rec"); timer=setTimeout(()=>rec.stop(),120000);
   }catch{alert("Permití el acceso al micrófono para enviar audios.")}
 };
-/* Entrada desde otra app (ej. Truco): ?soporte=1&nombre=ana&msg=Hola... abre el chat, pone el nombre y manda el mensaje una sola vez */
+/* Entrada desde otra app (ej. Truco): ?soporte=1&nombre=ana&msg=Hola... abre el chat, deja el usuario ya puesto (aunque el chat no pida nombre) y manda el mensaje una sola vez */
 (async function(){
   if(PREVIEW)return;
   const q=new URLSearchParams(location.search);if(!q.has("soporte"))return;
@@ -1266,10 +1266,13 @@ $("mic").onclick=async()=>{
     $("chat").hidden=false;syncFab();
     await init();if(!uid)return;
     for(let i=0;i<30&&!nameLoaded;i++)await new Promise(r=>setTimeout(r,100));
-    if(nameNeeded()&&nom){
-      const {data}=await sb.rpc("register_username",{p_name:nom});
-      if(typeof data==="string"){myName=data;nameShow();nameWaiters.splice(0).forEach(f=>f())}
+    if(!myName&&nom){
+      let r=await sb.rpc("register_username_exact",{p_name:nom});
+      if(r.error)r=await sb.rpc("register_username",{p_name:nom}); // si todavía no corriste supabase-usuario3.sql
+      if(typeof r.data==="string"){myName=r.data;nameShow();nameWaiters.splice(0).forEach(f=>f())}
     }
+    if(!$("msgs").querySelector(".sop")){
+      const n=document.createElement("div");n.className="sys sop";n.textContent=myName?("Hola "+myName+", ya te identificamos. Contanos en qué te podemos ayudar."):"Contanos en qué te podemos ayudar.";$("msgs").append(n);$("msgs").scrollTop=1e9}
     const key="soporte_"+msg;
     if(msg&&!sessionStorage.getItem(key)){
       if(nameNeeded())await whenNamed();
