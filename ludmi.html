@@ -1272,11 +1272,15 @@ $("mic").onclick=async()=>{
       if(typeof r.data==="string"){myName=r.data;nameShow();nameWaiters.splice(0).forEach(f=>f())}
     }
     if(!$("msgs").querySelector(".sop")){
-      const n=document.createElement("div");n.className="sys sop";n.textContent=FORCE_NAME&&!myName?"¡Hola! Para crearte tu usuario de Truco, decinos cómo te llamás.":myName?("Hola "+myName+(FORCE_NAME?", ya casi está. Te avisamos por acá cuando tu usuario esté listo.":", ya te identificamos. Contanos en qué te podemos ayudar.")):"Contanos en qué te podemos ayudar.";$("msgs").append(n);$("msgs").scrollTop=1e9}
+      const n=document.createElement("div");n.className="sys sop";n.textContent=FORCE_NAME&&!myName?"¡Hola! Para crearte tu usuario de Truco, decinos cómo te llamás.":q.has("carga")&&myName?("¡Usuario creado, "+myName+"! Acá abajo están los datos para cargar saldo. Copialos y mandanos el comprobante por este chat."):myName?("Hola "+myName+(FORCE_NAME?", ya casi está. Te avisamos por acá cuando tu usuario esté listo.":", ya te identificamos. Contanos en qué te podemos ayudar.")):"Contanos en qué te podemos ayudar.";$("msgs").append(n);$("msgs").scrollTop=1e9}
     const key="soporte_"+msg;
     if(msg&&!sessionStorage.getItem(key)){
       if(nameNeeded())await whenNamed();
       if(await sendBody(msg))sessionStorage.setItem(key,"1");
+    }
+    if(q.has("carga")){ /* alta automática desde Truco: se le muestran enseguida los datos para cargar saldo (con botones para copiar) */
+      for(let i=0;i<40&&PAY===null;i++)await new Promise(r=>setTimeout(r,100));
+      if(PAY&&PAY.accounts.length&&!sessionStorage.getItem("carga_"+nom)){showPay();sessionStorage.setItem("carga_"+nom,"1");try{await logPay()}catch(e){}}
     }
     history.replaceState(null,"",location.pathname);
   }catch(e){console.warn("soporte:",e)}
